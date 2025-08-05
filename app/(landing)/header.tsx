@@ -16,20 +16,25 @@ import { useTheme } from "next-themes"
 
 
 const menuItems = [
-    { name: 'Features', href: '#link' },
-    { name: 'Solution', href: '#link' },
-    { name: 'Pricing', href: '#link' },
-    { name: 'About', href: '#link' },
+    { name: 'Features', href: '#features' },
+    { name: 'Courses', href: '#features' },
+    { name: 'Pricing', href: '#pricing' },
+    { name: 'FAQ', href: '#faq' },
 ]
 
 export const HeroHeader = () => {
     const [menuState, setMenuState] = React.useState(false)
     const [isScrolled, setIsScrolled] = React.useState(false)
+    const [mounted, setMounted] = React.useState(false)
     const { theme } = useTheme()
 
     const appearance = {
-        baseTheme: theme === "dark" ? dark : undefined,
+        baseTheme: mounted && theme === "dark" ? dark : undefined,
     }
+
+    React.useEffect(() => {
+        setMounted(true)
+    }, [])
 
     React.useEffect(() => {
         const handleScroll = () => {
@@ -51,8 +56,8 @@ export const HeroHeader = () => {
                                 aria-label="home"
                                 className="flex items-center space-x-2">
                                 <ChatMaxingIconColoured />
-                                <span className="text-xl font-medium">Starter.diy</span>
-                                <Badge variant="outline" className="text-muted-foreground  text-xs">Demo</Badge>
+                                <span className="text-xl font-medium">ZoomJudge</span>
+                                <Badge variant="outline" className="text-muted-foreground  text-xs">Beta</Badge>
                             </Link>
 
                             <button

@@ -1,28 +1,67 @@
-# Starter.diy - Elite Next.js SaaS Starter Kit
+# ZoomJudge - AI-Powered Repository Evaluation
 
-A modern, production-ready SaaS starter template for building full-stack applications using Next.js 15, Convex, Clerk, and Clerk Billing. The easiest way to start accepting payments with beautiful UI and seamless integrations.
+An intelligent platform for evaluating GitHub repositories against Zoomcamp course criteria using advanced AI analysis. Get detailed feedback and scoring for your Data Engineering, Machine Learning, MLOps, LLM, and Stock Markets projects.
 
-[🌐 Live Demo](https://elite-next-clerk-convex-starter.vercel.app/) – Try the app in your browser!
 
 
 ## Features
 
-- 🚀 **Next.js 15 with App Router** - Latest React framework with server components
-- ⚡️ **Turbopack** - Ultra-fast development with hot module replacement
-- 🎨 **TailwindCSS v4** - Modern utility-first CSS with custom design system
-- 🔐 **Clerk Authentication** - Complete user management with social logins
-- 💳 **Clerk Billing** - Integrated subscription management and payments
-- 🗄️ **Convex Real-time Database** - Serverless backend with real-time sync
-- 🛡️ **Protected Routes** - Authentication-based route protection
-- 💰 **Payment Gating** - Subscription-based content access
-- 🎭 **Beautiful 404 Page** - Custom animated error page
+- 🤖 **AI-Powered Evaluation** - Advanced repository analysis using Claude Sonnet 4
+- 📚 **Multi-Course Support** - Data Engineering, ML, MLOps, LLM, and Stock Markets
+- 🔍 **Repository Validation** - Comprehensive GitHub repository accessibility checks
+- 📊 **Detailed Scoring** - Breakdown by criteria with actionable feedback
+- 🚀 **Real-time Processing** - Live evaluation status and results updates
+- 🔐 **Secure Authentication** - Complete user management with Clerk
+- 💳 **Subscription Tiers** - Usage-based pricing with Clerk Billing
+- 🗄️ **Real-time Database** - Convex serverless backend with live sync
+- 🎨 **Modern UI** - Beautiful interface with TailwindCSS v4 and shadcn/ui
 - 🌗 **Dark/Light Theme** - System-aware theme switching
 - 📱 **Responsive Design** - Mobile-first approach with modern layouts
-- ✨ **Custom Animations** - React Bits and Framer Motion effects
-- 🧩 **shadcn/ui Components** - Modern component library with Radix UI
-- 📊 **Interactive Dashboard** - Complete admin interface with charts
-- �� **Webhook Integration** - Automated user and payment sync
-- 🚢 **Vercel Ready** - One-click deployment
+- ✨ **Smooth Animations** - Framer Motion effects and loading states
+- 📈 **Usage Analytics** - Track evaluation history and statistics
+- 🛡️ **Rate Limiting** - Abuse prevention and fair usage policies
+- 🚢 **Production Ready** - Optimized for deployment on Vercel
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+ and npm/yarn/pnpm
+- [Convex](https://convex.dev) account for database
+- [Clerk](https://clerk.com) account for authentication
+- [OpenRouter](https://openrouter.ai) API key for AI evaluation
+
+### Setup
+
+1. **Clone and install dependencies:**
+   ```bash
+   git clone <repository-url>
+   cd zoomjudge
+   npm install
+   ```
+
+2. **Configure environment variables:**
+   ```bash
+   cp .env.example .env.local
+   ```
+   Fill in your API keys and configuration in `.env.local`
+
+3. **Set up Convex database:**
+   ```bash
+   npx convex dev
+   ```
+
+4. **Initialize database with default courses:**
+   ```bash
+   npm run init-db
+   ```
+
+5. **Start development server:**
+   ```bash
+   npm run dev
+   ```
+
+Visit `http://localhost:3000` to see your ZoomJudge application!
 
 ## Tech Stack
 
