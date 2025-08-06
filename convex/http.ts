@@ -36,9 +36,20 @@ http.route({
         });
         break;
       }
-      
 
-      
+      case "subscriptionItem.created":
+      case "subscriptionItem.updated":
+      case "subscriptionItem.active": {
+        // Handle subscription updates
+        const subscriptionData = (event as any).data;
+        console.log("Subscription event received:", subscriptionData);
+
+        // For now, we'll log the event and handle subscription updates
+        // through Clerk's user metadata updates instead
+        // This ensures we have proper user identification
+        break;
+      }
+
       default:
         console.log("Ignored webhook event", (event as any).type);
     }

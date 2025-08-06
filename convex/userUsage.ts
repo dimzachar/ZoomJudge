@@ -131,9 +131,9 @@ export const canPerformEvaluation = query({
 
     // Define tier limits
     const tierLimits: Record<string, number> = {
-      free: 5,
-      starter: 50,
-      pro: 500,
+      free: 4,
+      starter: 20,
+      pro: 200,
     };
 
     const limit = tierLimits[usage.subscriptionTier] || tierLimits.free;
@@ -254,9 +254,9 @@ export const canPerformEvaluationInternal = internalQuery({
 
     // Define tier limits
     const tierLimits: Record<string, number> = {
-      free: 5,
-      starter: 50,
-      pro: 500,
+      free: 4,
+      starter: 20,
+      pro: 200,
     };
 
     const limit = tierLimits[usage.subscriptionTier] || tierLimits.free;

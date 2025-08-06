@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, GitBranch, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { useAction, useQuery } from 'convex/react';
@@ -34,14 +34,16 @@ type EvaluationFormData = z.infer<typeof evaluationFormSchema>;
 // Course color mapping
 const getCourseColor = (courseId: string) => {
   const colors: Record<string, string> = {
-    'data-engineering': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-    'machine-learning': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-    'llm-zoomcamp': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
-    'mlops': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
-    'stock-markets': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+    'data-engineering': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+    'machine-learning': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 border-green-200 dark:border-green-800',
+    'llm-zoomcamp': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+    'mlops': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300 border-orange-200 dark:border-orange-800',
+    'stock-markets': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 border-red-200 dark:border-red-800',
   };
-  return colors[courseId] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+  return colors[courseId] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300 border-gray-200 dark:border-gray-800';
 };
+
+
 
 interface EvaluationFormProps {
   onSubmissionSuccess?: (evaluationId: string) => void;
@@ -140,50 +142,37 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
           <div className="space-y-3">
             <Label>Course Type</Label>
             {courses === undefined ? (
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="border rounded-lg p-4 animate-pulse">
-                    <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-muted rounded w-1/2"></div>
-                  </div>
+              <div className="flex flex-wrap gap-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="h-10 w-24 bg-muted rounded-md animate-pulse"></div>
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-3">
+              <div className="flex flex-wrap gap-2">
                 {courses.map((course) => (
-                  <div
+                  <button
                     key={course.courseId}
+                    type="button"
                     className={`
-                      relative cursor-pointer rounded-lg border p-4 transition-all hover:bg-muted/50
+                      px-3 py-2 rounded-md text-sm font-medium transition-colors
                       ${watchedCourseType === course.courseId
-                        ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                        : 'border-border'
+                        ? getCourseColor(course.courseId)
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80 border border-border'
                       }
                     `}
                     onClick={() => handleCourseSelect(course.courseId)}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium">{course.courseName}</h3>
-                          <Badge variant="secondary" className={getCourseColor(course.courseId)}>
-                            {course.courseId}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{course.description}</p>
-                      </div>
-                      {watchedCourseType === course.courseId && (
-                        <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
-                      )}
-                    </div>
-                    <input
-                      type="radio"
-                      value={course.courseId}
-                      {...register('courseType')}
-                      className="sr-only"
-                    />
-                  </div>
+                    {course.courseId}
+                    {watchedCourseType === course.courseId && (
+                      <CheckCircle className="ml-2 h-4 w-4 inline" />
+                    )}
+                  </button>
                 ))}
+                <input
+                  type="hidden"
+                  value={watchedCourseType}
+                  {...register('courseType')}
+                />
               </div>
             )}
             {errors.courseType && (

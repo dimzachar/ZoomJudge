@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { ChatMaxingIconColoured } from '@/components/logo'
+import { ZoomJudgeLogo } from '@/components/zoomjudge-logo'
 import { Loader2, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -17,7 +17,7 @@ import { useTheme } from "next-themes"
 
 const menuItems = [
     { name: 'Features', href: '#features' },
-    { name: 'Courses', href: '#features' },
+    { name: 'Courses', href: '#courses' },
     { name: 'Pricing', href: '#pricing' },
     { name: 'FAQ', href: '#faq' },
 ]
@@ -55,8 +55,7 @@ export const HeroHeader = () => {
                                 href="/"
                                 aria-label="home"
                                 className="flex items-center space-x-2">
-                                <ChatMaxingIconColoured />
-                                <span className="text-xl font-medium">ZoomJudge</span>
+                                <ZoomJudgeLogo variant="full" size="sm" />
                                 <Badge variant="outline" className="text-muted-foreground  text-xs">Beta</Badge>
                             </Link>
 

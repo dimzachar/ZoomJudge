@@ -35,7 +35,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { ChatMaxingIconColoured } from "@/components/logo"
+import { ZoomJudgeLogo } from "@/components/zoomjudge-logo"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 
@@ -47,43 +47,58 @@ const data = {
       icon: IconDashboard,
     },
     {
-      title: "Payment gated",
-      url: "/dashboard/payment-gated",
-      icon: IconSparkles,
+      title: "New Evaluation",
+      url: "/dashboard/new-evaluation",
+      icon: IconFileAi,
+    },
+    {
+      title: "History",
+      url: "/dashboard/history",
+      icon: IconListDetails,
+    },
+    {
+      title: "Analytics",
+      url: "/dashboard/analytics",
+      icon: IconChartBar,
     },
   ],
   navSecondary: [
     {
       title: "Settings",
-      url: "#",
+      url: "/dashboard/settings",
       icon: IconSettings,
     },
     {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
+      title: "Subscription",
+      url: "/dashboard/subscription",
+      icon: IconSparkles,
     },
   ],
-  documents: [
+  courses: [
     {
-      name: "Data Library",
-      url: "#",
+      name: "Data Engineering",
+      url: "/dashboard?course=data-engineering",
       icon: IconDatabase,
     },
     {
-      name: "Reports",
-      url: "#",
-      icon: IconReport,
+      name: "Machine Learning",
+      url: "/dashboard?course=machine-learning",
+      icon: IconBrandOpenai,
     },
     {
-      name: "Word Assistant",
-      url: "#",
-      icon: IconFileWord,
+      name: "MLOps",
+      url: "/dashboard?course=mlops",
+      icon: IconInnerShadowTop,
+    },
+    {
+      name: "LLM Zoomcamp",
+      url: "/dashboard?course=llm-zoomcamp",
+      icon: IconMessageCircle,
+    },
+    {
+      name: "Stock Markets",
+      url: "/dashboard?course=stock-markets",
+      icon: IconChartBar,
     },
   ],
 }
@@ -99,9 +114,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
               <Link href="/">
-                <ChatMaxingIconColoured className="!size-6" />
-                <span className="text-base font-semibold">Starter DIY</span>
-                <Badge variant="outline" className="text-muted-foreground  text-xs">Demo</Badge>
+                <ZoomJudgeLogo variant="full" size="sm" />
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -109,7 +122,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
+        <NavDocuments items={data.courses} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

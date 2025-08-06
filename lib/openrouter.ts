@@ -40,7 +40,7 @@ export class OpenRouterClient {
       const prompt = this.constructEvaluationPrompt(repoUrl, courseType, repoContent);
       
       const completion = await this.client.chat.completions.create({
-        model: 'anthropic/claude-3.5-sonnet',
+        model: 'qwen/qwen3-coder:free',
         messages: [
           {
             role: 'system',
@@ -199,7 +199,7 @@ Evaluation Criteria for ${courseType}:
   async testConnection(): Promise<boolean> {
     try {
       const completion = await this.client.chat.completions.create({
-        model: 'anthropic/claude-3.5-sonnet',
+        model: 'qwen/qwen3-coder:free',
         messages: [
           {
             role: 'user',
