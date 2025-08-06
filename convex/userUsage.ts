@@ -19,15 +19,37 @@ function getCurrentMonth(): string {
 // Get user usage record for current month
 export const getCurrentUsage = query({
   handler: async (ctx) => {
-    const userId = await getAuthenticatedUserId(ctx);
-    const currentMonth = getCurrentMonth();
+    try {
+      const userId = await getAuthenticatedUserId(ctx);
+      const currentMonth = getCurrentMonth();
 
-    const usage = await ctx.db
-      .query("userUsage")
-      .withIndex("byUserAndMonth", (q) => q.eq("userId", userId).eq("month", currentMonth))
-      .first();
+      const usage = await ctx.db
+        .query("userUsage")
+        .withIndex("byUserAndMonth", (q) => q.eq("userId", userId).eq("month", currentMonth))
+        .first();
 
-    return usage;
+      if (!usage) {
+        // Return default usage for current month
+        const now = Date.now();
+        const nextMonth = new Date();
+        nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
+        nextMonth.setHours(0, 0, 0, 0);
+
+        return {
+          userId,
+          month: currentMonth,
+          evaluationsCount: 0,
+          subscriptionTier: "free",
+          lastEvaluationAt: undefined,
+          resetAt: nextMonth.getTime(),
+        };
+      }
+
+      return usage;
+    } catch (error) {
+      // Return null if user is not authenticated
+      return null;
+    }
   },
 });
 

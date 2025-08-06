@@ -57,6 +57,14 @@ export async function getCurrentUser(ctx: QueryCtx) {
   return await userByExternalId(ctx, identity.subject);
 }
 
+export async function getAuthenticatedUserId(ctx: QueryCtx): Promise<string> {
+  const identity = await ctx.auth.getUserIdentity();
+  if (identity === null) {
+    throw new Error("User not authenticated");
+  }
+  return identity.subject;
+}
+
 async function userByExternalId(ctx: QueryCtx, externalId: string) {
   return await ctx.db
     .query("users")

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useUser } from "@clerk/nextjs"
+import { toast } from "sonner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -9,6 +10,8 @@ import { Separator } from "@/components/ui/separator"
 import { useUserTier, SubscriptionStatus } from "@/components/clerk-billing-gate"
 import { getTierInfo } from "@/lib/tier-permissions"
 import CustomClerkPricing from "@/components/custom-clerk-pricing"
+import { UsageMetrics } from "@/components/usage-metrics"
+import { BillingHistory } from "@/components/billing-history"
 import {
   IconCreditCard,
   IconDownload,
@@ -17,7 +20,9 @@ import {
   IconArrowRight,
   IconCalendar,
   IconReceipt,
-  IconExternalLink
+  IconExternalLink,
+  IconSettings,
+  IconAlertTriangle
 } from "@tabler/icons-react"
 
 export default function BillingPage() {
@@ -31,8 +36,52 @@ export default function BillingPage() {
   const nextBillingDate = subscription?.nextBillingDate
 
   const handleManageBilling = () => {
-    // Open Clerk's billing portal
-    window.open('https://billing.clerk.com', '_blank')
+    // Open Clerk's user profile billing section
+    const clerkFrontendUrl = process.env.NEXT_PUBLIC_CLERK_FRONTEND_API_URL
+    if (clerkFrontendUrl) {
+      window.open(`${clerkFrontendUrl}/user/billing`, '_blank')
+    } else {
+      // Fallback to generic billing portal
+      window.open('https://billing.clerk.com', '_blank')
+    }
+  }
+
+  const handleDownloadInvoices = () => {
+    const clerkFrontendUrl = process.env.NEXT_PUBLIC_CLERK_FRONTEND_API_URL
+    if (clerkFrontendUrl) {
+      window.open(`${clerkFrontendUrl}/user/billing/invoices`, '_blank')
+    } else {
+      toast.error("Billing portal not configured")
+    }
+  }
+
+  const handleUpdatePaymentMethod = () => {
+    const clerkFrontendUrl = process.env.NEXT_PUBLIC_CLERK_FRONTEND_API_URL
+    if (clerkFrontendUrl) {
+      window.open(`${clerkFrontendUrl}/user/billing/payment-methods`, '_blank')
+    } else {
+      toast.error("Billing portal not configured")
+    }
+  }
+
+  const handleChangeBillingCycle = () => {
+    const clerkFrontendUrl = process.env.NEXT_PUBLIC_CLERK_FRONTEND_API_URL
+    if (clerkFrontendUrl) {
+      window.open(`${clerkFrontendUrl}/user/billing/subscription`, '_blank')
+    } else {
+      toast.error("Billing portal not configured")
+    }
+  }
+
+  const handleCancelSubscription = () => {
+    if (confirm("Are you sure you want to cancel your subscription? You'll lose access to premium features at the end of your billing period.")) {
+      const clerkFrontendUrl = process.env.NEXT_PUBLIC_CLERK_FRONTEND_API_URL
+      if (clerkFrontendUrl) {
+        window.open(`${clerkFrontendUrl}/user/billing/subscription/cancel`, '_blank')
+      } else {
+        toast.error("Billing portal not configured")
+      }
+    }
   }
 
   const handleUpgrade = () => {
@@ -102,7 +151,7 @@ export default function BillingPage() {
                   Manage Billing
                   <IconExternalLink className="h-3 w-3 ml-1" />
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleManageBilling}>
+                <Button variant="outline" size="sm" onClick={handleDownloadInvoices}>
                   <IconDownload className="h-4 w-4 mr-2" />
                   Download Invoices
                 </Button>
@@ -117,7 +166,11 @@ export default function BillingPage() {
         </CardContent>
       </Card>
 
+      {/* Usage Metrics */}
+      <UsageMetrics />
 
+      {/* Billing History */}
+      <BillingHistory />
 
       {/* Plans */}
       <div id="pricing-plans" className="space-y-6">
@@ -134,42 +187,100 @@ export default function BillingPage() {
         <CustomClerkPricing />
       </div>
 
-      {/* Billing Management */}
+      {/* Subscription Management */}
       {userTier !== 'free' && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <IconReceipt className="h-5 w-5" />
-                <CardTitle>Billing Management</CardTitle>
+                <IconSettings className="h-5 w-5" />
+                <CardTitle>Subscription Management</CardTitle>
               </div>
               <Button variant="outline" size="sm" onClick={handleManageBilling}>
                 <IconExternalLink className="h-4 w-4 mr-2" />
-                Open Billing Portal
+                Manage Subscription
               </Button>
             </div>
             <CardDescription>
-              Manage your subscription, download invoices, and update payment methods.
+              Manage your subscription settings, billing cycle, and payment methods.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button variant="outline" onClick={handleManageBilling} className="justify-start">
-                <IconCreditCard className="h-4 w-4 mr-2" />
-                Update Payment Method
-              </Button>
-              <Button variant="outline" onClick={handleManageBilling} className="justify-start">
-                <IconDownload className="h-4 w-4 mr-2" />
-                Download Invoices
-              </Button>
-              <Button variant="outline" onClick={handleManageBilling} className="justify-start">
-                <IconCalendar className="h-4 w-4 mr-2" />
-                Change Billing Cycle
-              </Button>
-              <Button variant="outline" onClick={handleManageBilling} className="justify-start text-destructive hover:text-destructive">
-                <IconReceipt className="h-4 w-4 mr-2" />
-                Cancel Subscription
-              </Button>
+          <CardContent className="space-y-6">
+            {/* Subscription Details */}
+            <div className="space-y-4">
+              <h4 className="font-medium">Current Subscription</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Plan</p>
+                  <p className="font-medium capitalize">{tierInfo.name}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge variant={isActive ? "default" : "destructive"}>
+                    {isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Next Billing</p>
+                  <p className="font-medium">
+                    {nextBillingDate
+                      ? new Date(nextBillingDate).toLocaleDateString()
+                      : "N/A"
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Quick Actions */}
+            <div className="space-y-4">
+              <h4 className="font-medium">Quick Actions</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Button variant="outline" onClick={handleUpdatePaymentMethod} className="justify-start">
+                  <IconCreditCard className="h-4 w-4 mr-2" />
+                  Update Payment Method
+                </Button>
+                <Button variant="outline" onClick={handleDownloadInvoices} className="justify-start">
+                  <IconDownload className="h-4 w-4 mr-2" />
+                  Download Invoices
+                </Button>
+                <Button variant="outline" onClick={handleChangeBillingCycle} className="justify-start">
+                  <IconCalendar className="h-4 w-4 mr-2" />
+                  Change Billing Cycle
+                </Button>
+                <Button variant="outline" onClick={handleManageBilling} className="justify-start">
+                  <IconSparkles className="h-4 w-4 mr-2" />
+                  Upgrade Plan
+                </Button>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Cancellation */}
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 p-4 rounded-lg border border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20">
+                <IconAlertTriangle className="h-5 w-5 text-orange-600 mt-0.5" />
+                <div className="space-y-2">
+                  <p className="font-medium text-orange-900 dark:text-orange-100">
+                    Need to cancel your subscription?
+                  </p>
+                  <p className="text-sm text-orange-700 dark:text-orange-200">
+                    You can cancel anytime through the billing portal. Your access will continue until the end of your current billing period.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancelSubscription}
+                    className="border-orange-300 text-orange-700 hover:bg-orange-100 dark:border-orange-700 dark:text-orange-300 dark:hover:bg-orange-900/40"
+                  >
+                    <IconReceipt className="h-4 w-4 mr-2" />
+                    Cancel Subscription
+                  </Button>
+                </div>
+              </div>
             </div>
 
             <Separator />

@@ -69,4 +69,18 @@ export default defineSchema({
       .index("byUserId", ["userId"])
       .index("byUserAndMonth", ["userId", "month"])
       .index("byMonth", ["month"]),
+
+    // User preferences and settings
+    userPreferences: defineTable({
+      userId: v.string(), // Clerk user ID
+      emailNotifications: v.boolean(),
+      pushNotifications: v.boolean(),
+      marketingEmails: v.optional(v.boolean()),
+      securityAlerts: v.optional(v.boolean()),
+      weeklyReports: v.optional(v.boolean()),
+      twoFactorEnabled: v.optional(v.boolean()),
+      lastPasswordChange: v.optional(v.number()),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    }).index("byUserId", ["userId"]),
   });

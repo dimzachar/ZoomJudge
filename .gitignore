@@ -42,3 +42,30 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 *.md
+
+# Unused files - safe to ignore
+# Analysis scripts
+analyze-unused-files.js
+
+# Unused dashboard components
+app/dashboard/app-sidebar.tsx
+app/dashboard/chart-area-interactive.tsx
+app/dashboard/data-table.tsx
+app/dashboard/section-cards.tsx
+app/dashboard/site-header.tsx
+app/dashboard/data.json
+
+# Unused UI components
+components/connected-accounts.tsx
+components/kokonutui/attract-button.tsx
+components/magicui/pulsating-button.tsx
+components/menu-bar.tsx
+components/motion-primitives/infinite-slider.tsx
+components/motion-primitives/progressive-blur.tsx
+components/react-bits/text-cursor.tsx
+components/ui/animated-group.tsx
+components/ui/text-effect.tsx
+
+# Unused scripts
+scripts/init-db.js
+scripts/validate-components.js

@@ -49,10 +49,6 @@ export default function CustomClerkPricing() {
             </div>
 
             <PricingTable
-                subscription={{
-                    planId: getCurrentPlanId(),
-                    status: userTier === 'free' ? 'inactive' : 'active'
-                }}
                 appearance={{
                     baseTheme: theme === "dark" ? dark : undefined,
                     elements: {

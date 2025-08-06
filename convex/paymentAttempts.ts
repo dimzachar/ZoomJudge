@@ -1,6 +1,7 @@
-import { internalMutation, QueryCtx } from "./_generated/server";
+import { internalMutation, query, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { paymentAttemptDataValidator } from "./paymentAttemptTypes";
+import { getAuthenticatedUserId } from "./users";
 
 async function userByExternalId(ctx: QueryCtx, externalId: string) {
   return await ctx.db
@@ -8,6 +9,35 @@ async function userByExternalId(ctx: QueryCtx, externalId: string) {
     .withIndex("byExternalId", (q) => q.eq("externalId", externalId))
     .unique();
 }
+
+// Get payment attempts for the current user
+export const getUserPaymentAttempts = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    try {
+      const userId = await getAuthenticatedUserId(ctx);
+
+      // Get the user record to find the internal user ID
+      const user = await userByExternalId(ctx, userId);
+      if (!user) {
+        return [];
+      }
+
+      const paymentAttempts = await ctx.db
+        .query("paymentAttempts")
+        .withIndex("byUserId", (q) => q.eq("userId", user._id))
+        .order("desc")
+        .take(args.limit || 50);
+
+      return paymentAttempts;
+    } catch (error) {
+      // Return empty array if user is not authenticated
+      return [];
+    }
+  },
+});
 
 export const savePaymentAttempt = internalMutation({
   args: { 
