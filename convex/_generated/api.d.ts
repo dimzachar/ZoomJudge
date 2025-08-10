@@ -17,6 +17,7 @@ import type * as courses from "../courses.js";
 import type * as evaluationWorkflow from "../evaluationWorkflow.js";
 import type * as evaluations from "../evaluations.js";
 import type * as http from "../http.js";
+import type * as migrations_removeWeightField from "../migrations/removeWeightField.js";
 import type * as paymentAttemptTypes from "../paymentAttemptTypes.js";
 import type * as paymentAttempts from "../paymentAttempts.js";
 import type * as setup from "../setup.js";
@@ -37,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   evaluationWorkflow: typeof evaluationWorkflow;
   evaluations: typeof evaluations;
   http: typeof http;
+  "migrations/removeWeightField": typeof migrations_removeWeightField;
   paymentAttemptTypes: typeof paymentAttemptTypes;
   paymentAttempts: typeof paymentAttempts;
   setup: typeof setup;

@@ -28,46 +28,58 @@ export function OverallRepoScore({
 }: OverallRepoScoreProps) {
   const sizeConfig = {
     sm: {
-      container: 'w-32 h-32',
+      container: 'w-40 h-24',
       strokeWidth: 8,
-      radius: 56,
+      radius: 60,
       textSize: 'text-lg',
       labelSize: 'text-sm'
     },
     md: {
-      container: 'w-40 h-40',
+      container: 'w-48 h-28',
       strokeWidth: 10,
-      radius: 70,
+      radius: 75,
       textSize: 'text-2xl',
       labelSize: 'text-base'
     },
     lg: {
-      container: 'w-48 h-48',
+      container: 'w-56 h-32',
       strokeWidth: 12,
-      radius: 84,
+      radius: 90,
       textSize: 'text-3xl',
       labelSize: 'text-lg'
     }
   }
 
   const config = sizeConfig[size]
-  const circumference = 2 * Math.PI * config.radius
-  const strokeDasharray = circumference
+
+  // Semicircle gauge calculations
+  const radius = config.radius
+  const strokeWidth = config.strokeWidth
+  const normalizedRadius = radius - strokeWidth * 2
+  const circumference = normalizedRadius * Math.PI // Half circle
+  const strokeDasharray = `${circumference} ${circumference}`
   const strokeDashoffset = circumference - (score / 100) * circumference
 
-  // Color based on score
+  // Color based on score with gradient-like transitions
   const getScoreColor = (score: number) => {
-    if (score >= 90) return 'text-green-600'
-    if (score >= 70) return 'text-blue-600'
-    if (score >= 50) return 'text-yellow-600'
+    if (score >= 80) return 'text-green-600'
+    if (score >= 60) return 'text-blue-600'
+    if (score >= 40) return 'text-yellow-600'
     return 'text-red-600'
   }
 
   const getScoreStroke = (score: number) => {
-    if (score >= 90) return 'stroke-green-600'
-    if (score >= 70) return 'stroke-blue-600'
-    if (score >= 50) return 'stroke-yellow-600'
-    return 'stroke-red-600'
+    if (score >= 80) return 'stroke-green-500'
+    if (score >= 60) return 'stroke-blue-500'
+    if (score >= 40) return 'stroke-yellow-500'
+    return 'stroke-red-500'
+  }
+
+  const getScoreLabel = (score: number) => {
+    if (score >= 80) return 'EXCELLENT'
+    if (score >= 60) return 'GOOD'
+    if (score >= 40) return 'FAIR'
+    return 'NEEDS WORK'
   }
 
   if (showUpgradePrompt) {
@@ -77,22 +89,20 @@ export function OverallRepoScore({
           <div className="relative">
             {/* Blurred background score */}
             <div className={cn("mx-auto relative", config.container)}>
-              <svg className="transform -rotate-90 w-full h-full">
-                <circle
-                  cx="50%"
-                  cy="50%"
-                  r={config.radius}
+              <svg className="w-full h-full" viewBox={`0 0 ${radius * 2} ${radius + 20}`}>
+                {/* Background semicircle */}
+                <path
+                  d={`M ${strokeWidth} ${radius} A ${normalizedRadius} ${normalizedRadius} 0 0 1 ${radius * 2 - strokeWidth} ${radius}`}
                   stroke="currentColor"
-                  strokeWidth={config.strokeWidth}
+                  strokeWidth={strokeWidth}
                   fill="transparent"
                   className="text-muted-foreground/20"
                 />
-                <circle
-                  cx="50%"
-                  cy="50%"
-                  r={config.radius}
+                {/* Progress semicircle */}
+                <path
+                  d={`M ${strokeWidth} ${radius} A ${normalizedRadius} ${normalizedRadius} 0 0 1 ${radius * 2 - strokeWidth} ${radius}`}
                   stroke="currentColor"
-                  strokeWidth={config.strokeWidth}
+                  strokeWidth={strokeWidth}
                   fill="transparent"
                   strokeDasharray={strokeDasharray}
                   strokeDashoffset={strokeDashoffset}
@@ -140,40 +150,41 @@ export function OverallRepoScore({
     <Card className={cn("", className)}>
       <CardContent className="p-6 text-center">
         <div className={cn("mx-auto relative", config.container)}>
-          <svg className="transform -rotate-90 w-full h-full">
-            {/* Background circle */}
-            <circle
-              cx="50%"
-              cy="50%"
-              r={config.radius}
+          <svg className="w-full h-full" viewBox={`0 0 ${radius * 2} ${radius + 20}`}>
+            {/* Background semicircle */}
+            <path
+              d={`M ${strokeWidth} ${radius} A ${normalizedRadius} ${normalizedRadius} 0 0 1 ${radius * 2 - strokeWidth} ${radius}`}
               stroke="currentColor"
-              strokeWidth={config.strokeWidth}
+              strokeWidth={strokeWidth}
               fill="transparent"
               className="text-muted-foreground/20"
             />
-            {/* Progress circle */}
-            <circle
-              cx="50%"
-              cy="50%"
-              r={config.radius}
+            {/* Progress semicircle */}
+            <path
+              d={`M ${strokeWidth} ${radius} A ${normalizedRadius} ${normalizedRadius} 0 0 1 ${radius * 2 - strokeWidth} ${radius}`}
               stroke="currentColor"
-              strokeWidth={config.strokeWidth}
+              strokeWidth={strokeWidth}
               fill="transparent"
               strokeDasharray={strokeDasharray}
               strokeDashoffset={strokeDashoffset}
               className={cn(getScoreStroke(score), "transition-all duration-1000 ease-out")}
               strokeLinecap="round"
             />
+
+            {/* Scale markers */}
+            <text x={strokeWidth} y={radius + 15} className="fill-muted-foreground text-xs" textAnchor="start">0</text>
+            <text x={radius} y={radius + 15} className="fill-muted-foreground text-xs" textAnchor="middle">50</text>
+            <text x={radius * 2 - strokeWidth} y={radius + 15} className="fill-muted-foreground text-xs" textAnchor="end">100</text>
           </svg>
-          
+
           {/* Score text */}
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ marginTop: '-10px' }}>
             <div className="text-center">
               <div className={cn("font-bold", config.textSize, getScoreColor(score))}>
-                {score}%
+                {score}
               </div>
-              <div className="text-xs text-muted-foreground font-medium">
-                SCORE
+              <div className={cn("text-xs font-medium", getScoreColor(score))}>
+                {getScoreLabel(score)}
               </div>
             </div>
           </div>

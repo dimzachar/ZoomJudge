@@ -1,87 +1,22 @@
-import { v } from "convex/values";
-import { mutation, query, internalMutation } from "./_generated/server";
+import { internalMutation } from "../_generated/server";
 
-// Get all active courses
-export const getActiveCourses = query({
+// Migration to remove weight field from existing course criteria and update to new rubrics
+export const removeWeightFieldAndUpdateCriteria = internalMutation({
   handler: async (ctx) => {
-    const courses = await ctx.db
-      .query("courses")
-      .filter((q) => q.eq(q.field("isActive"), true))
-      .order("asc")
-      .collect();
-
-    return courses;
-  },
-});
-
-// Get course by ID
-export const getCourse = query({
-  args: {
-    courseId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const course = await ctx.db
-      .query("courses")
-      .withIndex("byCourseId", (q) => q.eq("courseId", args.courseId))
-      .first();
-
-    return course;
-  },
-});
-
-// Create or update course (admin function)
-export const upsertCourse = mutation({
-  args: {
-    courseId: v.string(),
-    courseName: v.string(),
-    description: v.string(),
-    maxScore: v.number(),
-    criteria: v.array(v.object({
-      name: v.string(),
-      description: v.string(),
-      maxScore: v.number(),
-    })),
-    rubricVersion: v.optional(v.number()),
-    promptTemplate: v.optional(v.string()),
-    isActive: v.optional(v.boolean()),
-  },
-  handler: async (ctx, args) => {
-    // In a real app, you'd want to check for admin permissions here
+    console.log("Starting migration: removing weight field and updating criteria...");
     
-    const existingCourse = await ctx.db
-      .query("courses")
-      .withIndex("byCourseId", (q) => q.eq("courseId", args.courseId))
-      .first();
-
-    const courseData = {
-      courseId: args.courseId,
-      courseName: args.courseName,
-      description: args.description,
-      maxScore: args.maxScore,
-      criteria: args.criteria,
-      rubricVersion: args.rubricVersion ?? 1,
-      promptTemplate: args.promptTemplate,
-      isActive: args.isActive ?? true,
-      updatedAt: Date.now(),
-    };
-
-    if (existingCourse) {
-      await ctx.db.patch(existingCourse._id, courseData);
-      return existingCourse._id;
-    } else {
-      const courseId = await ctx.db.insert("courses", {
-        ...courseData,
-        createdAt: Date.now(),
-      });
-      return courseId;
+    // Get all existing courses
+    const existingCourses = await ctx.db.query("courses").collect();
+    console.log(`Found ${existingCourses.length} existing courses to migrate`);
+    
+    // Delete all existing courses to start fresh with new schema-compliant data
+    for (const course of existingCourses) {
+      console.log(`Deleting old course: ${course.courseId}`);
+      await ctx.db.delete(course._id);
     }
-  },
-});
-
-// Initialize default courses
-export const initializeDefaultCourses = mutation({
-  handler: async (ctx) => {
-    const defaultCourses = [
+    
+    // Now create the new courses with the correct schema and criteria from docs
+    const newCourses = [
       {
         courseId: "data-engineering",
         courseName: "Data Engineering Zoomcamp",
@@ -126,6 +61,8 @@ export const initializeDefaultCourses = mutation({
           },
         ],
         isActive: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
       },
       {
         courseId: "machine-learning",
@@ -181,6 +118,8 @@ export const initializeDefaultCourses = mutation({
           },
         ],
         isActive: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
       },
       {
         courseId: "llm-zoomcamp",
@@ -246,6 +185,8 @@ export const initializeDefaultCourses = mutation({
           },
         ],
         isActive: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
       },
       {
         courseId: "mlops",
@@ -296,6 +237,8 @@ export const initializeDefaultCourses = mutation({
           },
         ],
         isActive: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
       },
       {
         courseId: "stock-markets",
@@ -341,99 +284,24 @@ export const initializeDefaultCourses = mutation({
           },
         ],
         isActive: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
       },
     ];
 
-    // Check if courses already exist
-    const existingCourses = await ctx.db.query("courses").collect();
-    if (existingCourses.length > 0) {
-      return { message: "Courses already initialized", count: existingCourses.length };
-    }
-
-    // Insert all default courses
+    // Insert all new courses
     const insertedIds = [];
-    for (const course of defaultCourses) {
-      const courseId = await ctx.db.insert("courses", {
-        ...course,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      });
+    for (const course of newCourses) {
+      console.log(`Creating new course: ${course.courseId}`);
+      const courseId = await ctx.db.insert("courses", course);
       insertedIds.push(courseId);
     }
 
-    return { message: "Default courses initialized", count: insertedIds.length, ids: insertedIds };
-  },
-});
-
-// Internal version for setup
-export const initializeDefaultCoursesInternal = internalMutation({
-  handler: async (ctx) => {
-    const defaultCourses = [
-      {
-        courseId: "data-engineering",
-        courseName: "Data Engineering Zoomcamp",
-        description: "Comprehensive data engineering course covering pipelines, infrastructure, and best practices",
-        maxScore: 28,
-        rubricVersion: 1,
-        criteria: [
-          {
-            name: "Problem description",
-            description: "0 points: Problem is not described, 2 points: Problem is described but shortly or not clearly, 4 points: Problem is well described and it's clear what the problem the project solves",
-            maxScore: 4,
-          },
-          {
-            name: "Cloud",
-            description: "0 points: Cloud is not used, things run only locally, 2 points: The project is developed in the cloud, 4 points: The project is developed in the cloud and IaC tools are used",
-            maxScore: 4,
-          },
-          {
-            name: "Data ingestion",
-            description: "Batch: 0 points: No workflow orchestration, 2 points: Partial workflow orchestration, 4 points: End-to-end pipeline. Stream: 0 points: No streaming system, 2 points: Simple pipeline, 4 points: Using consumer/producers and streaming technologies",
-            maxScore: 4,
-          },
-          {
-            name: "Data warehouse",
-            description: "0 points: No DWH is used, 2 points: Tables are created in DWH but not optimized, 4 points: Tables are partitioned and clustered in a way that makes sense for the upstream queries",
-            maxScore: 4,
-          },
-          {
-            name: "Transformations",
-            description: "0 points: No transformations, 2 points: Simple SQL transformation (no dbt or similar tools), 4 points: Transformations are defined with dbt, Spark or similar technologies",
-            maxScore: 4,
-          },
-          {
-            name: "Dashboard",
-            description: "0 points: No dashboard, 2 points: A dashboard with 1 tile, 4 points: A dashboard with 2 tiles",
-            maxScore: 4,
-          },
-          {
-            name: "Reproducibility",
-            description: "0 points: No instructions how to run the code at all, 2 points: Some instructions are there but they are not complete, 4 points: Instructions are clear, it's easy to run the code, and the code works",
-            maxScore: 4,
-          },
-        ],
-        isActive: true,
-      },
-      // Add other courses here if needed
-    ];
-
-    // Check if courses already exist
-    const existingCourses = await ctx.db.query("courses").collect();
-    if (existingCourses.length > 0) {
-      return { message: "Courses already initialized", count: existingCourses.length };
-    }
-
-    // Insert all default courses
-    const insertedIds = [];
-    for (const course of defaultCourses) {
-      const courseId = await ctx.db.insert("courses", {
-        ...course,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      });
-      insertedIds.push(courseId);
-    }
-
-    return { message: "Default courses initialized", count: insertedIds.length, ids: insertedIds };
+    console.log(`Migration completed! Recreated ${insertedIds.length} courses with new schema.`);
+    return { 
+      message: "Migration completed successfully", 
+      recreatedCourses: insertedIds.length,
+      courseIds: newCourses.map(c => c.courseId)
+    };
   },
 });

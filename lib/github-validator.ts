@@ -1,19 +1,20 @@
 import { z } from 'zod';
 
-// GitHub URL validation schema
-const githubUrlSchema = z.string().url().refine(
+// GitHub commit URL validation schema
+const githubCommitUrlSchema = z.string().url().refine(
   (url) => {
-    const githubPattern = /^https:\/\/github\.com\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+\/?$/;
-    return githubPattern.test(url);
+    const githubCommitPattern = /^https:\/\/github\.com\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+\/commit\/[a-f0-9]{7,40}\/?$/;
+    return githubCommitPattern.test(url);
   },
   {
-    message: "Must be a valid GitHub repository URL (https://github.com/username/repository)"
+    message: "Must be a valid GitHub commit URL (https://github.com/username/repository/commit/commit-hash)"
   }
 );
 
 export interface GitHubRepoInfo {
   owner: string;
   repo: string;
+  commitHash: string;
   url: string;
   rawUrl: string;
 }
@@ -32,32 +33,34 @@ export interface RepoAccessibilityResult {
 }
 
 /**
- * Validate and parse a GitHub repository URL
+ * Validate and parse a GitHub commit URL
  */
 export function validateGitHubUrl(url: string): RepoValidationResult {
   try {
-    // Basic URL validation
-    const validationResult = githubUrlSchema.safeParse(url);
+    console.log('[UPDATED VALIDATOR] Validating GitHub commit URL:', url);
+    // Basic URL validation for commit URLs
+    const validationResult = githubCommitUrlSchema.safeParse(url);
     if (!validationResult.success) {
       return {
         isValid: false,
-        error: validationResult.error.errors[0]?.message || 'Invalid GitHub URL format'
+        error: validationResult.error.errors[0]?.message || 'Invalid GitHub commit URL format'
       };
     }
 
-    // Extract owner and repo from URL
+    // Extract owner, repo, and commit hash from URL
     const cleanUrl = url.replace(/\/$/, ''); // Remove trailing slash
     const urlParts = cleanUrl.split('/');
-    
-    if (urlParts.length < 5) {
+
+    if (urlParts.length < 7) {
       return {
         isValid: false,
-        error: 'Invalid GitHub URL structure'
+        error: 'Invalid GitHub commit URL structure'
       };
     }
 
     const owner = urlParts[3];
     const repo = urlParts[4];
+    const commitHash = urlParts[6]; // commit hash is after /commit/
 
     // Validate owner and repo names
     const namePattern = /^[a-zA-Z0-9_.-]+$/;
@@ -68,14 +71,24 @@ export function validateGitHubUrl(url: string): RepoValidationResult {
       };
     }
 
-    // Construct raw.githubusercontent.com URL for file access
-    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/main`;
+    // Validate commit hash format (7-40 hex characters)
+    const commitHashPattern = /^[a-f0-9]{7,40}$/;
+    if (!commitHashPattern.test(commitHash)) {
+      return {
+        isValid: false,
+        error: 'Invalid commit hash format'
+      };
+    }
+
+    // Construct raw.githubusercontent.com URL for file access using specific commit
+    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${commitHash}`;
 
     return {
       isValid: true,
       repoInfo: {
         owner,
         repo,
+        commitHash,
         url: cleanUrl,
         rawUrl
       }
@@ -202,6 +215,49 @@ export async function fetchRepoFile(repoInfo: GitHubRepoInfo, filePath: string):
 }
 
 /**
+ * Calculate file importance score for prioritization
+ */
+function calculateFileImportanceScore(filePath: string): number {
+  let score = 0;
+  const fileName = filePath.toLowerCase();
+
+  // High priority files
+  if (fileName.includes('readme')) score += 100;
+  if (fileName.includes('evaluation') || fileName.includes('eval')) score += 95;
+  if (fileName.includes('analysis') || fileName.includes('experiment')) score += 90;
+  if (fileName.endsWith('.ipynb')) score += 85;
+  if (fileName.endsWith('.md')) score += 80;
+  if (fileName.endsWith('.sql')) score += 75; // dbt models
+  
+  // Implementation files
+  if (fileName.includes('rag.') || fileName.includes('rag/')) score += 75;
+  if (fileName.includes('prep.') || fileName.includes('ingest.')) score += 70;
+  if (fileName.endsWith('requirements.txt') || fileName.includes('package.json')) score += 65;
+  if (fileName.includes('docker') || fileName.includes('docker-compose')) score += 60;
+  if (fileName.endsWith('.tf')) score += 60; // terraform
+  if (fileName.endsWith('.py') || fileName.endsWith('.js') || fileName.endsWith('.ts')) score += 55;
+  
+  // Data and config files
+  if (fileName.includes('ground') && fileName.includes('truth')) score += 80;
+  if (fileName.includes('metrics') || fileName.includes('results')) score += 75;
+  if (fileName.includes('notebook')) score += 70;
+  if (fileName.endsWith('.json')) score += 50;
+
+  // Directory-based boosts for DE Zoomcamp
+  if (fileName.startsWith('dbt/')) score += 80;
+  if (fileName.startsWith('terraform/')) score += 70;
+  if (fileName.startsWith('orchestration/dags/')) score += 75;
+  if (fileName.startsWith('processing/dataflow/')) score += 70;
+  if (fileName.startsWith('processing/src/')) score += 65;
+  if (fileName.startsWith('scripts/')) score += 60;
+  
+  // Bonus for files in root directory
+  if (!filePath.includes('/')) score += 10;
+  
+  return score;
+}
+
+/**
  * Get repository structure and key files for evaluation
  */
 export async function getRepoStructure(repoInfo: GitHubRepoInfo): Promise<{
@@ -210,8 +266,8 @@ export async function getRepoStructure(repoInfo: GitHubRepoInfo): Promise<{
   error?: string;
 }> {
   try {
-    // Use GitHub API to get repository tree
-    const response = await fetch(`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/git/trees/main?recursive=1`, {
+    // Use GitHub API to get repository tree for the specific commit
+    const response = await fetch(`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/git/trees/${repoInfo.commitHash}?recursive=1`, {
       method: 'GET',
       headers: {
         'User-Agent': 'ZoomJudge-Bot/1.0',
@@ -234,12 +290,13 @@ export async function getRepoStructure(repoInfo: GitHubRepoInfo): Promise<{
       }
     }
 
-    // Fetch content of key files (README, requirements, config files, etc.)
+    // Fetch content of key files - comprehensive patterns for better evaluation
     const keyFilePatterns = [
+      // Core configuration files
       /^README\.(md|txt)$/i,
       /^requirements\.txt$/i,
       /^package\.json$/i,
-      /^Dockerfile$/i,
+      /(^|\/)Dockerfile$/i,
       /^docker-compose\.ya?ml$/i,
       /^\.env\.example$/i,
       /^setup\.py$/i,
@@ -247,15 +304,88 @@ export async function getRepoStructure(repoInfo: GitHubRepoInfo): Promise<{
       /^Cargo\.toml$/i,
       /^go\.mod$/i,
       /^pom\.xml$/i,
-      /^build\.gradle$/i
+      /^build\.gradle$/i,
+      /^Makefile$/i,
+      /^Pipfile$/i,
+      
+      // Documentation and analysis files (CRITICAL for evaluation)
+      /\.md$/i,                     // All markdown files
+      /\.py$/i,                     // All Python files
+      /\.ipynb$/i,                  // Jupyter notebooks
+      /\.sql$/i,                    // SQL files (dbt/models)
+      /\.js$/i,                     // JavaScript files
+      /\.ts$/i,                     // TypeScript files
+      
+      // Evaluation-specific files
+      /evaluation/i,                // Files with "evaluation" in path/name
+      /analysis/i,                  // Analysis files
+      /experiment/i,                // Experiment files
+      /benchmark/i,                 // Benchmark files
+      /notebook/i,                  // Notebook-related files
+      /ground.?truth/i,             // Ground truth files
+      /metrics/i,                   // Metrics files
+      /results/i,                   // Results files
+      /(^|\/)tests?(\/|$)|\btest\b/i, // Test files (avoid matching 'latest')
+      
+      // Common application files
+      /^app\./i,                    // App entry points
+      /^main\./i,                   // Main files
+      /^index\./i,                  // Index files
+      /^train\./i,                  // Training scripts
+      /^predict\./i,                // Prediction scripts
+      /^run\./i,                    // Run scripts
+      /^prep\./i,                   // Preparation scripts
+      /^ingest\./i,                 // Ingestion scripts
+      /^rag\./i,                    // RAG implementation files
+      
+      // Data files (small ones) — CSV intentionally excluded by guardrail
+      /\.json$/i,                   // JSON files
+      /\.yml$/i,                    // YAML files
+      /\.yaml$/i,                   // YAML files
+      /\.toml$/i,                   // TOML files
+      /\.ini$/i,                    // INI files
+      
+      // Data Engineering Zoomcamp specific paths
+      /(^|\/)dbt\/.+\.(sql|ya?ml)$/i,
+      /(^|\/)terraform\/.+\.tf$/i,
+      /(^|\/)orchestration\/dags\/.+\.py$/i,
+      /(^|\/)processing\/dataflow\/.+\.(py|sql|ya?ml)$/i,
+      /(^|\/)processing\/src\/.+\.(py|sql)$/i,
+      /(^|\/)scripts\/.+\.(sh|py)$/i,
+      /(^|\/)requirements\.txt$/i,
     ];
 
     const keyFiles = files.filter(file => 
       keyFilePatterns.some(pattern => pattern.test(file))
     );
 
-    // Fetch content for key files (limit to prevent excessive API calls)
-    const filesToFetch = keyFiles.slice(0, 10);
+    // Guardrail: exclude media/binary/office/archives and CSVs
+    const excludedExtensions = /\.(png|jpe?g|gif|svg|webp|bmp|tiff|ico|psd|pdf|zip|gz|tar|7z|xz|rar|mp3|wav|flac|mp4|mov|avi|mkv|pptx?|docx?|xlsx?|csv)$/i;
+    const allowedJsonFiles = new Set([
+      'package.json',
+      'tsconfig.json',
+      '.eslintrc.json',
+      'components.json',
+      'dashboard.json'
+    ]);
+    const filteredKeyFiles = keyFiles.filter(file => {
+      if (excludedExtensions.test(file)) return false;
+      // Exclude any logs directories
+      if (/(^|\/)logs(\/|$)/i.test(file)) return false;
+      const base = (file.split('/').pop() || '').toLowerCase();
+      if (base.endsWith('.json') && !allowedJsonFiles.has(base)) return false;
+      return true;
+    });
+
+    // Prioritize files by importance for evaluation
+    const prioritizedFiles = filteredKeyFiles.sort((a, b) => {
+      const scoreA = calculateFileImportanceScore(a);
+      const scoreB = calculateFileImportanceScore(b);
+      return scoreB - scoreA; // Sort descending (highest score first)
+    });
+
+    // Fetch content for key files (increased limit for better evaluation coverage)
+    const filesToFetch = prioritizedFiles.slice(0, 50);
     
     for (const file of filesToFetch) {
       const fileContent = await fetchRepoFile(repoInfo, file);

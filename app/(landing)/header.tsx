@@ -17,9 +17,10 @@ import { useTheme } from "next-themes"
 
 const menuItems = [
     { name: 'Features', href: '#features' },
-    { name: 'Courses', href: '#courses' },
     { name: 'Pricing', href: '#pricing' },
+    { name: 'Testimonials', href: '#testimonials' },
     { name: 'FAQ', href: '#faq' },
+    { name: 'Newsletter', href: '#newsletter' },
 ]
 
 export const HeroHeader = () => {
@@ -27,6 +28,8 @@ export const HeroHeader = () => {
     const [isScrolled, setIsScrolled] = React.useState(false)
     const [mounted, setMounted] = React.useState(false)
     const { theme } = useTheme()
+    const signUpButtonRef = React.useRef<HTMLDivElement>(null)
+    const getStartedButtonRef = React.useRef<HTMLDivElement>(null)
 
     const appearance = {
         baseTheme: mounted && theme === "dark" ? dark : undefined,
@@ -42,6 +45,54 @@ export const HeroHeader = () => {
         }
         window.addEventListener('scroll', handleScroll)
         return () => window.removeEventListener('scroll', handleScroll)
+    }, [])
+
+    // Add interactive glow effect for sign up buttons
+    React.useEffect(() => {
+        const setupButtonInteraction = (containerRef: React.RefObject<HTMLDivElement | null>) => {
+            const container = containerRef.current
+            if (!container) return
+
+            const button = container.querySelector<HTMLButtonElement>('button, [data-slot="button"]')
+            if (!button) return
+
+            let rafId = 0
+            const handleMove = (e: MouseEvent) => {
+                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                const x = (e.clientX - rect.left) / rect.width
+                const y = (e.clientY - rect.top) / rect.height
+                // Map to percents for background-position
+                const px = Math.round(20 + x * 60) // 20% .. 80%
+                const py = Math.round(20 + y * 60)
+                cancelAnimationFrame(rafId)
+                rafId = requestAnimationFrame(() => {
+                    button.style.setProperty('--bg-x', `${px}%`)
+                    button.style.setProperty('--bg-y', `${py}%`)
+                })
+            }
+
+            const handleLeave = () => {
+                cancelAnimationFrame(rafId)
+                button.style.removeProperty('--bg-x')
+                button.style.removeProperty('--bg-y')
+            }
+
+            container.addEventListener('mousemove', handleMove)
+            container.addEventListener('mouseleave', handleLeave)
+            return () => {
+                container.removeEventListener('mousemove', handleMove)
+                container.removeEventListener('mouseleave', handleLeave)
+                cancelAnimationFrame(rafId)
+            }
+        }
+
+        const cleanupSignUp = setupButtonInteraction(signUpButtonRef)
+        const cleanupGetStarted = setupButtonInteraction(getStartedButtonRef)
+
+        return () => {
+            cleanupSignUp?.()
+            cleanupGetStarted?.()
+        }
     }, [])
     return (
         <header>
@@ -124,24 +175,28 @@ export const HeroHeader = () => {
                                         </Button>
                                     </SignInButton>
                                     <SignUpButton mode="modal">
-                                        <Button
-                                            asChild
-                                            size="sm"
-                                            className={cn(isScrolled && 'lg:hidden')}>
-                                            <Link href="#">
-                                                <span>Sign Up</span>
-                                            </Link>
-                                        </Button>
+                                        <div ref={signUpButtonRef}>
+                                            <Button
+                                                asChild
+                                                size="sm"
+                                                className={cn('hero-glow-button', isScrolled && 'lg:hidden')}>
+                                                <Link href="#">
+                                                    <span>Sign Up</span>
+                                                </Link>
+                                            </Button>
+                                        </div>
                                     </SignUpButton>
                                     <SignUpButton mode="modal">
-                                        <Button
-                                            asChild
-                                            size="sm"
-                                            className={cn(isScrolled ? 'lg:inline-flex' : 'hidden')}>
-                                            <Link href="#">
-                                                <span>Get Started</span>
-                                            </Link>
-                                        </Button>
+                                        <div ref={getStartedButtonRef}>
+                                            <Button
+                                                asChild
+                                                size="sm"
+                                                className={cn('hero-glow-button', isScrolled ? 'lg:inline-flex' : 'hidden')}>
+                                                <Link href="#">
+                                                    <span>Get Started</span>
+                                                </Link>
+                                            </Button>
+                                        </div>
                                     </SignUpButton>
                                 </Unauthenticated>
                             </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React from 'react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -21,10 +21,13 @@ import { cn } from '@/lib/utils'
 interface EvaluationCardProps {
   title: string // e.g., "Retrieval Flow"
   description: string // Criteria explanation
-  score: 0 | 1 | 2 // Scoring scale
+  score: number // Actual score achieved
+  maxScore?: number // Maximum possible score (defaults to 1)
   statusLabel: "Needs Work" | "Excellent" | "OK"
   delta?: string // e.g., "+1 since last scan"
   feedback?: string // Detailed feedback (only for paid tiers)
+  sourceFiles?: string[] // Files used for evaluation (new)
+  repoUrl?: string // Repository URL for source file links
   isLocked?: boolean // For free tier users
   onUpgrade?: () => void // Upgrade prompt callback
   className?: string
@@ -34,38 +37,48 @@ export function EvaluationCard({
   title,
   description,
   score,
+  maxScore = 1,
   statusLabel,
   delta,
   feedback,
+  sourceFiles,
+  repoUrl,
   isLocked = false,
   onUpgrade,
   className
 }: EvaluationCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
 
-  // Score configuration
-  const scoreConfig = {
-    0: {
-      icon: IconX,
-      color: 'text-red-600',
-      bgColor: 'bg-red-50 dark:bg-red-950/20',
-      borderColor: 'border-red-200 dark:border-red-800'
-    },
-    1: {
-      icon: IconMinus,
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-50 dark:bg-yellow-950/20',
-      borderColor: 'border-yellow-200 dark:border-yellow-800'
-    },
-    2: {
-      icon: IconCheck,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50 dark:bg-green-950/20',
-      borderColor: 'border-green-200 dark:border-green-800'
+
+  // Calculate percentage for dynamic styling
+  const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0
+  
+  // Dynamic score configuration based on percentage
+  const getScoreConfig = (percentage: number) => {
+    if (percentage >= 80) {
+      return {
+        icon: IconCheck,
+        color: 'text-green-600',
+        bgColor: 'bg-green-50 dark:bg-green-950/20',
+        borderColor: 'border-green-200 dark:border-green-800'
+      }
+    } else if (percentage >= 40) {
+      return {
+        icon: IconMinus,
+        color: 'text-yellow-600',
+        bgColor: 'bg-yellow-50 dark:bg-yellow-950/20',
+        borderColor: 'border-yellow-200 dark:border-yellow-800'
+      }
+    } else {
+      return {
+        icon: IconX,
+        color: 'text-red-600',
+        bgColor: 'bg-red-50 dark:bg-red-950/20',
+        borderColor: 'border-red-200 dark:border-red-800'
+      }
     }
   }
 
-  const config = scoreConfig[score]
+  const config = getScoreConfig(percentage)
   const ScoreIcon = config.icon
 
   // Status label styling
@@ -121,7 +134,7 @@ export function EvaluationCard({
               <ScoreIcon className={cn("h-4 w-4", config.color)} />
             </div>
             <div className="flex-1">
-              <div className="text-sm font-medium">{score}/2 points</div>
+              <div className="text-sm font-medium">{score}/{maxScore} points</div>
             </div>
           </div>
 
@@ -145,6 +158,54 @@ export function EvaluationCard({
   }
 
   const DeltaIcon = getDeltaIcon(delta)
+
+  // Build a stable GitHub blob URL for a file path based on the provided repoUrl
+  const buildGithubFileUrl = (repoUrlValue: string | undefined, filePath: string): string | undefined => {
+    if (!repoUrlValue) return undefined
+    try {
+      const cleanedRepoUrl = repoUrlValue.replace(/\/$/, '')
+
+      // Case 1: commit URL → keep the SHA to ensure correctness regardless of default branch
+      const commitMatch = cleanedRepoUrl.match(/^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/commit\/([0-9a-f]{7,40})$/i)
+      if (commitMatch) {
+        const [, owner, repo, sha] = commitMatch
+        return `https://github.com/${owner}/${repo}/blob/${sha}/${filePath}`
+      }
+
+      // Case 2: repo URL possibly with tree/blob and a ref; default to HEAD to respect default branch
+      const repoMatch = cleanedRepoUrl.match(/^https?:\/\/github\.com\/([^\/]+)\/([^\/#?]+)(?:\/(tree|blob)\/([^\/]+))?/i)
+      if (repoMatch) {
+        const [, owner, repo, _kind, ref] = repoMatch
+        const refToUse = ref || 'HEAD'
+        return `https://github.com/${owner}/${repo}/blob/${refToUse}/${filePath}`
+      }
+
+      return undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  // Prepare a deduplicated display list of source files (preserve first occurrence formatting)
+  const displaySourceFiles: string[] | undefined = Array.isArray(sourceFiles)
+    ? (() => {
+        const seen = new Set<string>()
+        const result: string[] = []
+        for (const item of sourceFiles) {
+          if (typeof item !== 'string') continue
+          const trimmed = item.trim()
+          const isUrl = /^(https?:)\/\//i.test(trimmed)
+          const key = isUrl
+            ? trimmed
+            : trimmed.replace(/^\.\/+/, '').replace(/^\/+/, '')
+          if (!seen.has(key)) {
+            seen.add(key)
+            result.push(item)
+          }
+        }
+        return result
+      })()
+    : undefined
 
   return (
     <Card className={cn("transition-all duration-200 hover:shadow-md", className)}>
@@ -174,36 +235,64 @@ export function EvaluationCard({
             <ScoreIcon className={cn("h-4 w-4", config.color)} />
           </div>
           <div className="flex-1">
-            <div className="text-sm font-medium">{score}/2 points</div>
+            <div className="text-sm font-medium">{score}/{maxScore} points</div>
             <div className="w-full bg-muted rounded-full h-1.5 mt-1">
               <div 
                 className={cn("h-1.5 rounded-full transition-all duration-500", 
-                  score === 2 ? 'bg-green-600' : score === 1 ? 'bg-yellow-600' : 'bg-red-600'
+                  percentage >= 80 ? 'bg-green-600' : percentage >= 40 ? 'bg-yellow-600' : 'bg-red-600'
                 )}
-                style={{ width: `${(score / 2) * 100}%` }}
+                style={{ width: `${(score / maxScore) * 100}%` }}
               />
             </div>
           </div>
         </div>
 
         {feedback && (
-          <Collapsible open={isExpanded} onOpenChange={setIsExpanded} className="mt-4">
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-full justify-between p-0 h-auto">
-                <span className="text-xs font-medium">View Details</span>
-                {isExpanded ? (
-                  <IconChevronUp className="h-3 w-3" />
-                ) : (
-                  <IconChevronDown className="h-3 w-3" />
-                )}
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="mt-2">
-              <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-3">
-                {feedback}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
+          <div className="mt-3 p-3 bg-muted/30 rounded-md">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {feedback}
+            </p>
+          </div>
+        )}
+
+        {displaySourceFiles && displaySourceFiles.length > 0 && (
+          <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center gap-1 mb-1">
+              <svg className="h-3 w-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Sources analyzed:</span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {displaySourceFiles.map((file, index) => {
+                const isUrl = typeof file === 'string' && /^(https?:)\/\//i.test(file)
+                const normalizedPath = typeof file === 'string'
+                  ? file.trim().replace(/^\.\/+/, '').replace(/^\/+/, '')
+                  : ''
+                const href = isUrl ? file : buildGithubFileUrl(repoUrl, normalizedPath)
+                const label = isUrl ? new URL(file).pathname.split('/').slice(-3).join('/') || file : file
+                return (
+                <span key={index} className="inline-flex items-center">
+                    {href ? (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/60 transition-colors"
+                        title={file}
+                      >
+                        {label}
+                      </a>
+                    ) : (
+                      <span className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded" title={file}>
+                        {label}
+                      </span>
+                    )}
+                  {index < displaySourceFiles.length - 1 && <span className="text-blue-400 mx-0.5">•</span>}
+                  </span>
+                )})}
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>

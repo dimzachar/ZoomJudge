@@ -1,8 +1,10 @@
 import OpenAI from 'openai';
+import { evaluationLogger } from './simple-logger';
 
 // OpenRouter API client configuration
 export class OpenRouterClient {
   private client: OpenAI;
+  private currentEvaluationId: string | null = null;
 
   constructor() {
     if (!process.env.OPENROUTER_API_KEY) {
@@ -20,66 +22,226 @@ export class OpenRouterClient {
   }
 
   /**
+   * Set the current evaluation ID for logging purposes
+   */
+  setEvaluationId(evaluationId: string) {
+    this.currentEvaluationId = evaluationId;
+    evaluationLogger.setCurrentEvaluation(evaluationId);
+  }
+
+  /**
    * Evaluate a GitHub repository using Claude Sonnet 4
    * @param repoUrl - The GitHub repository URL
-   * @param courseType - The course type for evaluation criteria
+   * @param courseData - The course data with criteria from Convex
    * @param repoContent - The repository content to analyze
-   * @returns Evaluation results
+   * @returns Evaluation results including prompt hash and rubric version
    */
   async evaluateRepository(
     repoUrl: string,
-    courseType: string,
+    courseData: {
+      courseId: string;
+      courseName: string;
+      description: string;
+      maxScore: number;
+      rubricVersion?: number;
+      promptTemplate?: string;
+      criteria: Array<{
+        name: string;
+        description: string;
+        maxScore: number;
+      }>;
+    },
     repoContent: string
   ): Promise<{
     totalScore: number;
     maxScore: number;
-    breakdown: Record<string, { score: number; feedback: string; maxScore: number }>;
+    breakdown: Record<string, { score: number; feedback: string; maxScore: number; sourceFiles?: string[] }>;
     overallFeedback: string;
+    promptHash: string;
+    rubricVersion: number;
   }> {
     try {
-      const prompt = this.constructEvaluationPrompt(repoUrl, courseType, repoContent);
-      
-      const completion = await this.client.chat.completions.create({
-        model: 'qwen/qwen3-coder:free',
+      console.log('=== OPENROUTER CLIENT DEBUG START ===');
+      console.log(`Repository URL: ${repoUrl}`);
+      console.log(`Course: ${courseData.courseName} (${courseData.courseId})`);
+      console.log(`Repository Content Length: ${repoContent.length} characters`);
+      console.log(`Rubric Version: ${courseData.rubricVersion || 1}`);
+
+      // Log the start of evaluation
+      await evaluationLogger.logGeneral(
+        'OPENROUTER_START',
+        'INFO',
+        'Starting OpenRouter evaluation',
+        {
+          repoUrl,
+          courseId: courseData.courseId,
+          courseName: courseData.courseName,
+          rubricVersion: courseData.rubricVersion || 1,
+          contentLength: repoContent.length,
+          evaluationId: this.currentEvaluationId
+        }
+      );
+
+      // Step 1: Construct evaluation prompt
+      console.log('=== STEP 1: CONSTRUCTING EVALUATION PROMPT ===');
+      const { prompt, promptHash } = this.constructEvaluationPrompt(repoUrl, courseData, repoContent);
+      console.log(`Prompt constructed successfully. Length: ${prompt.length} characters`);
+      console.log(`Prompt hash: ${promptHash}`);
+      console.log('Prompt preview (first 1000 chars):', prompt.substring(0, 1000));
+      console.log('Prompt preview (last 500 chars):', prompt.substring(prompt.length - 500));
+
+      // Step 2: Prepare API request
+      console.log('=== STEP 2: PREPARING API REQUEST ===');
+      const requestPayload = {
+        model: 'anthropic/claude-sonnet-4', // Upgraded to Claude 3.5 Sonnet for better analysis
         messages: [
           {
-            role: 'system',
-            content: 'You are an expert code reviewer and educator specializing in evaluating GitHub repositories for Zoomcamp courses. Provide detailed, constructive feedback and accurate scoring based on the provided rubric.'
+            role: 'system' as const,
+            content: 'You are an expert code reviewer and educator specializing in evaluating GitHub repositories for Zoomcamp courses. Provide detailed, constructive feedback and accurate scoring based on the provided rubric. Analyze the repository thoroughly and provide comprehensive feedback for each criterion.'
           },
           {
-            role: 'user',
+            role: 'user' as const,
             content: prompt
           }
         ],
         temperature: 0.1, // Low temperature for consistent scoring
-        max_tokens: 4000,
-      });
+        max_tokens: 16000, // Increased token limit for more detailed responses
+      };
+
+      console.log('API Request payload:', JSON.stringify({
+        ...requestPayload,
+        messages: requestPayload.messages.map(msg => ({
+          ...msg,
+          content: msg.content.length > 200 ? msg.content.substring(0, 200) + '...[truncated]' : msg.content
+        }))
+      }, null, 2));
+
+      // Step 3: Make API call
+      console.log('=== STEP 3: MAKING API CALL ===');
+      console.log('Sending request to OpenRouter API...');
+
+      // Log the request
+      await evaluationLogger.logGeneral(
+        'LLM_REQUEST',
+        'DEBUG',
+        'Sending request to OpenRouter API',
+        { model: requestPayload.model, promptLength: prompt.length }
+      );
+
+      const completion = await this.client.chat.completions.create(requestPayload);
+
+      console.log('API Response received:', JSON.stringify({
+        id: completion.id,
+        model: completion.model,
+        usage: completion.usage,
+        choices: completion.choices?.map(choice => ({
+          index: choice.index,
+          finish_reason: choice.finish_reason,
+          message: {
+            role: choice.message?.role,
+            content: choice.message?.content ?
+              choice.message.content.substring(0, 500) + '...[truncated]' :
+              'No content'
+          }
+        }))
+      }, null, 2));
 
       const response = completion.choices[0]?.message?.content;
-      if (!response) {
-        throw new Error('No response received from OpenRouter API');
+      const finishReason = completion.choices[0]?.finish_reason;
+
+      // Log the complete LLM interaction
+      await evaluationLogger.logLLMRequest(
+        requestPayload.model,
+        prompt,
+        requestPayload,
+        completion,
+        completion.usage,
+        finishReason
+      );
+
+      if (!response || response === "No content") {
+        console.error('No response content received from OpenRouter API');
+        console.error('Finish reason:', finishReason);
+        console.error('Usage stats:', completion.usage);
+
+        if (finishReason === 'length') {
+          throw new Error('Model response was truncated due to token limit. Try using a model with higher token limits or reduce the repository size.');
+        } else {
+          throw new Error(`No response received from OpenRouter API. Finish reason: ${finishReason}`);
+        }
       }
 
-      return this.parseEvaluationResponse(response);
+      console.log('=== STEP 4: PARSING RESPONSE ===');
+      console.log(`Raw LLM response length: ${response.length} characters`);
+      console.log('Raw LLM response:', response);
+
+      const parsedResults = this.parseEvaluationResponse(response);
+      console.log('Parsed evaluation results:', JSON.stringify(parsedResults, null, 2));
+      console.log('=== OPENROUTER CLIENT DEBUG END ===');
+
+      return {
+        ...parsedResults,
+        promptHash,
+        rubricVersion: courseData.rubricVersion || 1,
+      };
     } catch (error) {
+      console.error('=== OPENROUTER CLIENT ERROR ===');
       console.error('Error evaluating repository:', error);
+      console.error('Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
+      console.error('=== OPENROUTER CLIENT ERROR END ===');
+
+      // Log the error
+      await evaluationLogger.logGeneral(
+        'OPENROUTER_ERROR',
+        'ERROR',
+        'OpenRouter evaluation failed',
+        {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : 'No stack trace',
+          repoUrl,
+          courseId: courseData.courseId,
+          courseName: courseData.courseName
+        }
+      );
+
       throw new Error(`Failed to evaluate repository: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   /**
-   * Construct the evaluation prompt based on course type and repository content
+   * Construct the evaluation prompt based on course data and repository content
    */
-  private constructEvaluationPrompt(repoUrl: string, courseType: string, repoContent: string): string {
-    const basePrompt = `
-Please evaluate the following GitHub repository for the ${courseType} course:
+  private constructEvaluationPrompt(
+    repoUrl: string, 
+    courseData: {
+      courseId: string;
+      courseName: string;
+      description: string;
+      maxScore: number;
+      rubricVersion?: number;
+      promptTemplate?: string;
+      criteria: Array<{
+        name: string;
+        description: string;
+        maxScore: number;
+      }>;
+    }, 
+    repoContent: string
+  ): { prompt: string; promptHash: string } {
+    // Use custom prompt template if provided, otherwise use default
+    const promptPrefix = courseData.promptTemplate || `
+Please evaluate the following GitHub repository for the ${courseData.courseName} course:
 
 Repository URL: ${repoUrl}
 
 Repository Content:
 ${repoContent}
 
-Please provide your evaluation in the following JSON format:
+Please provide your evaluation in the following JSON format. CRITICALLY IMPORTANT: For each criterion, you MUST specify which files you analyzed in the "sourceFiles" array:
 {
   "totalScore": <number>,
   "maxScore": <number>,
@@ -87,69 +249,60 @@ Please provide your evaluation in the following JSON format:
     "criterion1": {
       "score": <number>,
       "feedback": "<detailed feedback>",
-      "maxScore": <number>
+      "maxScore": <number>,
+      "sourceFiles": ["file1.py", "README.md", "notebook.ipynb"]
     },
     "criterion2": {
       "score": <number>,
       "feedback": "<detailed feedback>",
-      "maxScore": <number>
+      "maxScore": <number>,
+      "sourceFiles": ["file2.py", "config.yml"]
     }
   },
   "overallFeedback": "<comprehensive overall feedback>"
 }
 
-Evaluation Criteria for ${courseType}:
+EVALUATION INSTRUCTIONS:
+1. **File Analysis**: Carefully examine ALL provided files. Look for evaluation notebooks, analysis files, documentation about methods used, and implementation details.
+2. **Source Tracking**: For each criterion, you MUST list the specific files that provided evidence for your scoring in the "sourceFiles" array.
+3. **Deep Analysis**: Don't just look at README files - examine code files, notebooks, configuration files, and data files for evidence of implementation.
+4. **Evidence-Based Scoring**: Base your scores on concrete evidence found in the files, not assumptions.
+5. **File Mentions**: When you find relevant evidence in a file, mention the specific file name in your feedback.
+
+Course Description: ${courseData.description}
+Maximum Possible Score: ${courseData.maxScore}
+
+Evaluation Criteria:
 `;
 
-    // Add course-specific criteria
-    const courseCriteria = this.getCourseCriteria(courseType);
-    return basePrompt + courseCriteria;
+    // Generate criteria text from course data
+    const criteriaText = courseData.criteria.map((criterion, index) => {
+      return `${index + 1}. **${criterion.name}** (${criterion.maxScore} points): ${criterion.description}`;
+    }).join('\n');
+
+    const fullPrompt = promptPrefix + criteriaText;
+    
+    // Generate a hash of the prompt for audit purposes
+    const promptHash = this.generatePromptHash(fullPrompt);
+    
+    return { prompt: fullPrompt, promptHash };
   }
 
   /**
-   * Get course-specific evaluation criteria
+   * Generate a hash of the prompt for audit purposes
    */
-  private getCourseCriteria(courseType: string): string {
-    const criteria: Record<string, string> = {
-      'data-engineering': `
-1. **Data Pipeline Architecture (25 points)**: Evaluate the overall design and structure of data pipelines
-2. **Data Processing Logic (25 points)**: Assess the quality and efficiency of data transformation code
-3. **Infrastructure as Code (20 points)**: Review Terraform, Docker, or other IaC implementations
-4. **Data Quality & Testing (15 points)**: Check for data validation, testing, and quality assurance
-5. **Documentation & README (15 points)**: Evaluate project documentation and setup instructions
-`,
-      'machine-learning': `
-1. **Model Development (30 points)**: Evaluate model selection, training, and validation approaches
-2. **Data Preprocessing (20 points)**: Assess data cleaning, feature engineering, and preparation
-3. **Model Evaluation (20 points)**: Review metrics, validation strategies, and performance analysis
-4. **Code Quality (15 points)**: Evaluate code structure, modularity, and best practices
-5. **Documentation & Reproducibility (15 points)**: Check for clear documentation and reproducible results
-`,
-      'llm-zoomcamp': `
-1. **LLM Integration (30 points)**: Evaluate proper use of language models and APIs
-2. **Prompt Engineering (25 points)**: Assess prompt design and optimization techniques
-3. **Application Architecture (20 points)**: Review overall system design and structure
-4. **User Experience (15 points)**: Evaluate interface design and usability
-5. **Documentation & Setup (10 points)**: Check for clear instructions and documentation
-`,
-      'mlops': `
-1. **CI/CD Pipeline (25 points)**: Evaluate automated testing, building, and deployment
-2. **Model Monitoring (25 points)**: Assess monitoring, logging, and alerting systems
-3. **Infrastructure Management (20 points)**: Review containerization, orchestration, and scaling
-4. **Model Versioning (15 points)**: Check for proper model and data versioning
-5. **Documentation & Best Practices (15 points)**: Evaluate adherence to MLOps best practices
-`,
-      'stock-markets': `
-1. **Trading Strategy Implementation (30 points)**: Evaluate trading logic and strategy development
-2. **Data Analysis & Visualization (25 points)**: Assess market data analysis and visualization
-3. **Risk Management (20 points)**: Review risk assessment and management techniques
-4. **Backtesting & Validation (15 points)**: Check for proper strategy testing and validation
-5. **Documentation & Results (10 points)**: Evaluate documentation and result presentation
-`
-    };
-
-    return criteria[courseType] || criteria['data-engineering']; // Default to data-engineering
+  private generatePromptHash(prompt: string): string {
+    // Simple hash function - in production, consider using crypto
+    let hash = 0;
+    for (let i = 0; i < prompt.length; i++) {
+      const char = prompt.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(16);
   }
+
+
 
   /**
    * Parse the evaluation response from the AI
@@ -157,7 +310,7 @@ Evaluation Criteria for ${courseType}:
   private parseEvaluationResponse(response: string): {
     totalScore: number;
     maxScore: number;
-    breakdown: Record<string, { score: number; feedback: string; maxScore: number }>;
+    breakdown: Record<string, { score: number; feedback: string; maxScore: number; sourceFiles?: string[] }>;
     overallFeedback: string;
   } {
     try {
@@ -192,32 +345,88 @@ Evaluation Criteria for ${courseType}:
       };
     }
   }
-
-  /**
-   * Test the API connection
-   */
-  async testConnection(): Promise<boolean> {
-    try {
-      const completion = await this.client.chat.completions.create({
-        model: 'qwen/qwen3-coder:free',
-        messages: [
-          {
-            role: 'user',
-            content: 'Hello, please respond with "Connection successful"'
-          }
-        ],
-        max_tokens: 10,
-      });
-
-      return completion.choices[0]?.message?.content?.includes('Connection successful') || false;
-    } catch (error) {
-      console.error('OpenRouter connection test failed:', error);
-      return false;
-    }
-  }
 }
 
 // Export a function to get the client instance
 export function getOpenRouterClient(): OpenRouterClient {
   return new OpenRouterClient();
+}
+
+// Shared prompt builder to ensure consistency across evaluators (OpenRouter and Anthropic web-search)
+export function buildCourseEvaluationPrompt(
+  repoUrl: string,
+  courseData: {
+    courseId: string;
+    courseName: string;
+    description: string;
+    maxScore: number;
+    rubricVersion?: number;
+    promptTemplate?: string;
+    criteria: Array<{
+      name: string;
+      description: string;
+      maxScore: number;
+    }>;
+  },
+  repoContent: string
+): { prompt: string; promptHash: string } {
+  // Duplicate the private constructEvaluationPrompt structure for external reuse
+  const promptPrefix = courseData.promptTemplate || `
+Please evaluate the following GitHub repository for the ${courseData.courseName} course:
+
+Repository URL: ${repoUrl}
+
+Repository Content:
+${repoContent}
+
+Please provide your evaluation in the following JSON format. CRITICALLY IMPORTANT: For each criterion, you MUST specify which files you analyzed in the "sourceFiles" array:
+{
+  "totalScore": <number>,
+  "maxScore": <number>,
+  "breakdown": {
+    "criterion1": {
+      "score": <number>,
+      "feedback": "<detailed feedback>",
+      "maxScore": <number>,
+      "sourceFiles": ["file1.py", "README.md", "notebook.ipynb"]
+    },
+    "criterion2": {
+      "score": <number>,
+      "feedback": "<detailed feedback>",
+      "maxScore": <number>,
+      "sourceFiles": ["file2.py", "config.yml"]
+    }
+  },
+  "overallFeedback": "<comprehensive overall feedback>"
+}
+
+EVALUATION INSTRUCTIONS:
+1. **File Analysis**: Carefully examine ALL provided files. Look for evaluation notebooks, analysis files, documentation about methods used, and implementation details.
+2. **Source Tracking**: For each criterion, you MUST list the specific files that provided evidence for your scoring in the "sourceFiles" array.
+3. **Deep Analysis**: Don't just look at README files - examine code files, notebooks, configuration files, and data files for evidence of implementation.
+4. **Evidence-Based Scoring**: Base your scores on concrete evidence found in the files, not assumptions.
+5. **File Mentions**: When you find relevant evidence in a file, mention the specific file name in your feedback.
+
+Course Description: ${courseData.description}
+Maximum Possible Score: ${courseData.maxScore}
+
+Evaluation Criteria:
+`;
+
+  const criteriaText = courseData.criteria.map((criterion, index) => {
+    return `${index + 1}. **${criterion.name}** (${criterion.maxScore} points): ${criterion.description}`;
+  }).join('\n');
+
+  const fullPrompt = promptPrefix + criteriaText;
+
+  // Simple hash function
+  let hash = 0;
+  for (let i = 0; i < fullPrompt.length; i++) {
+    const char = fullPrompt.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  const promptHash = Math.abs(hash).toString(16);
+
+  return { prompt: fullPrompt, promptHash };
 }

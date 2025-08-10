@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, GitBranch, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Loader2, GitBranch, CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react';
 import { useAction, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { toast } from 'sonner';
@@ -21,10 +21,10 @@ const evaluationFormSchema = z.object({
     .url('Please enter a valid URL')
     .refine(
       (url) => {
-        const githubPattern = /^https:\/\/github\.com\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+\/?$/;
-        return githubPattern.test(url);
+        const githubCommitPattern = /^https:\/\/github\.com\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+\/commit\/[a-f0-9]{7,40}\/?$/;
+        return githubCommitPattern.test(url);
       },
-      'Must be a valid GitHub repository URL (https://github.com/username/repository)'
+      'Must be a valid GitHub commit URL (https://github.com/username/repository/commit/commit-hash)'
     ),
   courseType: z.string().min(1, 'Please select a course type'),
 });
@@ -46,7 +46,7 @@ const getCourseColor = (courseId: string) => {
 
 
 interface EvaluationFormProps {
-  onSubmissionSuccess?: (evaluationId: string) => void;
+  onSubmissionSuccess?: (evaluationId: string, data: { repoUrl: string; courseType: string }) => void;
 }
 
 export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
@@ -72,32 +72,81 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
   const watchedCourseType = watch('courseType');
 
   const onSubmit = async (data: EvaluationFormData) => {
+    console.log('=== EVALUATION FORM SUBMIT DEBUG START ===');
+    console.log('Form data submitted:', JSON.stringify(data, null, 2));
+
     setIsSubmitting(true);
 
     try {
-      // Submit evaluation using Convex action
-      const result = await submitEvaluation({
+      console.log('=== CALLING CONVEX ACTION ===');
+      const submissionPayload = {
         repoUrl: data.repoUrl,
         courseType: data.courseType,
-      });
+      };
+      console.log('Submission payload:', JSON.stringify(submissionPayload, null, 2));
 
-      toast.success('Evaluation submitted successfully!', {
-        description: 'Your repository is now being analyzed. You\'ll receive results shortly.',
-      });
+      // Submit evaluation using Convex action (now synchronous)
+      const result = await submitEvaluation(submissionPayload);
+      console.log('Convex action result:', JSON.stringify(result, null, 2));
 
-      // Reset form
-      reset();
+      if (result.status === "completed" && result.results) {
+        toast.success('Evaluation completed successfully!', {
+          description: `Your repository scored ${result.results.totalScore}/${result.results.maxScore} points.`,
+        });
 
-      // Call success callback
-      if (onSubmissionSuccess && result.evaluationId) {
-        onSubmissionSuccess(result.evaluationId);
+        // Reset form
+        reset();
+
+        // Call success callback with results
+        if (onSubmissionSuccess && result.evaluationId) {
+          console.log(`Calling success callback with evaluation ID: ${result.evaluationId}`);
+          onSubmissionSuccess(result.evaluationId, data);
+        }
+      } else if (result.status === "failed") {
+        // Show user-friendly error messages
+        let errorMessage = 'Please try again later.';
+        if (result.error?.includes('404') || result.error?.includes('not found')) {
+          errorMessage = 'Repository not found or is private. Please check the URL and make sure the repository is public.';
+        } else if (result.error?.includes('rate limit')) {
+          errorMessage = 'Too many requests. Please wait a moment and try again.';
+        } else if (result.error?.includes('network') || result.error?.includes('timeout')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (result.error?.includes('API') || result.error?.includes('model')) {
+          errorMessage = 'AI service temporarily unavailable. Please try again in a few minutes.';
+        }
+
+        toast.error('Evaluation failed', {
+          description: errorMessage,
+        });
+      } else {
+        toast.success('Evaluation submitted successfully!', {
+          description: 'Your repository is now being analyzed. You\'ll receive results shortly.',
+        });
+
+        // Reset form
+        reset();
+
+        // Call success callback
+        if (onSubmissionSuccess && result.evaluationId) {
+          console.log(`Calling success callback with evaluation ID: ${result.evaluationId}`);
+          onSubmissionSuccess(result.evaluationId, data);
+        }
       }
 
+      console.log('=== EVALUATION FORM SUBMIT DEBUG END ===');
     } catch (error) {
+      console.error('=== EVALUATION FORM SUBMIT ERROR ===');
       console.error('Failed to submit evaluation:', error);
+      console.error('Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
+
       toast.error('Failed to submit evaluation', {
         description: error instanceof Error ? error.message : 'Please try again later.',
       });
+      console.error('=== EVALUATION FORM SUBMIT ERROR END ===');
     } finally {
       setIsSubmitting(false);
     }
@@ -122,18 +171,37 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Repository URL Input */}
           <div className="space-y-2">
-            <Label htmlFor="repoUrl">GitHub Repository URL</Label>
+            <Label htmlFor="repoUrl">GitHub Commit URL</Label>
             <Input
               id="repoUrl"
               type="url"
-              placeholder="https://github.com/username/repository"
+              placeholder="https://github.com/username/repository/commit/abc123..."
               {...register('repoUrl')}
               className={errors.repoUrl ? 'border-red-500' : ''}
             />
+            <p className="text-sm text-muted-foreground">
+              Please provide a commit-specific URL. This ensures consistent evaluation results and prevents duplicate processing of the same code.
+            </p>
             {errors.repoUrl && (
               <Alert variant="destructive">
                 <XCircle className="h-4 w-4" />
                 <AlertDescription>{errors.repoUrl.message}</AlertDescription>
+              </Alert>
+            )}
+            {!errors.repoUrl && (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>How to get a commit URL:</strong>
+                  <br />
+                  1. Go to your GitHub repository
+                  <br />
+                  2. Click on "Commits" or the commit count
+                  <br />
+                  3. Click on the specific commit you want to evaluate
+                  <br />
+                  4. Copy the URL from your browser
+                </AlertDescription>
               </Alert>
             )}
           </div>
@@ -193,7 +261,7 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting Evaluation...
+                Evaluating Repository...
               </>
             ) : (
               <>
@@ -204,13 +272,13 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
           </Button>
         </form>
 
-        {/* Info Alert */}
+        {/* Info Alert
         <Alert className="mt-6">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             Evaluations typically take 2-5 minutes to complete. You'll be notified when your results are ready.
           </AlertDescription>
-        </Alert>
+        </Alert> */}
       </CardContent>
     </Card>
   );

@@ -1,20 +1,20 @@
 import HeroSection from "./hero-section";
-import FeaturesOne from "./features-one";
 import Testimonials from "./testimonials";
+import FeaturesOne from "./features-one";
+import PricingSection from "./pricing-section";
 import CallToAction from "./call-to-action";
 import FAQs from "./faqs";
 import Footer from "./footer";
-import PricingSection from "./pricing-section";
 
 export default function Home() {
   return (
     <div>
       <HeroSection />
+      <Testimonials />
       <FeaturesOne />
       <PricingSection />
-      <Testimonials />
-      <CallToAction />
       <FAQs />
+      <CallToAction />
       <Footer />
     </div>
   );

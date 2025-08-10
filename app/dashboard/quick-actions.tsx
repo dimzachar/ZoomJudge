@@ -8,7 +8,8 @@ import {
   IconHistory, 
   IconChartBar,
   IconPlus,
-  IconGitBranch
+  IconGitBranch,
+  IconSearch
 } from "@tabler/icons-react"
 
 export function QuickActions() {
@@ -33,6 +34,14 @@ export function QuickActions() {
                 New Evaluation
               </Link>
             </Button>
+            {/* COMMENTED OUT: Web search evaluation button
+            <Button asChild size="lg" variant="secondary">
+              <Link href="/dashboard/web-evaluation">
+                <IconSearch className="h-4 w-4 mr-2" />
+                Web Search Evaluation
+              </Link>
+            </Button>
+            */}
             
             <div className="hidden md:flex items-center gap-2">
               <Button asChild variant="outline" size="sm">

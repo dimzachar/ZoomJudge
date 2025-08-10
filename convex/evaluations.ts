@@ -16,6 +16,7 @@ export const createEvaluation = mutation({
     repoUrl: v.string(),
     repoOwner: v.string(),
     repoName: v.string(),
+    commitHash: v.string(),
     course: v.string(),
   },
   handler: async (ctx, args) => {
@@ -26,6 +27,7 @@ export const createEvaluation = mutation({
       repoUrl: args.repoUrl,
       repoOwner: args.repoOwner,
       repoName: args.repoName,
+      commitHash: args.commitHash,
       course: args.course,
       status: "pending",
       createdAt: Date.now(),
@@ -194,6 +196,25 @@ export const getUserEvaluationStats = query({
   },
 });
 
+// Check for existing completed evaluation by commit hash and course
+export const getExistingEvaluation = query({
+  args: {
+    commitHash: v.string(),
+    course: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existingEvaluation = await ctx.db
+      .query("evaluations")
+      .withIndex("byCommitAndCourse", (q) =>
+        q.eq("commitHash", args.commitHash).eq("course", args.course)
+      )
+      .filter((q) => q.eq(q.field("status"), "completed"))
+      .first();
+
+    return existingEvaluation;
+  },
+});
+
 // Delete evaluation
 export const deleteEvaluation = mutation({
   args: {
@@ -215,6 +236,26 @@ export const deleteEvaluation = mutation({
   },
 });
 
+// TEMPORARY: Clear all evaluations to fix schema migration
+export const clearAllEvaluations = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthenticatedUserId(ctx);
+    console.log(`Clearing all evaluations for schema migration - requested by user: ${userId}`);
+
+    // Get all evaluations
+    const allEvaluations = await ctx.db.query("evaluations").collect();
+
+    // Delete them all
+    for (const evaluation of allEvaluations) {
+      await ctx.db.delete(evaluation._id);
+    }
+
+    console.log(`Deleted ${allEvaluations.length} evaluations`);
+    return { deletedCount: allEvaluations.length };
+  },
+});
+
 // Internal functions for workflow
 export const createEvaluationInternal = internalMutation({
   args: {
@@ -222,6 +263,7 @@ export const createEvaluationInternal = internalMutation({
     repoUrl: v.string(),
     repoOwner: v.string(),
     repoName: v.string(),
+    commitHash: v.string(),
     course: v.string(),
   },
   handler: async (ctx, args) => {
@@ -230,6 +272,7 @@ export const createEvaluationInternal = internalMutation({
       repoUrl: args.repoUrl,
       repoOwner: args.repoOwner,
       repoName: args.repoName,
+      commitHash: args.commitHash,
       course: args.course,
       status: "pending",
       createdAt: Date.now(),
@@ -239,11 +282,130 @@ export const createEvaluationInternal = internalMutation({
   },
 });
 
+// Get evaluation by ID (public query)
+export const getEvaluationById = query({
+  args: {
+    evaluationId: v.id("evaluations"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await ctx.auth.getUserIdentity();
+    if (!userId) {
+      throw new Error("Authentication required");
+    }
+
+    const evaluation = await ctx.db.get(args.evaluationId);
+
+    // Only return evaluation if it belongs to the current user
+    if (!evaluation || evaluation.userId !== userId.subject) {
+      return null;
+    }
+
+    return evaluation;
+  },
+});
+
+// Note: deleteEvaluation is already defined above, removing duplicate
+
 export const getEvaluationByIdInternal = internalQuery({
   args: {
     evaluationId: v.id("evaluations"),
   },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.evaluationId);
+  },
+});
+
+// Internal mutation for updating evaluation status
+export const updateEvaluationStatusInternal = internalMutation({
+  args: {
+    evaluationId: v.id("evaluations"),
+    status: v.union(v.literal("pending"), v.literal("processing"), v.literal("completed"), v.literal("failed")),
+    errorMessage: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const updateData: any = {
+      status: args.status,
+    };
+
+    if (args.status === "processing") {
+      updateData.processingStartedAt = Date.now();
+    } else if (args.status === "completed" || args.status === "failed") {
+      updateData.completedAt = Date.now();
+    }
+
+    if (args.errorMessage) {
+      updateData.errorMessage = args.errorMessage;
+    }
+
+    await ctx.db.patch(args.evaluationId, updateData);
+  },
+});
+
+// Internal query for checking existing evaluations (for caching)
+export const getExistingEvaluationInternal = internalQuery({
+  args: {
+    commitHash: v.string(),
+    course: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existingEvaluation = await ctx.db
+      .query("evaluations")
+      .withIndex("byCommitAndCourse", (q) =>
+        q.eq("commitHash", args.commitHash).eq("course", args.course)
+      )
+      .filter((q) => q.eq(q.field("status"), "completed"))
+      .first();
+
+    return existingEvaluation;
+  },
+});
+
+// Internal mutation for updating evaluation results
+export const updateEvaluationResultsInternal = internalMutation({
+  args: {
+    evaluationId: v.id("evaluations"),
+    results: v.object({
+      totalScore: v.number(),
+      maxScore: v.number(),
+      breakdown: v.any(),
+      overallFeedback: v.string(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.evaluationId, {
+      results: args.results,
+      totalScore: args.results.totalScore,
+      maxScore: args.results.maxScore,
+      status: "completed",
+      completedAt: Date.now(),
+    });
+  },
+});
+
+// Internal query for getting pending evaluations
+export const getPendingEvaluationsInternal = internalQuery({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit || 10;
+
+    const evaluations = await ctx.db
+      .query("evaluations")
+      .withIndex("byStatus", (q) => q.eq("status", "pending"))
+      .order("asc") // Process oldest first
+      .take(limit);
+
+    return evaluations;
+  },
+});
+
+// Internal mutation for deleting evaluation
+export const deleteEvaluationInternal = internalMutation({
+  args: {
+    evaluationId: v.id("evaluations"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.evaluationId);
   },
 });

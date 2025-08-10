@@ -6,7 +6,7 @@ export const initializeDatabase = action({
   handler: async (ctx): Promise<{ success: boolean; message: string; courses?: any }> => {
     try {
       // Initialize default courses
-      const coursesResult: any = await ctx.runMutation(internal.courses.initializeDefaultCourses);
+      const coursesResult: any = await ctx.runMutation(internal.courses.initializeDefaultCoursesInternal);
 
       return {
         success: true,

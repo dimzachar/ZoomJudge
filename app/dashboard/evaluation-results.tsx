@@ -1,25 +1,29 @@
 "use client";
 
 import React from 'react';
-import { useQuery } from 'convex/react';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  AlertCircle, 
-  ExternalLink, 
+import {
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  ExternalLink,
   RefreshCw,
   TrendingUp,
   FileText,
-  Calendar
+  Calendar,
+  Trash2,
+  Eye
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
+import Link from 'next/link';
 
 interface EvaluationResultsProps {
   limit?: number;
@@ -123,6 +127,21 @@ export function EvaluationResults({ limit = 10 }: EvaluationResultsProps) {
 }
 
 function EvaluationCard({ evaluation }: { evaluation: any }) {
+  const deleteEvaluation = useMutation(api.evaluations.deleteEvaluation);
+
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this evaluation?')) {
+      return;
+    }
+
+    try {
+      await deleteEvaluation({ evaluationId: evaluation._id });
+      toast.success('Evaluation deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete evaluation');
+      console.error('Delete error:', error);
+    }
+  };
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
@@ -200,6 +219,14 @@ function EvaluationCard({ evaluation }: { evaluation: any }) {
               {evaluation.status}
             </span>
           </Badge>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleDelete}
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-red-600"
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
         </div>
       </div>
 
@@ -207,15 +234,23 @@ function EvaluationCard({ evaluation }: { evaluation: any }) {
         <div className="mt-3 p-3 bg-muted/30 rounded-md">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">Score</span>
-            <span className="text-lg font-bold">
-              {evaluation.totalScore}/{evaluation.maxScore} 
-              <span className="text-sm text-muted-foreground ml-1">
-                ({Math.round((evaluation.totalScore / evaluation.maxScore) * 100)}%)
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-bold">
+                {evaluation.totalScore}/{evaluation.maxScore}
+                <span className="text-sm text-muted-foreground ml-1">
+                  ({Math.round((evaluation.totalScore / evaluation.maxScore) * 100)}%)
+                </span>
               </span>
-            </span>
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/dashboard/evaluation/${evaluation._id}`}>
+                  <Eye className="h-3 w-3 mr-1" />
+                  View Details
+                </Link>
+              </Button>
+            </div>
           </div>
           {evaluation.results.overallFeedback && (
-            <p className="text-sm text-muted-foreground line-clamp-2">
+            <p className="text-sm text-muted-foreground">
               {evaluation.results.overallFeedback}
             </p>
           )}

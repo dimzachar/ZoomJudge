@@ -7,9 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "init-db": "node scripts/init-db.js"
+    "check-criteria": "powershell -ExecutionPolicy Bypass -File scripts/check-hardcoded-criteria.ps1",
+    "init-db": "node scripts/init-db.js",
+    "debug:file-selection": "bun tsx scripts/debug-file-selection.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.59.0",
     "@clerk/backend": "^2.4.1",
     "@clerk/nextjs": "^6.24.0",
     "@clerk/themes": "^2.2.55",
@@ -35,11 +38,13 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@tabler/icons-react": "^3.34.0",
     "@tanstack/react-table": "^8.21.3",
+    "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.25.2",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.23.3",
+    "gsap": "^3.13.0",
     "lucide-react": "^0.525.0",
     "motion": "^12.23.0",
     "next": "15.3.5",

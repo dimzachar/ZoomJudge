@@ -42,6 +42,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 *.md
+# !claude.md
+# !development-plan.md
 
 # Unused files - safe to ignore
 # Analysis scripts
@@ -69,3 +71,8 @@ components/ui/text-effect.tsx
 # Unused scripts
 scripts/init-db.js
 scripts/validate-components.js
+scripts/
+test*
+*logs.js
+anthropic.ts
+app/dashboard/web-evaluation/page.tsx

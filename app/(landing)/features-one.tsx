@@ -6,12 +6,12 @@ import { AnimatedListCustom } from './animated-list-custom'
 
 export default function FeaturesOne() {
     return (
-        <section className="py-16 md:py-32">
+        <section className="py-16 md:py-10">
             <div className=" py-24">
                 <div className="mx-auto w-full max-w-5xl px-6">
                     <div className="text-center" id="features">
                         <h2 className="text-foreground text-4xl font-semibold">Intelligent Repository Analysis</h2>
-                        <p className="text-muted-foreground mb-12 mt-4 text-balance text-lg">Get comprehensive feedback on your GitHub repositories with AI-powered evaluation across multiple Zoomcamp courses. Detailed scoring and actionable insights to improve your projects.</p>
+                        <p className="text-muted-foreground mb-12 mt-4 text-balance text-lg">Get comprehensive feedback on your GitHub repositories with AI-powered evaluation across multiple Zoomcamp courses. Detailed scoring and prioritized insights to improve your projects.</p>
                         <div className="bg-foreground/5 rounded-3xl p-6">
                             <Table />
                         </div>
@@ -30,7 +30,7 @@ export default function FeaturesOne() {
                         </div>
                         <div>
                             <h3 className="text-foreground text-xl font-semibold">Detailed Feedback</h3>
-                            <p className="text-muted-foreground my-4 text-lg">Get comprehensive scoring breakdowns and actionable feedback to improve your project quality.</p>
+                            <p className="text-muted-foreground my-4 text-lg">Get comprehensive scoring breakdowns and guided feedback to improve your project quality.</p>
                             <Card
                                 className="aspect-video overflow-hidden">
                                 <Card className="translate-6 h-full rounded-bl-none border-b-0 border-r-0 bg-muted/50 pt-6 pb-0">
@@ -39,7 +39,7 @@ export default function FeaturesOne() {
                             </Card>
                         </div>
                     </div>
-
+{/* 
                     <blockquote className="before:bg-primary relative mt-12 max-w-xl pl-6 before:absolute before:inset-y-0 before:left-0 before:w-1 before:rounded-full">
                         <p className="text-foreground text-lg">ZoomJudge has transformed how I evaluate my projects. The AI feedback is incredibly detailed and helps me understand exactly what I need to improve.</p>
                         <footer className="mt-4 flex items-center gap-2">
@@ -49,7 +49,7 @@ export default function FeaturesOne() {
                                 className="bg-foreground/15 size-1 rounded-full"></span>
                             <span className="text-muted-foreground">Data Engineering Student</span>
                         </footer>
-                    </blockquote>
+                    </blockquote> */}
                 </div>
             </div>
         </section>

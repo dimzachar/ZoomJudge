@@ -13,7 +13,7 @@ const CustomClerkPricing = dynamic(() => import("@/components/custom-clerk-prici
 
 export default function PricingSection() {
   return (
-    <section id="pricing" className="bg-muted/50 py-16 md:py-32">
+    <section id="pricing" className="bg-muted/50 py-10 md:py-32">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mb-12 mx-auto max-w-2xl space-y-6 text-center">
           <h1 className="text-center text-4xl font-semibold lg:text-5xl">Pricing that Scales with You</h1>

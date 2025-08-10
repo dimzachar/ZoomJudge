@@ -20,7 +20,11 @@ export default defineSchema({
       repoUrl: v.string(),
       repoOwner: v.string(),
       repoName: v.string(),
+      commitHash: v.string(), // Git commit hash for caching and versioning
       course: v.string(), // Course type (data-engineering, machine-learning, etc.)
+      courseId: v.optional(v.string()), // Reference to the course document
+      rubricVersion: v.optional(v.number()), // Version of rubric used for evaluation
+      promptHash: v.optional(v.string()), // Hash of the prompt used for audit trail
       status: v.union(v.literal("pending"), v.literal("processing"), v.literal("completed"), v.literal("failed")),
       results: v.optional(v.object({
         totalScore: v.number(),
@@ -38,6 +42,8 @@ export default defineSchema({
       .index("byUserId", ["userId"])
       .index("byStatus", ["status"])
       .index("byUserAndStatus", ["userId", "status"])
+      .index("byCommitAndCourse", ["commitHash", "course"]) // For caching lookups
+      .index("byCommitHash", ["commitHash"]) // For commit-based queries
       .index("byCreatedAt", ["createdAt"]),
 
     // Course definitions and criteria
@@ -50,8 +56,9 @@ export default defineSchema({
         name: v.string(),
         description: v.string(),
         maxScore: v.number(),
-        weight: v.number(), // Percentage weight in total score
       })),
+      rubricVersion: v.optional(v.number()), // Default 1, increment when criteria change
+      promptTemplate: v.optional(v.string()), // Course-specific prompt preface
       isActive: v.boolean(),
       createdAt: v.number(),
       updatedAt: v.number(),
