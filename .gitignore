@@ -76,3 +76,6 @@ test*
 *logs.js
 anthropic.ts
 app/dashboard/web-evaluation/page.tsx
+
+# clerk configuration (can include secrets)
+/.clerk/

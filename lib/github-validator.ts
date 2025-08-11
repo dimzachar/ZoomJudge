@@ -228,7 +228,16 @@ function calculateFileImportanceScore(filePath: string): number {
   if (fileName.endsWith('.ipynb')) score += 85;
   if (fileName.endsWith('.md')) score += 80;
   if (fileName.endsWith('.sql')) score += 75; // dbt models
-  
+
+  // MLOps Pipeline Files (HIGH PRIORITY for reproducibility)
+  if (fileName.includes('src/pipeline/') || fileName.includes('pipeline/')) score += 95;
+  if (fileName.includes('data_ingestion') || fileName.includes('data_preprocessing')) score += 90;
+  if (fileName.includes('model_training') || fileName.includes('model_registry')) score += 90;
+  if (fileName.includes('orchestrate') || fileName.includes('orchestration')) score += 85;
+  if (fileName.endsWith('model.py') || fileName.endsWith('lambda_function.py')) score += 85;
+  if (fileName.includes('monitoring') || fileName.includes('drift')) score += 80;
+  if (fileName.includes('inference') || fileName.includes('serve')) score += 75;
+
   // Implementation files
   if (fileName.includes('rag.') || fileName.includes('rag/')) score += 75;
   if (fileName.includes('prep.') || fileName.includes('ingest.')) score += 70;
@@ -236,7 +245,7 @@ function calculateFileImportanceScore(filePath: string): number {
   if (fileName.includes('docker') || fileName.includes('docker-compose')) score += 60;
   if (fileName.endsWith('.tf')) score += 60; // terraform
   if (fileName.endsWith('.py') || fileName.endsWith('.js') || fileName.endsWith('.ts')) score += 55;
-  
+
   // Data and config files
   if (fileName.includes('ground') && fileName.includes('truth')) score += 80;
   if (fileName.includes('metrics') || fileName.includes('results')) score += 75;
@@ -250,10 +259,10 @@ function calculateFileImportanceScore(filePath: string): number {
   if (fileName.startsWith('processing/dataflow/')) score += 70;
   if (fileName.startsWith('processing/src/')) score += 65;
   if (fileName.startsWith('scripts/')) score += 60;
-  
+
   // Bonus for files in root directory
   if (!filePath.includes('/')) score += 10;
-  
+
   return score;
 }
 

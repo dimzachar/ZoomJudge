@@ -406,7 +406,7 @@ export class EvaluationService {
     // Main application entry points
     const entryPointPatterns = [
       /^(src\/)?main\./i,          // Main files
-      /^(src\/)?app\./i,           // App files  
+      /^(src\/)?app\./i,           // App files
       /^(src\/)?index\./i,         // Index files
       /^train\./i,                 // Training scripts
       /^predict\./i,               // Prediction scripts
@@ -416,6 +416,44 @@ export class EvaluationService {
     // Backend Python core files (always include if present)
     const backendPythonCorePatterns = [
       /(^|\/)backend\/app\/(rag\.py|ingest\.py|prep\.py|app\.py|db\.py)$/i,
+    ];
+
+    // MLOps Pipeline Core Files (HIGH PRIORITY for reproducibility)
+    const mlOpsPipelinePatterns = [
+      // Core ML pipeline files
+      /(^|\/)src\/pipeline\/.+\.py$/i,           // Pipeline modules (data_ingestion, model_training, etc.)
+      /(^|\/)pipeline\/.+\.py$/i,                // Alternative pipeline directory
+      /(^|\/)ml_pipeline\/.+\.py$/i,             // ML pipeline directory
+      /(^|\/)mlops\/.+\.py$/i,                   // MLOps directory
+
+      // Model and inference files
+      /(^|\/)model\.py$/i,                       // Model definition/loading
+      /(^|\/)lambda_function\.py$/i,             // Serverless deployment
+      /(^|\/)inference\.py$/i,                   // Inference logic
+      /(^|\/)serve\.py$/i,                       // Model serving
+      /(^|\/)api\.py$/i,                         // API endpoints
+
+      // Data handling and preprocessing
+      /(^|\/)data_ingestion\.py$/i,              // Data ingestion logic
+      /(^|\/)data_preprocessing\.py$/i,          // Data preprocessing
+      /(^|\/)data_validation\.py$/i,             // Data validation
+      /(^|\/)feature_engineering\.py$/i,         // Feature engineering
+
+      // Training and model management
+      /(^|\/)model_training\.py$/i,              // Model training
+      /(^|\/)model_registry\.py$/i,              // Model registry/versioning
+      /(^|\/)train\.py$/i,                       // Training scripts
+      /(^|\/)orchestrate\.py$/i,                 // Workflow orchestration
+
+      // Monitoring and evaluation
+      /(^|\/)monitoring\.py$/i,                  // Model monitoring
+      /(^|\/)drift_detection\.py$/i,             // Data/model drift
+      /(^|\/)evaluation\.py$/i,                  // Model evaluation
+
+      // Deployment and infrastructure
+      /(^|\/)deploy\.py$/i,                      // Deployment scripts
+      /(^|\/)infrastructure\/.+\.tf$/i,          // Terraform infrastructure
+      /(^|\/)terraform\/.+\.tf$/i,               // Terraform files
     ];
 
     // Data Engineering Zoomcamp specific important files
@@ -440,8 +478,9 @@ export class EvaluationService {
 
     const allPatterns = [
       ...corePatterns,
-      ...analysisPatterns, 
+      ...analysisPatterns,
       ...entryPointPatterns,
+      ...mlOpsPipelinePatterns,    // Added MLOps patterns with high priority
       ...infraPatterns,
       ...backendPythonCorePatterns,
       ...deZoomcampPatterns,
@@ -666,12 +705,24 @@ export class EvaluationService {
     let score = 0;
     const fileName = filePath.toLowerCase();
 
-    // Base scores for file types
+    // Base scores for file types (highest priority)
     if (fileName.includes('readme')) score += 100;
-    if (fileName.endsWith('.md')) score += 80;
     if (fileName.includes('evaluation') || fileName.includes('eval')) score += 95;
     if (fileName.includes('analysis') || fileName.includes('experiment')) score += 90;
     if (fileName.endsWith('.ipynb')) score += 85;
+    if (fileName.endsWith('.md')) score += 80;
+
+    // MLOps Pipeline Files (HIGH PRIORITY for reproducibility assessment)
+    if (fileName.includes('src/pipeline/') || fileName.includes('pipeline/')) score += 95;
+    if (fileName.includes('data_ingestion') || fileName.includes('data_preprocessing')) score += 90;
+    if (fileName.includes('model_training') || fileName.includes('model_registry')) score += 90;
+    if (fileName.includes('orchestrate') || fileName.includes('orchestration')) score += 85;
+    if (fileName.endsWith('model.py') || fileName.endsWith('lambda_function.py')) score += 85;
+    if (fileName.includes('monitoring') || fileName.includes('drift')) score += 80;
+    if (fileName.includes('inference') || fileName.includes('serve')) score += 75;
+
+    // Infrastructure and deployment files
+    if (fileName.includes('infrastructure/') || fileName.includes('terraform/')) score += 75;
     if (fileName.includes('requirements') || fileName.includes('package.json')) score += 70;
     if (fileName.includes('docker')) score += 60;
     if (this.isCodeFile(fileName)) score += 50;
@@ -679,25 +730,37 @@ export class EvaluationService {
     // Content-based scoring (if content is available)
     if (content) {
       const lowerContent = content.toLowerCase();
-      
+
       // Evaluation-related keywords
       const evaluationKeywords = [
         'evaluation', 'metrics', 'baseline', 'comparison', 'benchmark',
         'ground truth', 'results', 'analysis', 'experiment', 'scoring'
       ];
-      
+
       evaluationKeywords.forEach(keyword => {
         const matches = (lowerContent.match(new RegExp(keyword, 'g')) || []).length;
         score += matches * 5;
+      });
+
+      // MLOps and data-related keywords (higher weight for reproducibility)
+      const mlopsKeywords = [
+        'data source', 'dataset', 'data access', 'data pipeline', 'data ingestion',
+        'model training', 'model deployment', 'model registry', 'mlflow', 'wandb',
+        'reproducibility', 'environment', 'dependencies', 'version'
+      ];
+
+      mlopsKeywords.forEach(keyword => {
+        const matches = (lowerContent.match(new RegExp(keyword, 'g')) || []).length;
+        score += matches * 4; // Higher weight than general tech keywords
       });
 
       // Technology-specific keywords that might be relevant
       const techKeywords = [
         'model', 'training', 'prediction', 'deployment', 'pipeline',
         'monitoring', 'grafana', 'docker', 'kubernetes', 'airflow',
-        'mlflow', 'wandb', 'jupyter', 'notebook'
+        'jupyter', 'notebook'
       ];
-      
+
       techKeywords.forEach(keyword => {
         const matches = (lowerContent.match(new RegExp(keyword, 'g')) || []).length;
         score += matches * 2;
@@ -707,7 +770,7 @@ export class EvaluationService {
       if (content.length > 100 && content.length < 50000) {
         score += 10; // Sweet spot for meaningful content
       }
-      
+
       if (content.length > 100000) {
         score -= 20; // Penalize very large files
       }

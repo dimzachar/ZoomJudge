@@ -8,6 +8,8 @@ import { OverallRepoScore } from '@/components/overall-repo-score'
 import { EvaluationCard } from '@/components/evaluation-card'
 import { IconArrowLeft, IconExternalLink, IconShare } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
+import { useQuery } from 'convex/react'
+import { api } from '@/convex/_generated/api'
 
 interface EvaluationResultsDisplayProps {
   results: {
@@ -41,74 +43,103 @@ export function EvaluationResultsDisplay({
     );
   }
 
+  // Fetch course data to get the correct criteria order
+  const courseData = useQuery(api.courses.getCourse, { courseId: courseType });
+
+  // Show loading state while course data is being fetched
+  if (courseData === undefined) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">Loading evaluation details...</p>
+      </div>
+    );
+  }
+
+  // If course data is null (not found), fall back to alphabetical ordering
+  if (courseData === null) {
+    console.warn(`Course not found: ${courseType}. Falling back to alphabetical ordering.`);
+  }
+
   const percentage = Math.round((results.totalScore / results.maxScore) * 100)
   
   // Extract repo name from URL
   const repoName = repoUrl.split('/').slice(-2).join('/')
   
-  // Define the expected order of criteria based on the course rubrics
-  const getCriteriaOrder = (courseType: string) => {
-    const orders: Record<string, string[]> = {
-      'llm-zoomcamp': [
-        'problemDescription',
-        'retrievalFlow', 
-        'retrievalEvaluation',
-        'llmEvaluation',
-        'interface',
-        'ingestionPipeline',
-        'monitoring',
-        'containerization',
-        'reproducibility',
-        'bestPractices',
-        'bonusPoints'
-      ],
-      'data-engineering': [
-        'Problem description',
-        'Cloud',
-        'Data ingestion',
-        'Data warehouse', 
-        'Transformations',
-        'Dashboard',
-        'Reproducibility'
-      ],
-      'machine-learning': [
-        'Problem description',
-        'EDA',
-        'Model training',
-        'Exporting notebook to script',
-        'Reproducibility',
-        'Model deployment',
-        'Dependency and environment management',
-        'Containerization',
-        'Cloud deployment'
-      ],
-      'mlops': [
-        'Problem description',
-        'Cloud',
-        'Experiment tracking and model registry',
-        'Workflow orchestration',
-        'Model deployment',
-        'Model monitoring',
-        'Reproducibility',
-        'Best practices'
-      ],
-      'stock-markets': [
-        'Problem Description',
-        'Data Sources',
-        'Data Transformations + EDA',
-        'Modeling',
-        'Trading Simulation',
-        'Automation',
-        'Bonus points'
-      ]
+  // Helper function to convert criterion name to camelCase (as used in AI responses)
+  const toCamelCase = (str: string) => {
+    return str
+      .split(' ')
+      .map((word, index) => {
+        if (index === 0) {
+          return word.toLowerCase();
+        }
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      })
+      .join('');
+  };
+
+  // Helper function to convert camelCase back to proper name
+  const fromCamelCase = (str: string) => {
+    // Handle special cases first
+    const specialCases: Record<string, string> = {
+      'problemDescription': 'Problem description',
+      'retrievalFlow': 'Retrieval flow',
+      'retrievalEvaluation': 'Retrieval evaluation',
+      'llmEvaluation': 'LLM evaluation',
+      'interface': 'Interface',
+      'ingestionPipeline': 'Ingestion pipeline',
+      'monitoring': 'Monitoring',
+      'containerization': 'Containerization',
+      'reproducibility': 'Reproducibility',
+      'bestPractices': 'Best practices',
+      'bonusPoints': 'Bonus points',
+      'cloud': 'Cloud',
+      'dataIngestion': 'Data ingestion',
+      'dataWarehouse': 'Data warehouse',
+      'transformations': 'Transformations',
+      'dashboard': 'Dashboard',
+      'eda': 'EDA',
+      'modelTraining': 'Model training',
+      'exportingNotebookToScript': 'Exporting notebook to script',
+      'modelDeployment': 'Model deployment',
+      'dependencyAndEnvironmentManagement': 'Dependency and environment management',
+      'cloudDeployment': 'Cloud deployment',
+      'experimentTrackingAndModelRegistry': 'Experiment tracking and model registry',
+      'workflowOrchestration': 'Workflow orchestration',
+      'modelMonitoring': 'Model monitoring',
+      'dataSources': 'Data Sources',
+      'dataTransformationsEda': 'Data Transformations + EDA',
+      'modeling': 'Modeling',
+      'tradingSimulation': 'Trading Simulation',
+      'automation': 'Automation'
     };
-    return orders[courseType] || [];
+
+    if (specialCases[str]) {
+      return specialCases[str];
+    }
+
+    // Fallback: convert camelCase to space-separated words
+    return str
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, (match) => match.toUpperCase())
+      .trim();
+  };
+
+  // Get criteria order from the course data, but map to camelCase for matching
+  const getCriteriaOrder = () => {
+    if (!courseData?.criteria) {
+      console.warn('No course data or criteria found, falling back to alphabetical order');
+      return [];
+    }
+    return courseData.criteria.map(criterion => toCamelCase(criterion.name));
   };
 
   // Convert breakdown to evaluation cards - use actual criterion names from the evaluation results
-  const criteriaOrder = getCriteriaOrder(courseType);
+  const criteriaOrder = getCriteriaOrder();
   const breakdownEntries = Object.entries(results.breakdown);
-  
+
+
+
   // Sort entries based on the expected order
   const sortedEntries = breakdownEntries.sort(([nameA], [nameB]) => {
     const indexA = criteriaOrder.indexOf(nameA);
@@ -127,23 +158,18 @@ export function EvaluationResultsDisplay({
   });
 
   const evaluationCards = sortedEntries.map(([criterionName, data]) => {
-    // Debug logging to understand the data structure
-    console.log(`Processing breakdown entry - Criterion: ${criterionName}, Data:`, data);
-
     // Ensure score is a valid number and clamp to 0-2 range for most courses
     const rawScore = typeof data.score === 'number' ? data.score : 0
     const maxScore = typeof data.maxScore === 'number' ? data.maxScore : 2
-    
+
     // For most Zoomcamp courses, scores are 0-2, but some criteria can have higher max scores
     // Calculate status based on the score relative to max score
     const percentage = maxScore > 0 ? (rawScore / maxScore) * 100 : 0
     const statusLabel = percentage >= 80 ? "Excellent" : percentage >= 40 ? "OK" : "Needs Work"
 
-    console.log(`Processed score - Raw: ${rawScore}, Max: ${maxScore}, Percentage: ${percentage}%, Status: ${statusLabel}`);
-
     return {
       key: criterionName,
-      title: criterionName, // Use the actual criterion name from the database
+      title: fromCamelCase(criterionName), // Convert camelCase back to proper display name
       description: "", // Empty description as feedback contains the details
       score: rawScore,
       maxScore: maxScore,
