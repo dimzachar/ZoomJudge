@@ -3,6 +3,7 @@
  */
 
 import { REPO_TYPE_PATTERNS, RepoType, HYBRID_CONFIG } from '../config';
+import { CriterionMapper, CourseCriterion } from './CriterionMapper';
 
 export interface RepoSignature {
   directoryStructure: string[];
@@ -28,7 +29,12 @@ export interface FileSelectionStrategy {
 }
 
 export class RepositoryFingerprinter {
-  
+  private criterionMapper: CriterionMapper;
+
+  constructor() {
+    this.criterionMapper = new CriterionMapper();
+  }
+
   async analyzeRepository(files: string[]): Promise<RepoTypeResult> {
     // Create repository signature
     const signature = this.createSignature(files);
@@ -293,36 +299,45 @@ export class RepositoryFingerprinter {
   async selectFiles(files: string[], repoType: RepoType, confidence: number): Promise<string[]> {
     const strategy = this.getFileSelectionStrategy(repoType, confidence);
     const selectedFiles = new Set<string>();
-    
+
     // Add essential files
     for (const pattern of strategy.essential) {
       const matches = this.findMatchingFiles(files, pattern);
       matches.forEach(file => selectedFiles.add(file));
     }
-    
+
     // Add important files (up to limit)
     for (const pattern of strategy.important) {
       if (selectedFiles.size >= strategy.maxFiles) break;
-      
+
       const matches = this.findMatchingFiles(files, pattern);
       for (const file of matches) {
         if (selectedFiles.size >= strategy.maxFiles) break;
         selectedFiles.add(file);
       }
     }
-    
+
     // Add supporting files if we have room
     for (const pattern of strategy.supporting) {
       if (selectedFiles.size >= strategy.maxFiles) break;
-      
+
       const matches = this.findMatchingFiles(files, pattern);
       for (const file of matches) {
         if (selectedFiles.size >= strategy.maxFiles) break;
         selectedFiles.add(file);
       }
     }
-    
+
     return Array.from(selectedFiles);
+  }
+
+  async selectFilesByCriteria(
+    files: string[],
+    courseId: string,
+    criteria: CourseCriterion[]
+  ): Promise<string[]> {
+    // Use criterion-driven selection for better accuracy
+    return await this.criterionMapper.selectOptimalFiles(files, courseId, criteria);
   }
   
   private findMatchingFiles(files: string[], pattern: string): string[] {
