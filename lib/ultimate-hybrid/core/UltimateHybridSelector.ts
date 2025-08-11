@@ -8,6 +8,7 @@
 import { RepositoryFingerprinter, RepoTypeResult } from './RepositoryFingerprinter';
 import { AIGuidedSelector, AIFileSelectionResult } from './AIGuidedSelector';
 import { CriterionMapper, CourseCriterion } from './CriterionMapper';
+import { IntelligentCache, CacheResult } from './IntelligentCache';
 import { HYBRID_CONFIG, AI_MODEL_CONFIGS } from '../config';
 import { evaluationLogger } from '../../simple-logger';
 
@@ -45,6 +46,7 @@ export class UltimateHybridSelector {
   private fingerprinter: RepositoryFingerprinter;
   private aiSelector: AIGuidedSelector;
   private criterionMapper: CriterionMapper;
+  private intelligentCache: IntelligentCache;
   private currentEvaluationId: string | null = null;
 
   constructor(options?: { mockMode?: boolean }) {
@@ -57,6 +59,7 @@ export class UltimateHybridSelector {
       mockMode: options?.mockMode || false
     });
     this.criterionMapper = new CriterionMapper();
+    this.intelligentCache = new IntelligentCache();
   }
 
   /**
@@ -65,6 +68,7 @@ export class UltimateHybridSelector {
   setEvaluationId(evaluationId: string) {
     this.currentEvaluationId = evaluationId;
     this.aiSelector.setEvaluationId(evaluationId);
+    this.intelligentCache.setEvaluationId(evaluationId);
   }
 
   /**
@@ -160,7 +164,8 @@ export class UltimateHybridSelector {
 
         if (aiResult) {
           console.log(`✅ Tier 3 (AI-Guided) - Success with confidence ${aiResult.confidence}`);
-          return {
+
+          const result = {
             selectedFiles: aiResult.selectedFiles,
             method: 'ai_guided',
             confidence: aiResult.confidence,
@@ -171,6 +176,15 @@ export class UltimateHybridSelector {
             tierUsed: 3,
             performance
           };
+
+          // Cache the successful AI strategy for future use
+          await this.cacheSuccessfulStrategy(request, aiResult.selectedFiles, {
+            accuracy: aiResult.confidence,
+            processingTime: performance.tier3Time || 0,
+            evaluationQuality: aiResult.confidence
+          });
+
+          return result;
         }
       }
 
@@ -227,13 +241,38 @@ export class UltimateHybridSelector {
   }
 
   /**
-   * TIER 1: Intelligent Caching (TODO: Implement)
+   * TIER 1: Intelligent Caching
    */
   private async tryIntelligentCache(request: HybridSelectionRequest): Promise<HybridSelectionResult | null> {
-    // TODO: Implement intelligent caching with similarity detection
-    // For now, return null to proceed to next tier
-    console.log('🔄 Tier 1 (Intelligent Caching) - Not yet implemented');
-    return null;
+    try {
+      // First, we need to create a repository signature for similarity matching
+      const analysis = await this.fingerprinter.analyzeRepository(request.files);
+
+      // Search for similar cached strategies
+      const cacheResult = await this.intelligentCache.findSimilarStrategy(
+        analysis.signature,
+        request.courseId,
+        request.criteria
+      );
+
+      if (cacheResult) {
+        return {
+          selectedFiles: cacheResult.selectedFiles,
+          method: 'cache',
+          confidence: cacheResult.confidence,
+          reasoning: cacheResult.reasoning,
+          processingTime: cacheResult.processingTime,
+          cacheHit: true,
+          tierUsed: 1,
+          performance: { tier1Time: cacheResult.processingTime }
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error in intelligent cache:', error);
+      return null;
+    }
   }
 
   /**
@@ -338,6 +377,48 @@ export class UltimateHybridSelector {
   }
 
   /**
+   * Cache a successful file selection strategy
+   */
+  private async cacheSuccessfulStrategy(
+    request: HybridSelectionRequest,
+    selectedFiles: string[],
+    performance: {
+      accuracy: number;
+      processingTime: number;
+      evaluationQuality: number;
+    }
+  ): Promise<void> {
+    try {
+      // Create repository signature for caching
+      const analysis = await this.fingerprinter.analyzeRepository(request.files);
+
+      await this.intelligentCache.cacheStrategy(
+        analysis.signature,
+        request.courseId,
+        selectedFiles,
+        performance
+      );
+    } catch (error) {
+      console.error('Error caching strategy:', error);
+      // Don't throw - caching failure shouldn't break the main flow
+    }
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats() {
+    return this.intelligentCache.getCacheStats();
+  }
+
+  /**
+   * Clear cache (for testing)
+   */
+  clearCache(): void {
+    this.intelligentCache.clearCache();
+  }
+
+  /**
    * Get performance statistics for the hybrid system
    */
   async getPerformanceStats(): Promise<{
@@ -348,14 +429,15 @@ export class UltimateHybridSelector {
     averageTokenUsage: number;
     cacheHitRate: number;
   }> {
-    // TODO: Implement performance tracking
+    const cacheStats = this.getCacheStats();
+
     return {
-      tier1Usage: 0,
-      tier2Usage: 0.7,
-      tier3Usage: 0.3,
+      tier1Usage: cacheStats.hitRate,
+      tier2Usage: 0.7 * (1 - cacheStats.hitRate),
+      tier3Usage: 0.3 * (1 - cacheStats.hitRate),
       averageProcessingTime: 1500,
       averageTokenUsage: 800,
-      cacheHitRate: 0
+      cacheHitRate: cacheStats.hitRate
     };
   }
 }
