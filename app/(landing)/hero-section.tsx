@@ -100,7 +100,7 @@ export default function HeroSection() {
                                     </Link>
                                 </Button>
                                 <Button variant="outline" asChild className="h-12 md:h-14 px-7 md:px-8 text-base md:text-lg border-white/20 bg-white/5 text-white/90 hover:bg-white/10 hover:border-white/30 hover:text-white backdrop-blur-sm transition-all duration-300">
-                                    <Link href="/dashboard/demo">See it in action</Link>
+                                    <Link href="/demo">See it in action</Link>
                                 </Button>
                             </div>
                         </div>

@@ -21,6 +21,7 @@ import {
 
 const navigation = {
   product: [
+    { title: 'Demo', href: '/demo' },
     { title: 'Features', href: '#features' },
     { title: 'Pricing', href: '#pricing' },
     { title: 'Testimonials', href: '#testimonials' },
