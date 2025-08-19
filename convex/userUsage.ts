@@ -169,10 +169,11 @@ export const canPerformEvaluation = query({
       free: 4,
       starter: 20,
       pro: 200,
+      enterprise: -1, // unlimited
     };
 
     const limit = tierLimits[usage.subscriptionTier] || tierLimits.free;
-    const canEvaluate = usage.evaluationsCount < limit;
+    const canEvaluate = limit === -1 || usage.evaluationsCount < limit;
 
     return {
       canEvaluate,
@@ -292,10 +293,11 @@ export const canPerformEvaluationForUser = query({
       free: 4,
       starter: 20,
       pro: 200,
+      enterprise: -1, // unlimited
     };
 
     const limit = tierLimits[usage.subscriptionTier] || tierLimits.free;
-    const canEvaluate = usage.evaluationsCount < limit;
+    const canEvaluate = limit === -1 || usage.evaluationsCount < limit;
 
     return {
       canEvaluate,
@@ -329,10 +331,11 @@ export const canPerformEvaluationInternal = internalQuery({
       free: 4,
       starter: 20,
       pro: 200,
+      enterprise: -1, // unlimited
     };
 
     const limit = tierLimits[usage.subscriptionTier] || tierLimits.free;
-    const canEvaluate = usage.evaluationsCount < limit;
+    const canEvaluate = limit === -1 || usage.evaluationsCount < limit;
 
     return {
       canEvaluate,
