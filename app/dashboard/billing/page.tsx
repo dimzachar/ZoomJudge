@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { useUserTier, SubscriptionStatus } from "@/components/clerk-billing-gate"
+import { useUserTier } from "@/components/clerk-billing-gate"
 import { useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { getTierInfo } from "@/lib/tier-permissions"
@@ -33,6 +33,7 @@ export default function BillingPage() {
   const userTier = useUserTier()
   const tierInfo = getTierInfo(userTier)
   const updateSubscriptionTier = useMutation(api.userUsage.updateSubscriptionTier)
+  const syncSubscriptionFromClerk = useMutation(api.subscriptions.syncSubscriptionFromClerk)
 
   // Get subscription info from user metadata
   const subscription = user?.publicMetadata?.subscription as any
@@ -102,31 +103,21 @@ export default function BillingPage() {
 
   const handleSyncSubscription = async () => {
     try {
-      // Check if user has subscription metadata from Clerk
-      const clerkSubscription = user?.publicMetadata?.subscription as any
-      let targetTier = "pro" // Default to pro for now
+      console.log('Starting comprehensive subscription sync...')
 
-      console.log('Syncing subscription with data:', { clerkSubscription, userTier })
+      // Use the new production-ready sync function
+      const result = await syncSubscriptionFromClerk({ forceRefresh: true })
 
-      // Try to detect tier from Clerk metadata if available
-      if (clerkSubscription?.tier) {
-        targetTier = clerkSubscription.tier
-      } else if (clerkSubscription?.plan) {
-        const planName = clerkSubscription.plan.toLowerCase()
-        if (planName.includes("enterprise")) {
-          targetTier = "enterprise"
-        } else if (planName.includes("pro")) {
-          targetTier = "pro"
-        } else if (planName.includes("starter")) {
-          targetTier = "starter"
-        }
+      if (result.success) {
+        toast.success(`Subscription synced successfully! Current tier: ${result.tier}`)
+        console.log('Sync successful:', result)
+
+        // Refresh the page to show updated tier
+        setTimeout(() => window.location.reload(), 1000)
+      } else {
+        console.error('Sync failed:', result.error)
+        toast.error(`Sync failed: ${result.error}`)
       }
-
-      console.log('Updating to tier:', targetTier)
-      await updateSubscriptionTier({ subscriptionTier: targetTier })
-      toast.success(`Subscription tier updated to ${targetTier.charAt(0).toUpperCase() + targetTier.slice(1)}!`)
-      // Refresh the page to show updated tier
-      window.location.reload()
     } catch (error) {
       console.error("Failed to sync subscription:", error)
       toast.error("Failed to sync subscription. Please try again.")
@@ -139,6 +130,16 @@ export default function BillingPage() {
       try {
         await updateSubscriptionTier({ subscriptionTier: "pro" })
         console.log('Successfully updated to Pro tier')
+        window.location.reload()
+      } catch (error) {
+        console.error('Failed to update tier:', error)
+      }
+    }
+
+    (window as any).syncToStarterTier = async () => {
+      try {
+        await updateSubscriptionTier({ subscriptionTier: "starter" })
+        console.log('Successfully updated to Starter tier')
         window.location.reload()
       } catch (error) {
         console.error('Failed to update tier:', error)

@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { IconSparkles, IconTrendingUp } from "@tabler/icons-react"
+import { TIER_LIMITS } from "@/lib/tier-permissions"
 
 export default function Page() {
   // Fetch real data from Convex
@@ -52,15 +53,8 @@ export default function Page() {
   // Determine user tier from usage data
   const userTier = currentUsage?.subscriptionTier || 'free'
 
-  // Calculate monthly limits based on tier
-  const tierLimits: Record<string, number> = {
-    free: 4,
-    starter: 20,
-    pro: 200,
-    enterprise: -1 // unlimited
-  }
-
-  const monthlyLimit = tierLimits[userTier] || tierLimits.free
+  // Calculate monthly limits based on tier using centralized config
+  const monthlyLimit = TIER_LIMITS[userTier as keyof typeof TIER_LIMITS]?.evaluationsPerMonth || TIER_LIMITS.free.evaluationsPerMonth
   const currentCount = currentUsage?.evaluationsCount || 0
   const isNearLimit = currentCount >= monthlyLimit * 0.8 && userTier === 'free'
   const isAtLimit = currentCount >= monthlyLimit && userTier !== 'enterprise'

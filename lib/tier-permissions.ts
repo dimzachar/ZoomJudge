@@ -26,12 +26,12 @@ export const TIER_LIMITS = {
     description: '4 repository evaluations per month, Basic scoring (no analysis or feedback), One evaluation engine (no model options)'
   },
   starter: {
-    evaluationsPerMonth: 20, // Need to specify this based on your requirements
+    evaluationsPerMonth: 5, // Beta testing limit - will increase later
     features: ['basic-score', 'detailed-feedback', 'basic-charts', 'export-pdf', 'email-notifications'],
     description: 'Full scoring + LLM feedback, [evaluation limit and other features to be specified]'
   },
   pro: {
-    evaluationsPerMonth: 200, // Need to specify this based on your requirements
+    evaluationsPerMonth: 6, // Beta testing limit - will increase later
     features: ['all-starter', 'advanced-analytics', 'comparison-tools', 'priority-processing', 'api-access', 'team-support'],
     description: '[all Pro features including evaluation limits to be specified]'
   },
@@ -82,15 +82,15 @@ export const getTierInfo = (tier: UserTier) => {
     },
     starter: {
       name: 'Starter',
-      price: '$10',
+      price: '$12',
       color: 'blue',
-      description: '20 repo evals/month + detailed feedback'
+      description: '5 repo evals/month + detailed feedback'
     },
     pro: {
       name: 'Pro',
       price: '$20',
       color: 'purple',
-      description: '200 repo evals/month + team support'
+      description: '6 repo evals/month + team support'
     },
     enterprise: {
       name: 'Enterprise',

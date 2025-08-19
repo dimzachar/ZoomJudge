@@ -25,6 +25,7 @@ import type * as paymentAttemptTypes from "../paymentAttemptTypes.js";
 import type * as paymentAttempts from "../paymentAttempts.js";
 import type * as securityAudit from "../securityAudit.js";
 import type * as setup from "../setup.js";
+import type * as subscriptions from "../subscriptions.js";
 import type * as userPreferences from "../userPreferences.js";
 import type * as userUsage from "../userUsage.js";
 import type * as users from "../users.js";
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   paymentAttempts: typeof paymentAttempts;
   securityAudit: typeof securityAudit;
   setup: typeof setup;
+  subscriptions: typeof subscriptions;
   userPreferences: typeof userPreferences;
   userUsage: typeof userUsage;
   users: typeof users;

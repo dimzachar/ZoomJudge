@@ -37,36 +37,34 @@ http.route({
         break;
       }
 
+      // Comprehensive Clerk subscription event handling
+      case "subscription.created":
+      case "subscription.updated":
+      case "subscription.deleted":
       case "subscriptionItem.created":
       case "subscriptionItem.updated":
-      case "subscriptionItem.active": {
-        // Handle subscription updates
-        const subscriptionData = (event as any).data;
-        console.log("Subscription event received:", subscriptionData);
+      case "subscriptionItem.deleted":
+      case "subscriptionItem.active":
+      case "subscriptionItem.cancelled":
+      case "subscriptionItem.paused":
+      case "subscriptionItem.resumed": {
+        await ctx.runMutation(internal.subscriptions.handleSubscriptionWebhook, {
+          eventType: (event as any).type,
+          eventData: (event as any).data,
+          timestamp: Date.now()
+        });
+        break;
+      }
 
-        // Extract user ID and subscription tier from the event
-        const userId = subscriptionData.user_id || subscriptionData.userId;
-        const planName = subscriptionData.plan?.name || subscriptionData.subscription?.plan?.name;
-
-        if (userId && planName) {
-          // Map Clerk plan names to our tier system
-          let subscriptionTier = "free";
-          if (planName.toLowerCase().includes("pro")) {
-            subscriptionTier = "pro";
-          } else if (planName.toLowerCase().includes("starter")) {
-            subscriptionTier = "starter";
-          } else if (planName.toLowerCase().includes("enterprise")) {
-            subscriptionTier = "enterprise";
-          }
-
-          // Update the user's subscription tier in Convex
-          await ctx.runMutation(internal.userUsage.updateUserSubscriptionFromWebhook, {
-            userId,
-            subscriptionTier,
-            eventType: (event as any).type,
-            eventData: subscriptionData
-          });
-        }
+      // Legacy subscription handling (keeping for backward compatibility)
+      case "paymentAttempt.succeeded":
+      case "paymentAttempt.failed": {
+        const paymentData = (event as any).data;
+        await ctx.runMutation(internal.subscriptions.handlePaymentWebhook, {
+          eventType: (event as any).type,
+          eventData: paymentData,
+          timestamp: Date.now()
+        });
         break;
       }
 

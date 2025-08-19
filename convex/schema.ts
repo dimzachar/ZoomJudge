@@ -15,6 +15,43 @@ export default defineSchema({
       .index("byUserId", ["userId"])
       .index("byPayerUserId", ["payer.user_id"]),
 
+    // Webhook logging for debugging and monitoring
+    webhookLogs: defineTable({
+      eventType: v.string(),
+      eventData: v.any(),
+      timestamp: v.number(),
+      processed: v.boolean(),
+      source: v.string(), // "clerk_subscription", "clerk_payment", etc.
+    })
+      .index("byEventType", ["eventType"])
+      .index("byTimestamp", ["timestamp"])
+      .index("byProcessed", ["processed"]),
+
+    // Webhook error logging
+    webhookErrors: defineTable({
+      eventType: v.string(),
+      eventData: v.any(),
+      timestamp: v.number(),
+      error: v.string(),
+      source: v.string(),
+    })
+      .index("byEventType", ["eventType"])
+      .index("byTimestamp", ["timestamp"]),
+
+    // Payment logging for subscription management
+    paymentLogs: defineTable({
+      eventType: v.string(),
+      eventData: v.any(),
+      timestamp: v.number(),
+      userId: v.string(),
+      amount: v.number(),
+      currency: v.string(),
+      status: v.string(),
+    })
+      .index("byUserId", ["userId"])
+      .index("byTimestamp", ["timestamp"])
+      .index("byStatus", ["status"]),
+
     // Evaluations table for storing repository evaluation results
     evaluations: defineTable({
       userId: v.string(), // Clerk user ID

@@ -1,9 +1,10 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation, internalQuery, action } from "./_generated/server";
 import { api } from "./_generated/api";
+import { TIER_LIMITS } from "../lib/tier-permissions";
 
 // Helper function to get authenticated user ID
-async function getAuthenticatedUserId(ctx: any): Promise<string> {
+export async function getAuthenticatedUserId(ctx: any): Promise<string> {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
     throw new Error("Authentication required");
@@ -12,7 +13,7 @@ async function getAuthenticatedUserId(ctx: any): Promise<string> {
 }
 
 // Get current month string in YYYY-MM format
-function getCurrentMonth(): string {
+export function getCurrentMonth(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
@@ -164,15 +165,8 @@ export const canPerformEvaluation = query({
       return { canEvaluate: true, reason: "No usage record found" };
     }
 
-    // Define tier limits
-    const tierLimits: Record<string, number> = {
-      free: 4,
-      starter: 20,
-      pro: 200,
-      enterprise: -1, // unlimited
-    };
-
-    const limit = tierLimits[usage.subscriptionTier] || tierLimits.free;
+    // Use centralized tier limits
+    const limit = TIER_LIMITS[usage.subscriptionTier as keyof typeof TIER_LIMITS]?.evaluationsPerMonth || TIER_LIMITS.free.evaluationsPerMonth;
     const canEvaluate = limit === -1 || usage.evaluationsCount < limit;
 
     return {
@@ -288,15 +282,8 @@ export const canPerformEvaluationForUser = query({
       return { canEvaluate: true, reason: "No usage record found" };
     }
 
-    // Define tier limits
-    const tierLimits: Record<string, number> = {
-      free: 4,
-      starter: 20,
-      pro: 200,
-      enterprise: -1, // unlimited
-    };
-
-    const limit = tierLimits[usage.subscriptionTier] || tierLimits.free;
+    // Use centralized tier limits
+    const limit = TIER_LIMITS[usage.subscriptionTier as keyof typeof TIER_LIMITS]?.evaluationsPerMonth || TIER_LIMITS.free.evaluationsPerMonth;
     const canEvaluate = limit === -1 || usage.evaluationsCount < limit;
 
     return {
@@ -326,15 +313,8 @@ export const canPerformEvaluationInternal = internalQuery({
       return { canEvaluate: true, reason: "No usage record found" };
     }
 
-    // Define tier limits
-    const tierLimits: Record<string, number> = {
-      free: 4,
-      starter: 20,
-      pro: 200,
-      enterprise: -1, // unlimited
-    };
-
-    const limit = tierLimits[usage.subscriptionTier] || tierLimits.free;
+    // Use centralized tier limits
+    const limit = TIER_LIMITS[usage.subscriptionTier as keyof typeof TIER_LIMITS]?.evaluationsPerMonth || TIER_LIMITS.free.evaluationsPerMonth;
     const canEvaluate = limit === -1 || usage.evaluationsCount < limit;
 
     return {
@@ -384,14 +364,8 @@ export const incrementEvaluationCountInternal = internalMutation({
 
           return await ctx.db.get(usageId);
         } else {
-          // Check limits before incrementing
-          const tierLimits: Record<string, number> = {
-            free: 4,
-            starter: 20,
-            pro: 200,
-          };
-
-          const limit = tierLimits[usage.subscriptionTier] || tierLimits.free;
+          // Check limits before incrementing using centralized tier limits
+          const limit = TIER_LIMITS[usage.subscriptionTier as keyof typeof TIER_LIMITS]?.evaluationsPerMonth || TIER_LIMITS.free.evaluationsPerMonth;
 
           if (usage.subscriptionTier !== "enterprise" && usage.evaluationsCount >= limit) {
             throw new Error(`Monthly limit of ${limit} evaluations reached for ${usage.subscriptionTier} tier`);
@@ -478,22 +452,32 @@ export const syncTierToClerk = action({
   },
   handler: async (ctx, args) => {
     try {
-      // This would typically call Clerk's API to update user metadata
-      // For now, we'll log the sync attempt
       console.log(`Syncing tier to Clerk for user ${args.userId}: ${args.subscriptionTier}`);
 
-      // In a production environment, you would make an API call to Clerk here:
-      // const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
-      // await clerkClient.users.updateUserMetadata(args.userId, {
-      //   publicMetadata: {
-      //     subscription: {
-      //       tier: args.subscriptionTier,
-      //       updatedAt: Date.now()
-      //     }
-      //   }
-      // });
+      // Production Clerk API integration
+      if (process.env.CLERK_SECRET_KEY) {
+        const { createClerkClient } = await import('@clerk/backend');
+        const clerkClient = createClerkClient({
+          secretKey: process.env.CLERK_SECRET_KEY
+        });
 
-      return { success: true, message: `Tier sync scheduled for user ${args.userId}` };
+        await clerkClient.users.updateUserMetadata(args.userId, {
+          publicMetadata: {
+            subscription: {
+              tier: args.subscriptionTier,
+              updatedAt: Date.now(),
+              source: 'convex_sync'
+            }
+          }
+        });
+
+        console.log(`Successfully synced tier ${args.subscriptionTier} to Clerk for user ${args.userId}`);
+        return { success: true, message: `Tier synced to Clerk successfully` };
+      } else {
+        console.warn('CLERK_SECRET_KEY not configured - skipping Clerk sync');
+        return { success: false, error: 'Clerk API not configured' };
+      }
+
     } catch (error) {
       console.error(`Failed to sync tier to Clerk for user ${args.userId}:`, error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };

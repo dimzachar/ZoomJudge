@@ -16,6 +16,7 @@ import { api } from '@/convex/_generated/api';
 import { toast } from 'sonner';
 import { BillingLimitModal, useBillingLimitModal } from '@/components/billing-limit-modal';
 import { debugLog, debugError } from '@/lib/debug-logger';
+import { TIER_LIMITS } from '@/lib/tier-permissions';
 
 // Form validation schema
 const evaluationFormSchema = z.object({
@@ -80,15 +81,8 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
   const isAtLimit = canPerformEvaluation && !canPerformEvaluation.canEvaluate;
   const userTier = currentUsage?.subscriptionTier || 'free';
 
-  // Calculate tier limits
-  const tierLimits: Record<string, number> = {
-    free: 4,
-    starter: 20,
-    pro: 200,
-    enterprise: -1 // unlimited
-  };
-
-  const monthlyLimit = tierLimits[userTier] || tierLimits.free;
+  // Calculate tier limits using centralized config
+  const monthlyLimit = TIER_LIMITS[userTier as keyof typeof TIER_LIMITS]?.evaluationsPerMonth || TIER_LIMITS.free.evaluationsPerMonth;
   const currentCount = currentUsage?.evaluationsCount || 0;
 
   const onSubmit = async (data: EvaluationFormData) => {
