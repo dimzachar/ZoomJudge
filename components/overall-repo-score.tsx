@@ -55,7 +55,7 @@ export function OverallRepoScore({
   // Semicircle gauge calculations
   const radius = config.radius
   const strokeWidth = config.strokeWidth
-  const normalizedRadius = radius - strokeWidth * 2
+  const normalizedRadius = radius - strokeWidth
   const circumference = normalizedRadius * Math.PI // Half circle
   const strokeDasharray = `${circumference} ${circumference}`
   const strokeDashoffset = circumference - (score / 100) * circumference
