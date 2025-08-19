@@ -53,7 +53,7 @@ export class AIGuidedSelector {
 
     // Default configuration for fast/cheap file selection model
     this.config = {
-      model: 'qwen/qwen-2.5-coder-32b-instruct', // Fast, cheap model for file selection
+      model: 'qwen/qwen-2.5-coder-32b-instruct', // Reliable, fast, and cost-effective model for file selection
       maxTokens: 2000, // Much lower than evaluation model (16K)
       temperature: 0.1, // Low temperature for consistent selection
       maxFiles: 50, // Maximum files to select

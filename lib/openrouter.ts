@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { evaluationLogger } from './simple-logger';
 import { APIClientFactory, APIClientOptions, MockAPIClient } from './config/APIClientFactory';
 import { ConfigurationService } from './config/ConfigurationService';
+import { AI_MODEL_CONFIGS } from './ultimate-hybrid/config';
 
 // OpenRouter API client configuration
 export class OpenRouterClient {
@@ -101,40 +102,112 @@ export class OpenRouterClient {
       console.log('Prompt preview (first 1000 chars):', prompt.substring(0, 1000));
       console.log('Prompt preview (last 500 chars):', prompt.substring(prompt.length - 500));
 
-      // Step 2: Prepare API request
+      // Step 2: Prepare API request with fallback models
       console.log('=== STEP 2: PREPARING API REQUEST ===');
-      const requestPayload = {
-        model: 'qwen/qwen3-coder:free', // Upgraded to Claude 3.5 Sonnet for better analysis
-        messages: [
-          {
-            role: 'system' as const,
-            content: 'You are an expert code reviewer and educator specializing in evaluating GitHub repositories for Zoomcamp courses. Provide detailed, constructive feedback and accurate scoring based on the provided rubric. Analyze the repository thoroughly and provide comprehensive feedback for each criterion.'
-          },
-          {
-            role: 'user' as const,
-            content: prompt
+
+      // Get models from configuration - primary model + alternatives
+      const primaryModel = AI_MODEL_CONFIGS.EVALUATION;
+      const alternativeModels = AI_MODEL_CONFIGS.EVALUATION_ALTERNATIVES || [];
+
+      const models = [
+        primaryModel.model,
+        ...alternativeModels.map(alt => alt.model)
+      ];
+
+      console.log(`📋 Configured models: Primary: ${primaryModel.model}, Alternatives: [${alternativeModels.map(alt => alt.model).join(', ')}]`);
+
+      let completion: any = null;
+      let lastError: any = null;
+      let usedModel: string = '';
+
+      // Step 3: Make API call with fallback
+      console.log('=== STEP 3: MAKING API CALL WITH FALLBACK ===');
+
+      for (let i = 0; i < models.length; i++) {
+        const currentModel = models[i];
+        const isBackup = i > 0;
+
+        try {
+          if (isBackup) {
+            console.log(`⚠️ Trying backup model: ${currentModel}`);
+          } else {
+            console.log(`🚀 Trying primary model: ${currentModel}`);
           }
-        ],
-        temperature: 0.1, // Low temperature for consistent scoring
-        max_tokens: 16000, // Increased token limit for more detailed responses
-      };
 
-      // Note: Request payload not logged for security (contains repository content)
-      console.log('API Request prepared - Model:', requestPayload.model, 'Messages:', requestPayload.messages.length);
+          // Get model config (primary or alternative)
+          const modelConfig = i === 0 ? primaryModel : alternativeModels[i - 1];
 
-      // Step 3: Make API call
-      console.log('=== STEP 3: MAKING API CALL ===');
-      console.log('Sending request to OpenRouter API...');
+          const requestPayload = {
+            model: currentModel,
+            messages: [
+              {
+                role: 'system' as const,
+                content: 'You are an expert code reviewer and educator specializing in evaluating GitHub repositories for Zoomcamp courses. Provide detailed, constructive feedback and accurate scoring based on the provided rubric. Analyze the repository thoroughly and provide comprehensive feedback for each criterion.'
+              },
+              {
+                role: 'user' as const,
+                content: prompt
+              }
+            ],
+            temperature: modelConfig.temperature, // Use config temperature
+            max_tokens: modelConfig.maxTokens, // Use config max tokens
+          };
 
-      // Log the request
-      await evaluationLogger.logGeneral(
-        'LLM_REQUEST',
-        'DEBUG',
-        'Sending request to OpenRouter API',
-        { model: requestPayload.model, promptLength: prompt.length }
-      );
+          // Note: Request payload not logged for security (contains repository content)
+          console.log('API Request prepared - Model:', requestPayload.model, 'Messages:', requestPayload.messages.length);
 
-      const completion = await this.client.chat.completions.create(requestPayload);
+          console.log('Sending request to OpenRouter API...');
+
+          // Log the request
+          await evaluationLogger.logGeneral(
+            'LLM_REQUEST',
+            'DEBUG',
+            `Sending request to OpenRouter API (${isBackup ? 'backup' : 'primary'})`,
+            { model: requestPayload.model, promptLength: prompt.length }
+          );
+
+          completion = await this.client.chat.completions.create(requestPayload);
+          usedModel = currentModel;
+
+          if (isBackup) {
+            console.log(`✅ Backup model ${currentModel} succeeded`);
+          } else {
+            console.log(`✅ Primary model ${currentModel} succeeded`);
+          }
+
+          break; // Success, exit the loop
+
+        } catch (error) {
+          lastError = error;
+          const errorMessage = error instanceof Error ? error.message : String(error);
+
+          if (isBackup) {
+            console.error(`❌ Backup model ${currentModel} failed:`, errorMessage);
+          } else {
+            console.error(`❌ Primary model ${currentModel} failed:`, errorMessage);
+          }
+
+          // Log the error
+          await evaluationLogger.logGeneral(
+            'LLM_REQUEST_ERROR',
+            'ERROR',
+            `Model ${currentModel} failed`,
+            { model: currentModel, error: errorMessage }
+          );
+
+          // If this is not the last model, continue to the next one
+          if (i < models.length - 1) {
+            console.log(`🔄 Falling back to next model...`);
+            continue;
+          }
+        }
+      }
+
+      // If all models failed, throw the last error
+      if (!completion) {
+        console.error('🚨 All models failed. Last error:', lastError);
+        throw new Error(`All evaluation models failed. Last error: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
+      }
 
       console.log('API Response received:', JSON.stringify({
         id: completion.id,
@@ -157,9 +230,9 @@ export class OpenRouterClient {
 
       // Log the complete LLM interaction
       await evaluationLogger.logLLMRequest(
-        requestPayload.model,
+        usedModel,
         prompt,
-        requestPayload,
+        { model: usedModel, prompt_length: prompt.length }, // Simplified payload for logging
         completion,
         completion.usage,
         finishReason

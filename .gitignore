@@ -71,8 +71,8 @@ app/dashboard/web-evaluation/page.tsx
 
 # clerk configuration (can include secrets)
 /.clerk/
-debug*
-lib/simple-logger.ts
+# debug*
+# lib/simple-logger.ts
 
 # Additional unused files and dead code identified
 # Root-level documentation files (untracked development artifacts)

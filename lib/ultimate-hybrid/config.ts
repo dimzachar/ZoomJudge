@@ -42,7 +42,7 @@ export const HYBRID_CONFIG = {
 export const AI_MODEL_CONFIGS = {
   // File Selection Model - Fast and cheap for file selection decisions
   FILE_SELECTION: {
-    model: 'qwen/qwen3-coder:free',
+    model: 'qwen/qwen-2.5-coder-32b-instruct',
     maxTokens: 2000,
     temperature: 0.1,
     purpose: 'file_selection',
@@ -78,15 +78,35 @@ export const AI_MODEL_CONFIGS = {
     }
   ],
 
-  // Evaluation Model - High quality for final evaluation (unchanged from current)
+  // Evaluation Model - High quality for final evaluation
   EVALUATION: {
-    model: 'anthropic/claude-sonnet-4',
+    model: 'qwen/qwen3-235b-a22b-2507',
     maxTokens: 16000,
     temperature: 0.1,
     purpose: 'evaluation',
     costTier: 'high',
     description: 'High-quality model for detailed repository evaluation'
-  }
+  },
+
+  // Alternative evaluation models for fallback
+  EVALUATION_ALTERNATIVES: [
+    {
+      model: 'z-ai/glm-4.5-air:free',
+      maxTokens: 16000,
+      temperature: 0.1,
+      purpose: 'evaluation',
+      costTier: 'free',
+      description: 'Free backup model for evaluation when primary fails'
+    },
+    {
+      model: 'anthropic/claude-sonnet-4',
+      maxTokens: 16000,
+      temperature: 0.1,
+      purpose: 'evaluation',
+      costTier: 'high',
+      description: 'High-quality Claude model as secondary backup'
+    }
+  ]
 } as const;
 
 export const REPO_TYPE_PATTERNS = {

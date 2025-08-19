@@ -277,7 +277,35 @@ export class CacheWarmingSystem {
    */
   private generatePatternHash(pattern: WarmingPattern): string {
     const content = `${pattern.repoType}_${pattern.courseId}_${pattern.commonFiles.join('|')}`;
-    return Buffer.from(content).toString('base64').substring(0, 16);
+
+    // Use browser-compatible base64 encoding
+    if (typeof btoa !== 'undefined') {
+      // Browser environment
+      return btoa(content).substring(0, 16);
+    } else if (typeof Buffer !== 'undefined') {
+      // Node.js environment
+      return Buffer.from(content).toString('base64').substring(0, 16);
+    } else {
+      // Fallback: simple hash
+      return this.simpleHash(content).substring(0, 16);
+    }
+  }
+
+  /**
+   * Simple hash function that works in all environments
+   */
+  private simpleHash(str: string): string {
+    let hash = 0;
+    if (str.length === 0) return hash.toString(16);
+
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+
+    // Convert to positive hex string
+    return Math.abs(hash).toString(16).padStart(8, '0');
   }
 
   /**
