@@ -44,9 +44,29 @@ http.route({
         const subscriptionData = (event as any).data;
         console.log("Subscription event received:", subscriptionData);
 
-        // For now, we'll log the event and handle subscription updates
-        // through Clerk's user metadata updates instead
-        // This ensures we have proper user identification
+        // Extract user ID and subscription tier from the event
+        const userId = subscriptionData.user_id || subscriptionData.userId;
+        const planName = subscriptionData.plan?.name || subscriptionData.subscription?.plan?.name;
+
+        if (userId && planName) {
+          // Map Clerk plan names to our tier system
+          let subscriptionTier = "free";
+          if (planName.toLowerCase().includes("pro")) {
+            subscriptionTier = "pro";
+          } else if (planName.toLowerCase().includes("starter")) {
+            subscriptionTier = "starter";
+          } else if (planName.toLowerCase().includes("enterprise")) {
+            subscriptionTier = "enterprise";
+          }
+
+          // Update the user's subscription tier in Convex
+          await ctx.runMutation(internal.userUsage.updateUserSubscriptionFromWebhook, {
+            userId,
+            subscriptionTier,
+            eventType: (event as any).type,
+            eventData: subscriptionData
+          });
+        }
         break;
       }
 

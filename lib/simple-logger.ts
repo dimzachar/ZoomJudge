@@ -2,17 +2,39 @@
 
 class SimpleLogger {
   private currentEvaluationId: string | null = null;
+  private isEnabled: boolean;
+
+  constructor() {
+    // Check environment variable to enable/disable logging
+    this.isEnabled = process.env.SIMPLE_LOGGER_ENABLED === 'true';
+  }
+
+  private log(message: string, data?: any) {
+    if (!this.isEnabled) return;
+    console.log(message);
+    if (data) {
+      console.log(data);
+    }
+  }
+
+  private error(message: string, data?: any) {
+    if (!this.isEnabled) return;
+    console.error(message);
+    if (data) {
+      console.error(data);
+    }
+  }
 
   setCurrentEvaluation(evaluationId: string) {
     this.currentEvaluationId = evaluationId;
-    console.log(`🔍 [EVAL] Starting evaluation: ${evaluationId}`);
+    this.log(`🔍 [EVAL] Starting evaluation: ${evaluationId}`);
   }
 
   async logGeneral(phase: string, level: string, message: string, data?: any) {
     const evalId = this.currentEvaluationId || 'unknown';
-    console.log(`📝 [${level}] [${phase}] ${message} (Eval: ${evalId})`);
+    this.log(`📝 [${level}] [${phase}] ${message} (Eval: ${evalId})`);
     if (data) {
-      console.log(`   📊 Data:`, data);
+      this.log(`   📊 Data:`, data);
     }
   }
 
@@ -27,31 +49,31 @@ class SimpleLogger {
   ) {
     const evalId = this.currentEvaluationId || 'unknown';
 
-    console.log(`🤖 [LLM] Model: ${model} | Eval: ${evalId}`);
-    console.log(`📤 [LLM] Request Payload:`, requestPayload);
-    console.log(`📥 [LLM] Response:`, response);
+    this.log(`🤖 [LLM] Model: ${model} | Eval: ${evalId}`);
+    this.log(`📤 [LLM] Request Payload:`, requestPayload);
+    this.log(`📥 [LLM] Response:`, response);
 
     if (usage) {
-      console.log(`📊 [LLM] Token Usage: ${usage.prompt_tokens} + ${usage.completion_tokens} = ${usage.total_tokens} tokens`);
+      this.log(`📊 [LLM] Token Usage: ${usage.prompt_tokens} + ${usage.completion_tokens} = ${usage.total_tokens} tokens`);
     }
 
     if (finishReason) {
-      console.log(`🏁 [LLM] Finish Reason: ${finishReason}`);
+      this.log(`🏁 [LLM] Finish Reason: ${finishReason}`);
     }
 
     if (error) {
-      console.error(`❌ [LLM] Error: ${error}`);
+      this.error(`❌ [LLM] Error: ${error}`);
     }
   }
 
   async logWebSearch(query: string, results: any[], error?: string) {
     const evalId = this.currentEvaluationId || 'unknown';
 
-    console.log(`🔍 [SEARCH] Query: "${query}" | Eval: ${evalId}`);
-    console.log(`📋 [SEARCH] Results (${results.length} items):`, results);
+    this.log(`🔍 [SEARCH] Query: "${query}" | Eval: ${evalId}`);
+    this.log(`📋 [SEARCH] Results (${results.length} items):`, results);
 
     if (error) {
-      console.error(`❌ [SEARCH] Error: ${error}`);
+      this.error(`❌ [SEARCH] Error: ${error}`);
     }
   }
 
@@ -63,21 +85,21 @@ class SimpleLogger {
     results?: any,
     error?: string
   ) {
-    console.log(`\n📋 [SUMMARY] ===============================================`);
-    console.log(`📋 [SUMMARY] Evaluation ${evaluationId} - Status: ${status}`);
-    console.log(`📋 [SUMMARY] Repository: ${repoUrl}`);
-    console.log(`📋 [SUMMARY] Course: ${course}`);
-    console.log(`📋 [SUMMARY] Timestamp: ${new Date().toISOString()}`);
+    this.log(`\n📋 [SUMMARY] ===============================================`);
+    this.log(`📋 [SUMMARY] Evaluation ${evaluationId} - Status: ${status}`);
+    this.log(`📋 [SUMMARY] Repository: ${repoUrl}`);
+    this.log(`📋 [SUMMARY] Course: ${course}`);
+    this.log(`📋 [SUMMARY] Timestamp: ${new Date().toISOString()}`);
 
     if (results) {
-      console.log(`📋 [SUMMARY] Results:`, results);
+      this.log(`📋 [SUMMARY] Results:`, results);
     }
 
     if (error) {
-      console.error(`📋 [SUMMARY] Error: ${error}`);
+      this.error(`📋 [SUMMARY] Error: ${error}`);
     }
 
-    console.log(`📋 [SUMMARY] ===============================================\n`);
+    this.log(`📋 [SUMMARY] ===============================================\n`);
   }
 }
 

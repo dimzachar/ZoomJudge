@@ -318,7 +318,7 @@ void main() {
   return (
     <div
       ref={containerRef}
-      className="absolute inset-0 -z-10 [mask-image:radial-gradient(75%_55%_at_50%_40%,#000_60%,transparent_100%)]"
+      className="absolute inset-0 -z-10 [mask-image:radial-gradient(75%_55%_at_50%_40%,#000_60%,transparent_100%)] opacity-30"
       aria-hidden
     />
   )

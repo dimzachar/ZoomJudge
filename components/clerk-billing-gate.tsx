@@ -3,6 +3,8 @@
 import React from 'react'
 import { Protect, useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
+import { useQuery } from 'convex/react'
+import { api } from '@/convex/_generated/api'
 import { TierGatedContent, UpgradePromptOverlay } from '@/components/tier-gated-content'
 import { type UserTier, type FeatureKey } from '@/lib/tier-permissions'
 import CustomClerkPricing from '@/components/custom-clerk-pricing'
@@ -104,28 +106,25 @@ export function ClerkBillingPageGate({
   )
 }
 
-// Hook to get current user tier from Clerk
+// Hook to get current user tier from Convex database (source of truth)
 export function useUserTier(): UserTier {
   const { user } = useUser()
+  const currentUsage = useQuery(api.userUsage.getCurrentUsage)
 
   if (!user) {
     return 'free'
   }
 
-  // Check user's public metadata for subscription information
-  const subscription = user.publicMetadata?.subscription as any
-  const subscriptionTier = subscription?.tier || subscription?.plan
+  // Use the subscription tier from Convex database as the source of truth
+  const subscriptionTier = currentUsage?.subscriptionTier
 
-  // Map Clerk subscription tiers to our UserTier type
+  // Map database subscription tiers to our UserTier type
   switch (subscriptionTier) {
     case 'starter':
-    case 'basic':
       return 'starter'
     case 'pro':
-    case 'premium':
       return 'pro'
     case 'enterprise':
-    case 'business':
       return 'enterprise'
     default:
       return 'free'

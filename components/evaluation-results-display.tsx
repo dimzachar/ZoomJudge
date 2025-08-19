@@ -10,6 +10,9 @@ import { IconArrowLeft, IconExternalLink, IconShare } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
 import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
+import { useUserTier } from '@/components/clerk-billing-gate'
+import { TierGatedContent } from '@/components/tier-gated-content'
+import { canAccessFeature } from '@/lib/tier-permissions'
 
 interface EvaluationResultsDisplayProps {
   results: {
@@ -33,9 +36,13 @@ export function EvaluationResultsDisplay({
   onBack,
   className
 }: EvaluationResultsDisplayProps) {
+  // Get user tier for feature gating
+  const userTier = useUserTier()
+  const canViewDetailedFeedback = canAccessFeature('detailed-feedback', userTier)
+
   // Safety check for results structure
   if (!results || !results.breakdown || typeof results.breakdown !== 'object') {
-    console.error('Invalid results structure:', results);
+    console.error('Invalid results structure - results object is malformed');
     return (
       <div className="text-center py-8">
         <p className="text-red-600">Error: Invalid evaluation results structure</p>
@@ -68,6 +75,9 @@ export function EvaluationResultsDisplay({
   // Helper function to convert criterion name to camelCase (as used in AI responses)
   const toCamelCase = (str: string) => {
     return str
+      .replace(/[^a-zA-Z0-9 ]/g, ' ') // Replace special characters with spaces
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .trim() // Remove leading/trailing spaces
       .split(' ')
       .map((word, index) => {
         if (index === 0) {
@@ -94,9 +104,11 @@ export function EvaluationResultsDisplay({
       'bestPractices': 'Best practices',
       'bonusPoints': 'Bonus points',
       'cloud': 'Cloud',
-      'dataIngestion': 'Data ingestion',
+      'dataIngestionBatchWorkflowOrchestration': 'Data Ingestion: Batch / Workflow orchestration',
+      'dataIngestionStream': 'Data Ingestion: Stream',
       'dataWarehouse': 'Data warehouse',
-      'transformations': 'Transformations',
+      'transformations': 'Transformations (dbt, spark, etc)',
+      'Transformations': 'Transformations (dbt, spark, etc)', // Added uppercase version
       'dashboard': 'Dashboard',
       'eda': 'EDA',
       'modelTraining': 'Model training',
@@ -125,35 +137,106 @@ export function EvaluationResultsDisplay({
       .trim();
   };
 
-  // Get criteria order from the course data, but map to camelCase for matching
-  const getCriteriaOrder = () => {
-    if (!courseData?.criteria) {
-      console.warn('No course data or criteria found, falling back to alphabetical order');
-      return [];
+  // Create a mapping from AI criterion names to course criterion names
+  const mapCriterionName = (aiName: string): string | null => {
+    // For data engineering course, map AI names to course criteria
+    if (courseType === 'data-engineering') {
+      const mappings: Record<string, string> = {
+        'problemDescription': 'Problem description',
+        'cloud': 'Cloud',
+        'dataIngestionBatchWorkflowOrchestration': 'Data Ingestion: Batch / Workflow orchestration',
+        'dataIngestionStream': 'Data Ingestion: Stream',
+        'dataWarehouse': 'Data warehouse',
+        'transformations': 'Transformations (dbt, spark, etc)',
+        'Transformations': 'Transformations (dbt, spark, etc)', // Added uppercase version
+        'dashboard': 'Dashboard',
+        'reproducibility': 'Reproducibility'
+      };
+      return mappings[aiName] || null;
     }
-    return courseData.criteria.map(criterion => toCamelCase(criterion.name));
+    
+    // For other courses, use existing logic
+    return null;
   };
 
-  // Convert breakdown to evaluation cards - use actual criterion names from the evaluation results
-  const criteriaOrder = getCriteriaOrder();
+  // Helper function to normalize criterion names for comparison
+  const normalizeCriterionName = (name: string): string => {
+    // Handle special cases where AI might return shortened names
+    const specialMappings: Record<string, string> = {
+      'transformations': 'transformationsdbtsparketc', // Map "Transformations" to match "Transformations (dbt, spark, etc)"
+      'dataingestionbatchworkfloworchestration': 'dataingestionbatchworkfloworchestration',
+      'dataingestionstream': 'dataingestionstream',
+      'datawarehouse': 'datawarehouse',
+      'dashboard': 'dashboard',
+      'problemdescription': 'problemdescription',
+      'reproducibility': 'reproducibility',
+      'cloud': 'cloud'
+    };
+
+    const normalized = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return specialMappings[normalized] || normalized;
+  };
+
+  // Create a mapping from evaluation result names to course criterion names
+  const mapEvaluationNameToCourseOrder = (evalName: string): number => {
+    if (!courseData?.criteria) return -1;
+
+    // Handle specific known cases where AI returns shortened names
+    const directMappings: Record<string, string> = {
+      'Transformations': 'Transformations (dbt, spark, etc)',
+      'transformations': 'Transformations (dbt, spark, etc)',
+      'Data Ingestion: Batch / Workflow orchestration': 'Data Ingestion: Batch / Workflow orchestration',
+      'Data Ingestion: Stream': 'Data Ingestion: Stream',
+      'Data warehouse': 'Data warehouse',
+      'Dashboard': 'Dashboard',
+      'Problem description': 'Problem description',
+      'Reproducibility': 'Reproducibility',
+      'Cloud': 'Cloud'
+    };
+
+    // Get the proper criterion name
+    const properName = directMappings[evalName] || evalName;
+
+    // Find the index in course criteria
+    for (let i = 0; i < courseData.criteria.length; i++) {
+      const courseCriterion = courseData.criteria[i];
+      if (courseCriterion.name === properName) {
+        return i;
+      }
+    }
+
+    // Fallback to normalized comparison
+    const normalizedEvalName = normalizeCriterionName(evalName);
+    for (let i = 0; i < courseData.criteria.length; i++) {
+      const courseCriterion = courseData.criteria[i];
+      const normalizedCourseName = normalizeCriterionName(courseCriterion.name);
+
+      if (normalizedEvalName === normalizedCourseName) {
+        return i;
+      }
+    }
+
+    return -1; // Not found
+  };
+
+  // Convert breakdown to evaluation cards
   const breakdownEntries = Object.entries(results.breakdown);
 
-
-
-  // Sort entries based on the expected order
+  // Sort entries based on the course criteria order
   const sortedEntries = breakdownEntries.sort(([nameA], [nameB]) => {
-    const indexA = criteriaOrder.indexOf(nameA);
-    const indexB = criteriaOrder.indexOf(nameB);
-    
-    // If both are in the order array, sort by index
-    if (indexA !== -1 && indexB !== -1) {
-      return indexA - indexB;
+    // Get the order indices for both names
+    const orderA = mapEvaluationNameToCourseOrder(nameA);
+    const orderB = mapEvaluationNameToCourseOrder(nameB);
+
+    // If both are found in course criteria, sort by order
+    if (orderA !== -1 && orderB !== -1) {
+      return orderA - orderB;
     }
-    // If only A is in the order, A comes first
-    if (indexA !== -1) return -1;
-    // If only B is in the order, B comes first  
-    if (indexB !== -1) return 1;
-    // If neither is in the order, maintain alphabetical
+    // If only A is found, A comes first
+    if (orderA !== -1) return -1;
+    // If only B is found, B comes first
+    if (orderB !== -1) return 1;
+    // If neither is found, maintain alphabetical order
     return nameA.localeCompare(nameB);
   });
 
@@ -167,9 +250,46 @@ export function EvaluationResultsDisplay({
     const percentage = maxScore > 0 ? (rawScore / maxScore) * 100 : 0
     const statusLabel = percentage >= 80 ? "Excellent" : percentage >= 40 ? "OK" : "Needs Work"
 
+    // Map evaluation result name to proper course criterion name
+    const getProperCriterionName = (evalName: string): string => {
+      if (!courseData?.criteria) return evalName;
+
+      // Handle specific known cases where AI returns shortened names
+      const directMappings: Record<string, string> = {
+        'Transformations': 'Transformations (dbt, spark, etc)',
+        'transformations': 'Transformations (dbt, spark, etc)',
+        'Data Ingestion: Batch / Workflow orchestration': 'Data Ingestion: Batch / Workflow orchestration',
+        'Data Ingestion: Stream': 'Data Ingestion: Stream',
+        'Data warehouse': 'Data warehouse',
+        'Dashboard': 'Dashboard',
+        'Problem description': 'Problem description',
+        'Reproducibility': 'Reproducibility',
+        'Cloud': 'Cloud'
+      };
+
+      // Check direct mappings first
+      if (directMappings[evalName]) {
+        return directMappings[evalName];
+      }
+
+      // Fallback to normalized comparison
+      const normalizedEvalName = normalizeCriterionName(evalName);
+
+      for (const courseCriterion of courseData.criteria) {
+        const normalizedCourseName = normalizeCriterionName(courseCriterion.name);
+        if (normalizedEvalName === normalizedCourseName) {
+          return courseCriterion.name;
+        }
+      }
+
+      return evalName; // Fallback to original name if no match found
+    };
+
+    const title = getProperCriterionName(criterionName);
+
     return {
       key: criterionName,
-      title: fromCamelCase(criterionName), // Convert camelCase back to proper display name
+      title: title,
       description: "", // Empty description as feedback contains the details
       score: rawScore,
       maxScore: maxScore,
@@ -262,8 +382,8 @@ export function EvaluationResultsDisplay({
                 score={card.score}
                 maxScore={card.maxScore}
                 statusLabel={card.statusLabel as "Needs Work" | "Excellent" | "OK"}
-                feedback={card.feedback}
-                sourceFiles={card.sourceFiles}
+                feedback={canViewDetailedFeedback ? card.feedback : undefined}
+                sourceFiles={canViewDetailedFeedback ? card.sourceFiles : undefined}
                 repoUrl={card.repoUrl}
               />
             ))}

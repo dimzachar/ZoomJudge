@@ -39,6 +39,11 @@ const navigationItems = [
     href: "/dashboard/new-evaluation",
     icon: IconFileAi,
   },
+  // {
+  //   title: "Hybrid AI (Beta)",
+  //   href: "/dashboard/hybrid-evaluation",
+  //   icon: IconBrain,
+  // },
   {
     title: "History",
     href: "/dashboard/history",
@@ -188,7 +193,7 @@ export function TopNavigation() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => signOut()}>
+              <DropdownMenuItem onClick={() => signOut({ redirectUrl: "/" })}>
                 <IconLogout className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>

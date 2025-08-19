@@ -10,10 +10,10 @@ const faqs = [
     q: "How accurate is the evaluation?",
     a: "We use a rubric aligned with course expectations plus multiple signals (structure, config, logging, tests) to generate consistent, transparent scoring.",
   },
-  {
-    q: "Do you support private repositories?",
-    a: "Yes. Private repos are supported. We only access the data required for evaluation and never share your code.",
-  },
+  // {
+  //   q: "Do you support private repositories?",
+  //   a: "Yes. Private repos are supported. We only access the data required for evaluation and never share your code.",
+  // },
   {
     q: "What’s included in each plan?",
     a: "All plans include core evaluations. Higher tiers unlock deeper checks, more monthly runs, and faster turnaround.",

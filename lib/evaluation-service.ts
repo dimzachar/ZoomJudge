@@ -3,6 +3,9 @@ import { validateRepository, GitHubRepoInfo } from './github-validator';
 import { evaluationLogger } from './simple-logger';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../convex/_generated/api';
+import { WorkflowReplacement } from './ultimate-hybrid/integration/WorkflowReplacement';
+import { ConfigurationService } from './config/ConfigurationService';
+import { APIClientOptions } from './config/APIClientFactory';
 
 export interface EvaluationRequest {
   repoUrl: string;
@@ -34,6 +37,22 @@ export interface CourseCriteria {
 export class EvaluationService {
   private currentEvaluationId: string | null = null;
   private convexClient: ConvexHttpClient | null = null;
+  private workflowReplacement: WorkflowReplacement;
+  private useHybridWorkflow: boolean;
+  private configService: ConfigurationService;
+
+  constructor(options: APIClientOptions = {}) {
+    // Initialize configuration service
+    this.configService = ConfigurationService.getInstance(options);
+
+    // Initialize the Ultimate Hybrid workflow replacement
+    this.workflowReplacement = new WorkflowReplacement({
+      mockMode: options.mockMode || this.configService.isMockMode() || !this.configService.hasAPIKey()
+    });
+
+    // Feature flag to enable/disable hybrid workflow
+    this.useHybridWorkflow = process.env.ENABLE_HYBRID_WORKFLOW !== 'false';
+  }
 
   /**
    * Set the current evaluation ID for logging purposes
@@ -179,19 +198,53 @@ export class EvaluationService {
 
       // Step 3: Prepare repository content for evaluation
       console.log('=== STEP 3: REPOSITORY CONTENT PREPARATION ===');
-      const repoContent = await this.prepareRepoContent(validation.repoInfo, validation.structure);
 
-      if (!repoContent) {
-        console.error('Failed to prepare repository content');
-        return {
-          success: false,
-          error: 'Failed to fetch repository content'
-        };
+      let repoContent: string;
+      let workflowMetadata: any = {};
+
+      if (this.useHybridWorkflow) {
+        console.log('🚀 Using Ultimate Hybrid Workflow');
+
+        // Use the new Ultimate Hybrid workflow
+        const workflowResult = await this.workflowReplacement.processRepository({
+          repoInfo: validation.repoInfo,
+          courseId: courseData.courseId,
+          courseName: courseData.courseName,
+          userId: request.userId,
+          evaluationId: this.currentEvaluationId || undefined
+        });
+
+        // Convert content to string format for LLM
+        repoContent = this.formatContentForLLM(workflowResult.selectedFiles, workflowResult.content);
+        workflowMetadata = workflowResult.metadata;
+
+        console.log(`Ultimate Hybrid workflow completed:`);
+        console.log(`- Selected files: ${workflowResult.selectedFiles.length}`);
+        console.log(`- Method: ${workflowResult.metadata.method} (Tier ${workflowResult.metadata.tierUsed})`);
+        console.log(`- Confidence: ${(workflowResult.metadata.confidence * 100).toFixed(1)}%`);
+        console.log(`- Cache hit: ${workflowResult.metadata.cacheHit}`);
+        console.log(`- Processing time: ${workflowResult.metadata.processingTime}ms`);
+
+      } else {
+        console.log('📁 Using legacy workflow');
+
+        // Use the original workflow
+        const legacyContent = await this.prepareRepoContent(validation.repoInfo, validation.structure);
+
+        if (!legacyContent) {
+          console.error('Failed to prepare repository content');
+          return {
+            success: false,
+            error: 'Failed to fetch repository content'
+          };
+        }
+
+        repoContent = legacyContent;
       }
 
       console.log(`Repository content prepared successfully:`);
       console.log(`- Content length: ${repoContent.length} characters`);
-      console.log(`- Content preview (first 500 chars):`, repoContent.substring(0, 500));
+      // Note: Content preview not logged for security (contains repository code)
 
       // Step 4: Perform AI evaluation
       console.log('=== STEP 4: AI EVALUATION ===');
@@ -210,7 +263,8 @@ export class EvaluationService {
       );
 
       console.log('=== EVALUATION RESULTS ===');
-      console.log('Raw evaluation results:', JSON.stringify(evaluationResults, null, 2));
+      // Note: Raw results not logged for security (contains detailed feedback)
+      console.log('Evaluation completed successfully - Total Score:', evaluationResults.totalScore, '/', evaluationResults.maxScore);
       console.log('=== EVALUATION SERVICE DEBUG END ===');
 
       return {
@@ -504,25 +558,26 @@ export class EvaluationService {
    * Smart truncation that preserves important parts of files based on file type
    */
   private smartTruncateContent(content: string, filePath: string, maxLength: number): string {
+    const fileName = filePath.toLowerCase();
+
+    // Handle README files specially - they have their own logic for when to truncate
+    if (fileName.includes('readme')) {
+      return this.smartTruncateReadme(content, maxLength);
+    }
+
+    // For non-README files, use the standard size check
     if (content.length <= maxLength) {
       return content;
     }
 
-    const fileName = filePath.toLowerCase();
-    
     // Handle Jupyter notebooks specially
     if (fileName.endsWith('.ipynb')) {
       return this.summarizeJupyterNotebook(content, filePath, maxLength);
     }
-    
+
     // Handle CSV/data files specially
     if (fileName.endsWith('.csv') || fileName.endsWith('.json') || fileName.endsWith('.txt')) {
       return this.summarizeDataFile(content, filePath, maxLength);
-    }
-
-    // For README files, prioritize the beginning and any sections with evaluation criteria
-    if (fileName.includes('readme')) {
-      return this.smartTruncateReadme(content, maxLength);
     }
 
     // For code files, prioritize key sections
@@ -603,31 +658,149 @@ export class EvaluationService {
   }
 
   private smartTruncateReadme(content: string, maxLength: number): string {
+    // Analyze content to determine if truncation is needed
+    const truncationReason = this.analyzeReadmeTruncationReason(content);
+
+    // If content has non-text content, always truncate to remove it
+    if (truncationReason.hasNonTextContent) {
+      return this.truncateReadmeWithNonTextContent(content, maxLength, truncationReason);
+    }
+
+    // If content is pure text and within limits, don't truncate
+    if (content.length <= maxLength) {
+      return content;
+    }
+
+    // For large pure text READMEs, use intelligent section-based truncation
+    return this.truncateLargeTextReadme(content, maxLength, truncationReason);
+  }
+
+  /**
+   * Analyze why README needs truncation
+   */
+  private analyzeReadmeTruncationReason(content: string): {
+    hasNonTextContent: boolean;
+    hasBase64Images: boolean;
+    hasExcessiveWhitespace: boolean;
+    hasBinaryContent: boolean;
+    reason: string;
+  } {
+    const base64ImagePattern = /data:image\/[^;]+;base64,([A-Za-z0-9+/=]{100,})/g;
+    const largeBase64Pattern = /[A-Za-z0-9+/=]{500,}/g;
+    const binaryPattern = /[\x00-\x08\x0E-\x1F\x7F-\xFF]/g;
+
+    const hasBase64Images = base64ImagePattern.test(content);
+    const hasLargeBase64 = largeBase64Pattern.test(content);
+    const hasBinaryContent = binaryPattern.test(content);
+
+    const whitespaceRatio = (content.match(/\s/g) || []).length / content.length;
+    const hasExcessiveWhitespace = whitespaceRatio > 0.3;
+
+    const hasNonTextContent = hasBase64Images || hasLargeBase64 || hasBinaryContent || hasExcessiveWhitespace;
+
+    let reason = '';
+    if (hasBase64Images) reason = 'embedded base64 images';
+    else if (hasLargeBase64) reason = 'large embedded binary data';
+    else if (hasBinaryContent) reason = 'binary content';
+    else if (hasExcessiveWhitespace) reason = 'excessive whitespace/formatting';
+    else reason = 'large file size';
+
+    return {
+      hasNonTextContent,
+      hasBase64Images,
+      hasExcessiveWhitespace,
+      hasBinaryContent,
+      reason
+    };
+  }
+
+  /**
+   * Truncate README with non-text content by preserving text sections
+   */
+  private truncateReadmeWithNonTextContent(content: string, maxLength: number, reason: any): string {
+    const lines = content.split('\n');
+    let result = '';
+    let currentLength = 0;
+    let skippedSections = 0;
+
+    for (const line of lines) {
+      // Skip lines that appear to be base64 or binary content
+      if (this.isNonTextLine(line)) {
+        skippedSections++;
+        continue;
+      }
+
+      if (currentLength + line.length + 1 > maxLength) break;
+
+      result += line + '\n';
+      currentLength += line.length + 1;
+    }
+
+    const skippedNote = skippedSections > 0 ? ` (${skippedSections} non-text sections removed)` : '';
+    return result + `\n... [README truncated due to ${reason.reason}${skippedNote}] ...`;
+  }
+
+  /**
+   * Truncate large text README intelligently by preserving key sections
+   */
+  private truncateLargeTextReadme(content: string, maxLength: number, reason: any): string {
     const lines = content.split('\n');
     let result = '';
     let currentLength = 0;
 
-    // Always include the first part of README (70%)
-    const firstPart = Math.floor(maxLength * 0.7);
-    const beginningContent = content.substring(0, firstPart);
+    // Preserve the beginning (60% of limit)
+    const beginningLimit = Math.floor(maxLength * 0.6);
+    const beginningContent = content.substring(0, beginningLimit);
     result += beginningContent;
     currentLength += beginningContent.length;
 
-    // Look for evaluation-related sections
-    const remainingContent = content.substring(firstPart);
-    const evaluationKeywords = ['evaluation', 'criteria', 'scoring', 'assessment', 'rubric', 'grading', 'results', 'metrics'];
+    // Look for important sections in the remaining content
+    const remainingContent = content.substring(beginningLimit);
+    const importantKeywords = [
+      'evaluation', 'criteria', 'scoring', 'assessment', 'rubric', 'grading', 'results', 'metrics',
+      'installation', 'setup', 'getting started', 'requirements', 'dependencies',
+      'architecture', 'design', 'overview', 'features', 'usage', 'examples',
+      'api', 'configuration', 'deployment', 'testing', 'contributing'
+    ];
+
     const remainingLines = remainingContent.split('\n');
+    let preservedSections = 0;
 
     for (const line of remainingLines) {
       if (currentLength + line.length + 1 > maxLength) break;
+
       const lowerLine = line.toLowerCase();
-      if (evaluationKeywords.some(keyword => lowerLine.includes(keyword))) {
+      const isImportant = importantKeywords.some(keyword => lowerLine.includes(keyword)) ||
+                         line.startsWith('#') || // Headers
+                         line.startsWith('##') ||
+                         line.startsWith('###');
+
+      if (isImportant) {
         result += '\n' + line;
         currentLength += line.length + 1;
+        preservedSections++;
       }
     }
 
-    return result + '\n... [README truncated - focused on key sections] ...';
+    const omittedChars = content.length - currentLength;
+    const sectionNote = preservedSections > 0 ? ` (${preservedSections} key sections preserved)` : '';
+    return result + `\n... [README truncated - ${omittedChars} characters omitted${sectionNote}] ...`;
+  }
+
+  /**
+   * Check if a line contains non-text content
+   */
+  private isNonTextLine(line: string): boolean {
+    // Check for base64 patterns
+    if (/^[A-Za-z0-9+/=]{50,}$/.test(line.trim())) return true;
+
+    // Check for data URLs
+    if (/data:image\/[^;]+;base64,/.test(line)) return true;
+
+    // Check for binary-like content
+    if (/[\x00-\x08\x0E-\x1F\x7F-\xFF]/.test(line)) return true;
+
+    return false;
   }
 
   private smartTruncateCode(content: string, filePath: string, maxLength: number): string {
@@ -780,13 +953,68 @@ export class EvaluationService {
   }
 
   /**
+   * Determine optimal length for README files based on content analysis
+   */
+  private getReadmeOptimalLength(content: string): number {
+    const MAX_README_LENGTH = 50000; // 50KB limit for README files
+    const ABSOLUTE_MAX_README_LENGTH = 100000; // 100KB absolute maximum
+
+    // If content appears to be pure text, be more lenient but still have limits
+    if (this.isPureTextReadme(content)) {
+      // For pure text under 50KB, don't truncate
+      if (content.length <= MAX_README_LENGTH) {
+        return content.length + 1000; // Add buffer to avoid truncation
+      }
+      // For pure text over 50KB, allow up to 100KB maximum
+      return ABSOLUTE_MAX_README_LENGTH;
+    }
+
+    // If content contains non-text elements, use more conservative limit
+    return MAX_README_LENGTH;
+  }
+
+  /**
+   * Check if README content is pure text without embedded binary data
+   */
+  private isPureTextReadme(content: string): boolean {
+    // Check for base64 encoded images (common in GitHub READMEs)
+    const base64ImagePattern = /data:image\/[^;]+;base64,([A-Za-z0-9+/=]{100,})/g;
+    if (base64ImagePattern.test(content)) {
+      return false;
+    }
+
+    // Check for large blocks of base64 data (>500 chars of continuous base64)
+    const largeBase64Pattern = /[A-Za-z0-9+/=]{500,}/g;
+    if (largeBase64Pattern.test(content)) {
+      return false;
+    }
+
+    // Check for excessive whitespace (more than 30% of content)
+    const whitespaceRatio = (content.match(/\s/g) || []).length / content.length;
+    if (whitespaceRatio > 0.3) {
+      return false;
+    }
+
+    // Check for binary-like content patterns
+    const binaryPattern = /[\x00-\x08\x0E-\x1F\x7F-\xFF]/g;
+    if (binaryPattern.test(content)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
    * Get optimal content length for different file types
    */
   private getOptimalContentLength(filePath: string, content: string): number {
     const fileName = filePath.toLowerCase();
-    
-    // README files - give more space as they're crucial
-    if (fileName.includes('readme')) return 8000;
+
+    // README files - give much more space as they're crucial for evaluation
+    // Only truncate if they contain non-text content or exceed 50KB
+    if (fileName.includes('readme')) {
+      return this.getReadmeOptimalLength(content);
+    }
     
     // Jupyter notebooks - need more space for analysis
     if (fileName.endsWith('.ipynb')) return 10000;
@@ -952,6 +1180,61 @@ export class EvaluationService {
   }
 
   /**
+   * Format content from hybrid workflow for LLM evaluation
+   */
+  private formatContentForLLM(selectedFiles: string[], content: Record<string, string>): string {
+    let formattedContent = '';
+
+    // Add header with file selection metadata
+    formattedContent += `=== REPOSITORY ANALYSIS ===\n`;
+    formattedContent += `Selected Files: ${selectedFiles.length}\n`;
+    formattedContent += `Files with Content: ${Object.keys(content).length}\n\n`;
+
+    // Add each file's content with smart truncation to prevent excessive prompt size
+    let totalContentLength = formattedContent.length;
+    const maxTotalLength = 200000; // Limit total content to ~200KB to prevent cost issues
+
+    for (const filePath of selectedFiles) {
+      // Check if we've exceeded the total length limit
+      if (totalContentLength > maxTotalLength) {
+        formattedContent += `=== FILE: ${filePath} ===\n`;
+        formattedContent += '[Content omitted due to size limits]\n\n';
+        continue;
+      }
+
+      formattedContent += `=== FILE: ${filePath} ===\n`;
+
+      if (content[filePath]) {
+        // Apply smart truncation based on file type
+        const maxLength = this.getOptimalContentLength(filePath, content[filePath]);
+        const truncatedContent = this.smartTruncateContent(content[filePath], filePath, maxLength);
+        
+        formattedContent += truncatedContent;
+        totalContentLength += truncatedContent.length;
+      } else {
+        formattedContent += '[Content not available]';
+      }
+
+      formattedContent += '\n\n';
+    }
+
+    return formattedContent;
+  }
+
+  /**
+   * Get hybrid workflow performance statistics
+   */
+  async getHybridWorkflowStats() {
+    if (this.useHybridWorkflow) {
+      return {
+        performanceStats: await this.workflowReplacement.getPerformanceStats(),
+        cacheWarmingStats: this.workflowReplacement.getCacheWarmingStats()
+      };
+    }
+    return null;
+  }
+
+  /**
    * Test the evaluation service
    */
   async testService(): Promise<boolean> {
@@ -966,5 +1249,19 @@ export class EvaluationService {
   }
 }
 
-// Export singleton instance
-export const evaluationService = new EvaluationService();
+// Lazy-loaded singleton instance to avoid module load time instantiation
+let evaluationServiceInstance: EvaluationService | null = null;
+
+export function getEvaluationService(options?: APIClientOptions): EvaluationService {
+  if (!evaluationServiceInstance) {
+    evaluationServiceInstance = new EvaluationService(options);
+  }
+  return evaluationServiceInstance;
+}
+
+// For backward compatibility
+export const evaluationService = {
+  get instance() {
+    return getEvaluationService();
+  }
+};

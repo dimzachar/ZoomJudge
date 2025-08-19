@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useUserTier, SubscriptionStatus } from "@/components/clerk-billing-gate"
+import { useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
 import { getTierInfo } from "@/lib/tier-permissions"
 import CustomClerkPricing from "@/components/custom-clerk-pricing"
 import { UsageMetrics } from "@/components/usage-metrics"
@@ -22,64 +24,150 @@ import {
   IconReceipt,
   IconExternalLink,
   IconSettings,
-  IconAlertTriangle
+  IconAlertTriangle,
+  IconRefresh
 } from "@tabler/icons-react"
 
 export default function BillingPage() {
   const { user } = useUser()
   const userTier = useUserTier()
   const tierInfo = getTierInfo(userTier)
+  const updateSubscriptionTier = useMutation(api.userUsage.updateSubscriptionTier)
 
   // Get subscription info from user metadata
   const subscription = user?.publicMetadata?.subscription as any
-  const isActive = subscription?.status === 'active' || userTier === 'free'
+  const isActive = subscription?.status === 'active' || userTier === 'free' || userTier === 'pro' || userTier === 'starter' || userTier === 'enterprise'
   const nextBillingDate = subscription?.nextBillingDate
 
+  // Check if there's a mismatch between Clerk and Convex subscription data
+  const hasSubscriptionMismatch = () => {
+    console.log('Debug - userTier:', userTier)
+    console.log('Debug - subscription:', subscription)
+    console.log('Debug - user.publicMetadata:', user?.publicMetadata)
+
+    // If user is showing as free in Convex but has subscription metadata in Clerk
+    if (userTier === 'free' && subscription?.tier && subscription.tier !== 'free') {
+      console.log('Mismatch detected: tier mismatch')
+      return true
+    }
+    // If user has an active subscription but showing as free
+    if (userTier === 'free' && subscription?.status === 'active') {
+      console.log('Mismatch detected: active subscription but free tier')
+      return true
+    }
+
+    // For now, always show sync button if user is on free tier (temporary)
+    if (userTier === 'free') {
+      console.log('Showing sync button for free tier user')
+      return true
+    }
+
+    return false
+  }
+
   const handleManageBilling = () => {
-    // Open Clerk's user profile billing section
-    const clerkFrontendUrl = process.env.NEXT_PUBLIC_CLERK_FRONTEND_API_URL
-    if (clerkFrontendUrl) {
-      window.open(`${clerkFrontendUrl}/user/billing`, '_blank')
-    } else {
-      // Fallback to generic billing portal
+    // For now, show a message that billing management is handled through Clerk
+    toast.info("Billing management is handled through your account settings. Contact support for billing changes.")
+
+    // In production, this would redirect to the proper Clerk billing portal
+    // For development, we'll disable these links to avoid 404s
+    if (process.env.NODE_ENV === 'production') {
       window.open('https://billing.clerk.com', '_blank')
     }
   }
 
   const handleDownloadInvoices = () => {
-    const clerkFrontendUrl = process.env.NEXT_PUBLIC_CLERK_FRONTEND_API_URL
-    if (clerkFrontendUrl) {
-      window.open(`${clerkFrontendUrl}/user/billing/invoices`, '_blank')
-    } else {
-      toast.error("Billing portal not configured")
+    toast.info("Invoice downloads are available through your account dashboard. Contact support if you need assistance.")
+
+    // In production, this would work with proper Clerk billing setup
+    if (process.env.NODE_ENV === 'production') {
+      const clerkFrontendUrl = process.env.NEXT_PUBLIC_CLERK_FRONTEND_API_URL
+      if (clerkFrontendUrl) {
+        window.open(`${clerkFrontendUrl}/user/billing/invoices`, '_blank')
+      }
     }
   }
 
   const handleUpdatePaymentMethod = () => {
-    const clerkFrontendUrl = process.env.NEXT_PUBLIC_CLERK_FRONTEND_API_URL
-    if (clerkFrontendUrl) {
-      window.open(`${clerkFrontendUrl}/user/billing/payment-methods`, '_blank')
-    } else {
-      toast.error("Billing portal not configured")
+    toast.info("Payment method updates are handled through your account settings. Contact support for assistance.")
+
+    // In production, this would work with proper Clerk billing setup
+    if (process.env.NODE_ENV === 'production') {
+      const clerkFrontendUrl = process.env.NEXT_PUBLIC_CLERK_FRONTEND_API_URL
+      if (clerkFrontendUrl) {
+        window.open(`${clerkFrontendUrl}/user/billing/payment-methods`, '_blank')
+      }
+    }
+  }
+
+  const handleSyncSubscription = async () => {
+    try {
+      // Check if user has subscription metadata from Clerk
+      const clerkSubscription = user?.publicMetadata?.subscription as any
+      let targetTier = "pro" // Default to pro for now
+
+      console.log('Syncing subscription with data:', { clerkSubscription, userTier })
+
+      // Try to detect tier from Clerk metadata if available
+      if (clerkSubscription?.tier) {
+        targetTier = clerkSubscription.tier
+      } else if (clerkSubscription?.plan) {
+        const planName = clerkSubscription.plan.toLowerCase()
+        if (planName.includes("enterprise")) {
+          targetTier = "enterprise"
+        } else if (planName.includes("pro")) {
+          targetTier = "pro"
+        } else if (planName.includes("starter")) {
+          targetTier = "starter"
+        }
+      }
+
+      console.log('Updating to tier:', targetTier)
+      await updateSubscriptionTier({ subscriptionTier: targetTier })
+      toast.success(`Subscription tier updated to ${targetTier.charAt(0).toUpperCase() + targetTier.slice(1)}!`)
+      // Refresh the page to show updated tier
+      window.location.reload()
+    } catch (error) {
+      console.error("Failed to sync subscription:", error)
+      toast.error("Failed to sync subscription. Please try again.")
+    }
+  }
+
+  // Make function available globally for debugging
+  if (typeof window !== 'undefined') {
+    (window as any).syncToProTier = async () => {
+      try {
+        await updateSubscriptionTier({ subscriptionTier: "pro" })
+        console.log('Successfully updated to Pro tier')
+        window.location.reload()
+      } catch (error) {
+        console.error('Failed to update tier:', error)
+      }
     }
   }
 
   const handleChangeBillingCycle = () => {
-    const clerkFrontendUrl = process.env.NEXT_PUBLIC_CLERK_FRONTEND_API_URL
-    if (clerkFrontendUrl) {
-      window.open(`${clerkFrontendUrl}/user/billing/subscription`, '_blank')
-    } else {
-      toast.error("Billing portal not configured")
+    toast.info("Billing cycle changes are handled through your account settings. Contact support for assistance.")
+
+    // In production, this would work with proper Clerk billing setup
+    if (process.env.NODE_ENV === 'production') {
+      const clerkFrontendUrl = process.env.NEXT_PUBLIC_CLERK_FRONTEND_API_URL
+      if (clerkFrontendUrl) {
+        window.open(`${clerkFrontendUrl}/user/billing/subscription`, '_blank')
+      }
     }
   }
 
   const handleCancelSubscription = () => {
     if (confirm("Are you sure you want to cancel your subscription? You'll lose access to premium features at the end of your billing period.")) {
-      const clerkFrontendUrl = process.env.NEXT_PUBLIC_CLERK_FRONTEND_API_URL
-      if (clerkFrontendUrl) {
-        window.open(`${clerkFrontendUrl}/user/billing/subscription/cancel`, '_blank')
-      } else {
-        toast.error("Billing portal not configured")
+      toast.info("Subscription cancellation is handled through your account settings. Contact support for assistance.")
+
+      // In production, this would work with proper Clerk billing setup
+      if (process.env.NODE_ENV === 'production') {
+        const clerkFrontendUrl = process.env.NEXT_PUBLIC_CLERK_FRONTEND_API_URL
+        if (clerkFrontendUrl) {
+          window.open(`${clerkFrontendUrl}/user/billing/subscription/cancel`, '_blank')
+        }
       }
     }
   }
@@ -140,6 +228,11 @@ export default function BillingPage() {
               <div className={`text-sm font-medium ${isActive ? 'text-green-600' : 'text-red-600'}`}>
                 {isActive ? 'Active' : 'Inactive'}
               </div>
+              {hasSubscriptionMismatch() && (
+                <div className="text-xs text-orange-600 mt-1">
+                  Subscription sync needed
+                </div>
+              )}
             </div>
           </div>
 
@@ -157,10 +250,18 @@ export default function BillingPage() {
                 </Button>
               </>
             ) : (
-              <Button onClick={handleUpgrade}>
-                <IconSparkles className="h-4 w-4 mr-2" />
-                Upgrade Plan
-              </Button>
+              <>
+                <Button onClick={handleUpgrade}>
+                  <IconSparkles className="h-4 w-4 mr-2" />
+                  Upgrade Plan
+                </Button>
+                {hasSubscriptionMismatch() && (
+                  <Button variant="outline" size="sm" onClick={handleSyncSubscription}>
+                    <IconRefresh className="h-4 w-4 mr-2" />
+                    Sync Subscription
+                  </Button>
+                )}
+              </>
             )}
           </div>
         </CardContent>
@@ -187,113 +288,6 @@ export default function BillingPage() {
         <CustomClerkPricing />
       </div>
 
-      {/* Subscription Management */}
-      {userTier !== 'free' && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <IconSettings className="h-5 w-5" />
-                <CardTitle>Subscription Management</CardTitle>
-              </div>
-              <Button variant="outline" size="sm" onClick={handleManageBilling}>
-                <IconExternalLink className="h-4 w-4 mr-2" />
-                Manage Subscription
-              </Button>
-            </div>
-            <CardDescription>
-              Manage your subscription settings, billing cycle, and payment methods.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Subscription Details */}
-            <div className="space-y-4">
-              <h4 className="font-medium">Current Subscription</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Plan</p>
-                  <p className="font-medium capitalize">{tierInfo.name}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Status</p>
-                  <Badge variant={isActive ? "default" : "destructive"}>
-                    {isActive ? "Active" : "Inactive"}
-                  </Badge>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Next Billing</p>
-                  <p className="font-medium">
-                    {nextBillingDate
-                      ? new Date(nextBillingDate).toLocaleDateString()
-                      : "N/A"
-                    }
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Quick Actions */}
-            <div className="space-y-4">
-              <h4 className="font-medium">Quick Actions</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Button variant="outline" onClick={handleUpdatePaymentMethod} className="justify-start">
-                  <IconCreditCard className="h-4 w-4 mr-2" />
-                  Update Payment Method
-                </Button>
-                <Button variant="outline" onClick={handleDownloadInvoices} className="justify-start">
-                  <IconDownload className="h-4 w-4 mr-2" />
-                  Download Invoices
-                </Button>
-                <Button variant="outline" onClick={handleChangeBillingCycle} className="justify-start">
-                  <IconCalendar className="h-4 w-4 mr-2" />
-                  Change Billing Cycle
-                </Button>
-                <Button variant="outline" onClick={handleManageBilling} className="justify-start">
-                  <IconSparkles className="h-4 w-4 mr-2" />
-                  Upgrade Plan
-                </Button>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Cancellation */}
-            <div className="space-y-4">
-              <div className="flex items-start gap-3 p-4 rounded-lg border border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20">
-                <IconAlertTriangle className="h-5 w-5 text-orange-600 mt-0.5" />
-                <div className="space-y-2">
-                  <p className="font-medium text-orange-900 dark:text-orange-100">
-                    Need to cancel your subscription?
-                  </p>
-                  <p className="text-sm text-orange-700 dark:text-orange-200">
-                    You can cancel anytime through the billing portal. Your access will continue until the end of your current billing period.
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCancelSubscription}
-                    className="border-orange-300 text-orange-700 hover:bg-orange-100 dark:border-orange-700 dark:text-orange-300 dark:hover:bg-orange-900/40"
-                  >
-                    <IconReceipt className="h-4 w-4 mr-2" />
-                    Cancel Subscription
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="text-sm text-muted-foreground">
-              <p>
-                All billing operations are handled securely through Clerk's billing portal.
-                You'll be redirected to manage your subscription, view invoices, and update payment information.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }

@@ -103,11 +103,6 @@ export function DashboardStats({
         value={stats.total}
         description="All time"
         icon={IconFileText}
-        trend={{
-          value: 12,
-          label: "vs last month",
-          isPositive: true
-        }}
       />
 
       {/* Completed */}
@@ -169,11 +164,6 @@ export function DashboardStats({
           value={stats.averageScore > 0 ? `${Math.round(stats.averageScore)}%` : '-'}
           description="Across all evaluations"
           icon={IconTrendingUp}
-          trend={stats.averageScore > 0 ? {
-            value: 5,
-            label: "improvement",
-            isPositive: true
-          } : undefined}
           className="border-purple-200 dark:border-purple-800"
         />
       )}

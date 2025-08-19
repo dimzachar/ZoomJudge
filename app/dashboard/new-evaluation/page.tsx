@@ -18,7 +18,7 @@ export default function NewEvaluationPage() {
   // Fetch evaluation details when we have an ID
   const evaluation = useQuery(
     api.evaluations.getEvaluationById,
-    currentEvaluationId ? { evaluationId: currentEvaluationId } : "skip"
+    currentEvaluationId ? { evaluationId: currentEvaluationId as any } : "skip"
   )
 
   const handleEvaluationSuccess = (evaluationId: string, data: { repoUrl: string; courseType: string }) => {

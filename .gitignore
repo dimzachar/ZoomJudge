@@ -42,11 +42,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 *.md
-# !claude.md
-# !development-plan.md
-
-# Unused files - safe to ignore
-# Analysis scripts
 analyze-unused-files.js
 
 # Unused dashboard components
@@ -59,7 +54,6 @@ app/dashboard/data.json
 
 # Unused UI components
 components/connected-accounts.tsx
-components/kokonutui/attract-button.tsx
 components/magicui/pulsating-button.tsx
 components/menu-bar.tsx
 components/motion-primitives/infinite-slider.tsx
@@ -69,9 +63,7 @@ components/ui/animated-group.tsx
 components/ui/text-effect.tsx
 
 # Unused scripts
-scripts/init-db.js
-scripts/validate-components.js
-scripts/
+scripts/*
 test*
 *logs.js
 anthropic.ts
@@ -79,3 +71,121 @@ app/dashboard/web-evaluation/page.tsx
 
 # clerk configuration (can include secrets)
 /.clerk/
+debug*
+lib/simple-logger.ts
+
+# Additional unused files and dead code identified
+# Root-level documentation files (untracked development artifacts)
+
+# Root-level test and debug files (standalone test files that are NOT tracked in git)
+debug-criterion-selection.js
+debug-criterion-simple.js
+debug-full-criterion.js
+test-bypass.js
+test-criteria.js
+test-dependency-exclusion.ts
+test-file-selection-fix.ts
+test-file-selection.test.ts
+test-hybrid-selection-fix.ts
+test-patterns.js
+test-patterns2.js
+test-smart-truncation.ts
+test-validation-detailed.ts
+test-validation-simple.ts
+test-validation.js
+
+# Backup directory (unused components)
+backup/
+
+# Empty docs directory
+docs/
+
+# Evaluation logs (development artifacts)
+evaluation-logs/
+
+# Solutions directory (documentation artifacts)
+solutions/
+
+# Package manager files (keep only bun.lock)
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+.pnpm-store/
+.yarn/
+
+# Unused tracked files (dead code that exists but is not imported/used)
+lib/ultimate-hybrid/deployment/
+
+# Unused dashboard pages (development/demo pages not linked in navigation)
+app/dashboard/demo/page.tsx
+app/dashboard/hybrid-evaluation/page.tsx
+
+# IDE and development files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS-specific files
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Cache and temporary files
+*.cache
+*.tmp
+*.temp
+.cache/
+.temp/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Log files
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Next.js build output
+.next
+
+# Temporary folders
+tmp/
+temp/

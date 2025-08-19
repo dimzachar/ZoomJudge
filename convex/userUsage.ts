@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
+import { mutation, query, internalMutation, internalQuery, action } from "./_generated/server";
 
 // Helper function to get authenticated user ID
 async function getAuthenticatedUserId(ctx: any): Promise<string> {
@@ -103,7 +103,7 @@ export const updateSubscriptionTier = mutation({
     const userId = await getAuthenticatedUserId(ctx);
 
     const currentMonth = getCurrentMonth();
-    
+
     let usage = await ctx.db
       .query("userUsage")
       .withIndex("byUserAndMonth", (q) => q.eq("userId", userId).eq("month", currentMonth))
@@ -124,10 +124,22 @@ export const updateSubscriptionTier = mutation({
         resetAt: nextMonth.getTime(),
       });
 
+      // Schedule Clerk metadata sync
+      await ctx.scheduler.runAfter(0, "userUsage:syncTierToClerk", {
+        userId,
+        subscriptionTier: args.subscriptionTier,
+      });
+
       return await ctx.db.get(usageId);
     } else {
       // Update existing record
       await ctx.db.patch(usage._id, {
+        subscriptionTier: args.subscriptionTier,
+      });
+
+      // Schedule Clerk metadata sync
+      await ctx.scheduler.runAfter(0, "userUsage:syncTierToClerk", {
+        userId,
         subscriptionTier: args.subscriptionTier,
       });
 
@@ -257,6 +269,43 @@ export const resetMonthlyUsage = mutation({
   },
 });
 
+// Public function to check if a specific user can perform evaluation (for API routes)
+export const canPerformEvaluationForUser = query({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const currentMonth = getCurrentMonth();
+
+    let usage = await ctx.db
+      .query("userUsage")
+      .withIndex("byUserAndMonth", (q) => q.eq("userId", args.userId).eq("month", currentMonth))
+      .first();
+
+    if (!usage) {
+      return { canEvaluate: true, reason: "No usage record found" };
+    }
+
+    // Define tier limits
+    const tierLimits: Record<string, number> = {
+      free: 4,
+      starter: 20,
+      pro: 200,
+    };
+
+    const limit = tierLimits[usage.subscriptionTier] || tierLimits.free;
+    const canEvaluate = usage.evaluationsCount < limit;
+
+    return {
+      canEvaluate,
+      currentCount: usage.evaluationsCount,
+      limit,
+      tier: usage.subscriptionTier,
+      reason: canEvaluate ? null : `Monthly limit of ${limit} evaluations reached for ${usage.subscriptionTier} tier`,
+    };
+  },
+});
+
 // Internal functions for workflow
 export const canPerformEvaluationInternal = internalQuery({
   args: {
@@ -301,36 +350,149 @@ export const incrementEvaluationCountInternal = internalMutation({
   handler: async (ctx, args) => {
     const currentMonth = getCurrentMonth();
 
-    let usage = await ctx.db
-      .query("userUsage")
-      .withIndex("byUserAndMonth", (q) => q.eq("userId", args.userId).eq("month", currentMonth))
-      .first();
+    // Use optimistic locking with retry mechanism
+    let retryCount = 0;
+    const maxRetries = 3;
 
-    if (!usage) {
-      // Create usage record for current month
-      const now = Date.now();
-      const nextMonth = new Date();
-      nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
-      nextMonth.setHours(0, 0, 0, 0);
+    while (retryCount < maxRetries) {
+      try {
+        const usage = await ctx.db
+          .query("userUsage")
+          .withIndex("byUserAndMonth", (q) => q.eq("userId", args.userId).eq("month", currentMonth))
+          .first();
 
-      const usageId = await ctx.db.insert("userUsage", {
-        userId: args.userId,
-        month: currentMonth,
-        evaluationsCount: 1,
-        subscriptionTier: "free", // Default tier
-        lastEvaluationAt: now,
-        resetAt: nextMonth.getTime(),
-      });
+        if (!usage) {
+          // Create new usage record atomically
+          const now = Date.now();
+          const nextMonth = new Date();
+          nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
+          nextMonth.setHours(0, 0, 0, 0);
 
-      return await ctx.db.get(usageId);
-    } else {
-      // Increment existing count
-      await ctx.db.patch(usage._id, {
-        evaluationsCount: usage.evaluationsCount + 1,
-        lastEvaluationAt: Date.now(),
-      });
+          const usageId = await ctx.db.insert("userUsage", {
+            userId: args.userId,
+            month: currentMonth,
+            evaluationsCount: 1,
+            subscriptionTier: "free",
+            lastEvaluationAt: now,
+            resetAt: nextMonth.getTime(),
+            version: 1, // Add version for optimistic locking
+          });
 
-      return await ctx.db.get(usage._id);
+          return await ctx.db.get(usageId);
+        } else {
+          // Check limits before incrementing
+          const tierLimits: Record<string, number> = {
+            free: 4,
+            starter: 20,
+            pro: 200,
+          };
+
+          const limit = tierLimits[usage.subscriptionTier] || tierLimits.free;
+
+          if (usage.subscriptionTier !== "enterprise" && usage.evaluationsCount >= limit) {
+            throw new Error(`Monthly limit of ${limit} evaluations reached for ${usage.subscriptionTier} tier`);
+          }
+
+          // Atomic increment with version check
+          await ctx.db.patch(usage._id, {
+            evaluationsCount: usage.evaluationsCount + 1,
+            lastEvaluationAt: Date.now(),
+            version: (usage.version || 0) + 1,
+          });
+
+          return await ctx.db.get(usage._id);
+        }
+      } catch (error) {
+        retryCount++;
+        if (retryCount >= maxRetries) {
+          throw error;
+        }
+        // Wait before retry (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 100));
+      }
+    }
+  },
+});
+
+// Update user subscription tier from webhook (internal only)
+export const updateUserSubscriptionFromWebhook = internalMutation({
+  args: {
+    userId: v.string(),
+    subscriptionTier: v.string(),
+    eventType: v.string(),
+    eventData: v.any(),
+  },
+  handler: async (ctx, args) => {
+    try {
+      console.log(`Webhook updating subscription for user ${args.userId} to ${args.subscriptionTier}`);
+
+      const currentMonth = getCurrentMonth();
+
+      const usage = await ctx.db
+        .query("userUsage")
+        .withIndex("byUserAndMonth", (q) => q.eq("userId", args.userId).eq("month", currentMonth))
+        .first();
+
+      if (!usage) {
+        // Create usage record for current month with new tier
+        const now = Date.now();
+        const nextMonth = new Date();
+        nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
+        nextMonth.setHours(0, 0, 0, 0);
+
+        const usageId = await ctx.db.insert("userUsage", {
+          userId: args.userId,
+          month: currentMonth,
+          evaluationsCount: 0,
+          subscriptionTier: args.subscriptionTier,
+          resetAt: nextMonth.getTime(),
+        });
+
+        console.log(`Created new usage record for user ${args.userId} with tier ${args.subscriptionTier}`);
+        return await ctx.db.get(usageId);
+      } else {
+        // Update existing record
+        await ctx.db.patch(usage._id, {
+          subscriptionTier: args.subscriptionTier,
+        });
+
+        console.log(`Updated existing usage record for user ${args.userId} to tier ${args.subscriptionTier}`);
+        return await ctx.db.get(usage._id);
+      }
+    } catch (error) {
+      console.error(`Failed to update subscription from webhook for user ${args.userId}:`, error);
+      throw error;
+    }
+  },
+});
+
+// Synchronize subscription tier to Clerk metadata
+export const syncTierToClerk = action({
+  args: {
+    userId: v.string(),
+    subscriptionTier: v.string(),
+  },
+  handler: async (ctx, args) => {
+    try {
+      // This would typically call Clerk's API to update user metadata
+      // For now, we'll log the sync attempt
+      console.log(`Syncing tier to Clerk for user ${args.userId}: ${args.subscriptionTier}`);
+
+      // In a production environment, you would make an API call to Clerk here:
+      // const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+      // await clerkClient.users.updateUserMetadata(args.userId, {
+      //   publicMetadata: {
+      //     subscription: {
+      //       tier: args.subscriptionTier,
+      //       updatedAt: Date.now()
+      //     }
+      //   }
+      // });
+
+      return { success: true, message: `Tier sync scheduled for user ${args.userId}` };
+    } catch (error) {
+      console.error(`Failed to sync tier to Clerk for user ${args.userId}:`, error);
+      return { success: false, error: error.message };
     }
   },
 });

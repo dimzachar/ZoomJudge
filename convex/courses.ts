@@ -86,42 +86,47 @@ export const initializeDefaultCourses = mutation({
         courseId: "data-engineering",
         courseName: "Data Engineering Zoomcamp",
         description: "Comprehensive data engineering course covering pipelines, infrastructure, and best practices",
-        maxScore: 28,
+        maxScore: 30,
         rubricVersion: 1,
         criteria: [
           {
             name: "Problem description",
-            description: "0 points: Problem is not described, 2 points: Problem is described but shortly or not clearly, 4 points: Problem is well described and it's clear what the problem the project solves",
-            maxScore: 4,
+            description: "0: The problem is not described, 1: The problem is described but shortly or not clearly, 2: The problem is well described and it's clear what the problem the project solves",
+            maxScore: 2,
           },
           {
             name: "Cloud",
-            description: "0 points: Cloud is not used, things run only locally, 2 points: The project is developed in the cloud, 4 points: The project is developed in the cloud and IaC tools are used",
+            description: "0: Cloud is not used, things run only locally, 2: The project is developed in the cloud, 4: The project is developed in the cloud and IaC tools are used",
             maxScore: 4,
           },
           {
-            name: "Data ingestion",
-            description: "Batch: 0 points: No workflow orchestration, 2 points: Partial workflow orchestration, 4 points: End-to-end pipeline. Stream: 0 points: No streaming system, 2 points: Simple pipeline, 4 points: Using consumer/producers and streaming technologies",
+            name: "Data Ingestion: Batch / Workflow orchestration",
+            description: "0: No workflow orchestration, 2: Partial workflow orchestration: some steps are orchestrated, some run manually, 4: End-to-end pipeline: multiple steps in the DAG, uploading data to data lake",
+            maxScore: 4,
+          },
+          {
+            name: "Data Ingestion: Stream",
+            description: "0: No streaming system (like Kafka, Pulsar, etc), 2: A simple pipeline with one consumer and one producer, 4: Using consumer/producers and streaming technologies (like Kafka streaming, Spark streaming, Flink, etc)",
             maxScore: 4,
           },
           {
             name: "Data warehouse",
-            description: "0 points: No DWH is used, 2 points: Tables are created in DWH but not optimized, 4 points: Tables are partitioned and clustered in a way that makes sense for the upstream queries",
+            description: "0: No DWH is used, 2: Tables are created in DWH, but not optimized, 4: Tables are partitioned and clustered in a way that makes sense for the upstream queries (with explanation)",
             maxScore: 4,
           },
           {
-            name: "Transformations",
-            description: "0 points: No transformations, 2 points: Simple SQL transformation (no dbt or similar tools), 4 points: Transformations are defined with dbt, Spark or similar technologies",
+            name: "Transformations (dbt, spark, etc)",
+            description: "0: No transformations, 2: Simple SQL transformation (no dbt or similar tools), 4: Transformations are defined with dbt, Spark or similar technologies",
             maxScore: 4,
           },
           {
             name: "Dashboard",
-            description: "0 points: No dashboard, 2 points: A dashboard with 1 tile, 4 points: A dashboard with 2 tiles",
+            description: "0: No dashboard, 2: A dashboard with 1 tile, 4: A dashboard with 2 tiles",
             maxScore: 4,
           },
           {
             name: "Reproducibility",
-            description: "0 points: No instructions how to run the code at all, 2 points: Some instructions are there but they are not complete, 4 points: Instructions are clear, it's easy to run the code, and the code works",
+            description: "0: No instructions how to run the code at all, 2: Some instructions are there, but they are not complete, 4: Instructions are clear, it's easy to run the code, and the code works",
             maxScore: 4,
           },
         ],
@@ -368,72 +373,100 @@ export const initializeDefaultCourses = mutation({
 // Internal version for setup
 export const initializeDefaultCoursesInternal = internalMutation({
   handler: async (ctx) => {
-    const defaultCourses = [
-      {
-        courseId: "data-engineering",
-        courseName: "Data Engineering Zoomcamp",
-        description: "Comprehensive data engineering course covering pipelines, infrastructure, and best practices",
-        maxScore: 28,
-        rubricVersion: 1,
-        criteria: [
-          {
-            name: "Problem description",
-            description: "0 points: Problem is not described, 2 points: Problem is described but shortly or not clearly, 4 points: Problem is well described and it's clear what the problem the project solves",
-            maxScore: 4,
-          },
-          {
-            name: "Cloud",
-            description: "0 points: Cloud is not used, things run only locally, 2 points: The project is developed in the cloud, 4 points: The project is developed in the cloud and IaC tools are used",
-            maxScore: 4,
-          },
-          {
-            name: "Data ingestion",
-            description: "Batch: 0 points: No workflow orchestration, 2 points: Partial workflow orchestration, 4 points: End-to-end pipeline. Stream: 0 points: No streaming system, 2 points: Simple pipeline, 4 points: Using consumer/producers and streaming technologies",
-            maxScore: 4,
-          },
-          {
-            name: "Data warehouse",
-            description: "0 points: No DWH is used, 2 points: Tables are created in DWH but not optimized, 4 points: Tables are partitioned and clustered in a way that makes sense for the upstream queries",
-            maxScore: 4,
-          },
-          {
-            name: "Transformations",
-            description: "0 points: No transformations, 2 points: Simple SQL transformation (no dbt or similar tools), 4 points: Transformations are defined with dbt, Spark or similar technologies",
-            maxScore: 4,
-          },
-          {
-            name: "Dashboard",
-            description: "0 points: No dashboard, 2 points: A dashboard with 1 tile, 4 points: A dashboard with 2 tiles",
-            maxScore: 4,
-          },
-          {
-            name: "Reproducibility",
-            description: "0 points: No instructions how to run the code at all, 2 points: Some instructions are there but they are not complete, 4 points: Instructions are clear, it's easy to run the code, and the code works",
-            maxScore: 4,
-          },
-        ],
-        isActive: true,
-      },
-      // Add other courses here if needed
-    ];
-
     // Check if courses already exist
     const existingCourses = await ctx.db.query("courses").collect();
     if (existingCourses.length > 0) {
       return { message: "Courses already initialized", count: existingCourses.length };
     }
 
-    // Insert all default courses
-    const insertedIds = [];
-    for (const course of defaultCourses) {
-      const courseId = await ctx.db.insert("courses", {
-        ...course,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      });
-      insertedIds.push(courseId);
-    }
+    // For internal setup, we only need the data engineering course
+    const dataEngineeringCourse = {
+      courseId: "data-engineering",
+      courseName: "Data Engineering Zoomcamp",
+      description: "Comprehensive data engineering course covering pipelines, infrastructure, and best practices",
+      maxScore: 30,
+      rubricVersion: 1,
+      promptTemplate: `Please evaluate the following GitHub repository for the Data Engineering Zoomcamp course:
 
-    return { message: "Default courses initialized", count: insertedIds.length, ids: insertedIds };
+IMPORTANT EVALUATION GUIDELINES:
+
+1. **Dashboard Evaluation**: Look for dashboard evidence in textual descriptions, not just code files. Dashboard information may be documented in:
+   - README.md files describing dashboard tiles, visualizations, or BI tools
+   - Documentation mentioning dashboard URLs, screenshots, or tile descriptions
+   - References to dashboard tools like Metabase, Grafana, Tableau, Looker, etc.
+   - Descriptions of data visualizations, charts, or reporting features
+
+   Count the number of dashboard tiles/visualizations mentioned in the documentation. Even if only described textually, this counts as dashboard implementation.
+
+2. **Cloud Infrastructure**: Look for cloud services usage, not just Infrastructure as Code (IaC) files. Cloud evidence includes:
+   - Usage of cloud databases (Snowflake, BigQuery, Redshift)
+   - Cloud messaging services (Confluent Cloud, AWS Kinesis, Google Pub/Sub)
+   - Cloud storage (S3, GCS, Azure Blob)
+   - Managed services mentioned in documentation
+
+3. **Data Warehouse**: Consider cloud data warehouses and their optimization features:
+   - Partitioning and clustering strategies described in documentation
+   - Schema organization (raw, processed, reporting layers)
+   - Query optimization techniques
+
+4. **Workflow Orchestration**: Look for orchestration tools and DAG implementations:
+   - Apache Airflow DAGs and task dependencies
+   - Other orchestration tools (Prefect, Dagster, etc.)
+   - Scheduled job descriptions
+
+Repository URL: {repoUrl}
+
+`,
+      criteria: [
+        {
+          name: "Problem description",
+          description: "0: The problem is not described, 1: The problem is described but shortly or not clearly, 2: The problem is well described and it's clear what the problem the project solves",
+          maxScore: 2,
+        },
+        {
+          name: "Cloud",
+          description: "0: Cloud is not used, things run only locally, 2: The project is developed in the cloud, 4: The project is developed in the cloud and IaC tools are used",
+          maxScore: 4,
+        },
+        {
+          name: "Data Ingestion: Batch / Workflow orchestration",
+          description: "0: No workflow orchestration, 2: Partial workflow orchestration: some steps are orchestrated, some run manually, 4: End-to-end pipeline: multiple steps in the DAG, uploading data to data lake",
+          maxScore: 4,
+        },
+        {
+          name: "Data Ingestion: Stream",
+          description: "0: No streaming system (like Kafka, Pulsar, etc), 2: A simple pipeline with one consumer and one producer, 4: Using consumer/producers and streaming technologies (like Kafka streaming, Spark streaming, Flink, etc)",
+          maxScore: 4,
+        },
+        {
+          name: "Data warehouse",
+          description: "0: No DWH is used, 2: Tables are created in DWH, but not optimized, 4: Tables are partitioned and clustered in a way that makes sense for the upstream queries (with explanation)",
+          maxScore: 4,
+        },
+        {
+          name: "Transformations (dbt, spark, etc)",
+          description: "0: No transformations, 2: Simple SQL transformation (no dbt or similar tools), 4: Transformations are defined with dbt, Spark or similar technologies",
+          maxScore: 4,
+        },
+        {
+          name: "Dashboard",
+          description: "0: No dashboard, 2: A dashboard with 1 tile, 4: A dashboard with 2 tiles",
+          maxScore: 4,
+        },
+        {
+          name: "Reproducibility",
+          description: "0: No instructions how to run the code at all, 2: Some instructions are there, but they are not complete, 4: Instructions are clear, it's easy to run the code, and the code works",
+          maxScore: 4,
+        },
+      ],
+      isActive: true,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    // Insert the data engineering course
+    const courseId = await ctx.db.insert("courses", dataEngineeringCourse);
+
+    return { message: "Default courses initialized", count: 1, ids: [courseId] };
   },
 });

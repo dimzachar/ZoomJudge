@@ -7,6 +7,9 @@ import { ClerkProvider } from '@clerk/nextjs'
 import ConvexClientProvider from '@/components/ConvexClientProvider'
 import { Toaster } from "sonner"
 
+// Setup console override to disable logging in production
+import "@/lib/console-override";
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
