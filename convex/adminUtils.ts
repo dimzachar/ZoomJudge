@@ -1,12 +1,13 @@
 import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { api } from "./_generated/api";
 
 // Check if user has admin permissions
 const checkAdminPermissions = async (ctx: any, userId: string) => {
   const user = await ctx.db
     .query("users")
-    .withIndex("byExternalId", (q) => q.eq("externalId", userId))
+    .withIndex("byExternalId", (q: any) => q.eq("externalId", userId))
     .first();
 
   if (!user?.isAdmin) {
@@ -35,7 +36,7 @@ export const upgradeUserToEnterprise = internalMutation({
     
     const usage = await ctx.db
       .query("userUsage")
-      .withIndex("byUserAndMonth", (q) => q.eq("userId", args.userId).eq("month", currentMonth))
+      .withIndex("byUserAndMonth", (q: any) => q.eq("userId", args.userId).eq("month", currentMonth))
       .first();
 
     if (usage) {
@@ -46,7 +47,7 @@ export const upgradeUserToEnterprise = internalMutation({
       });
 
       // Schedule Clerk metadata sync
-      await ctx.scheduler.runAfter(0, "userUsage:syncTierToClerk", {
+      await ctx.scheduler.runAfter(0, api.userUsage.syncTierToClerk, {
         userId: args.userId,
         subscriptionTier: "enterprise",
       });
@@ -68,7 +69,7 @@ export const upgradeUserToEnterprise = internalMutation({
       });
 
       // Schedule Clerk metadata sync
-      await ctx.scheduler.runAfter(0, "userUsage:syncTierToClerk", {
+      await ctx.scheduler.runAfter(0, api.userUsage.syncTierToClerk, {
         userId: args.userId,
         subscriptionTier: "enterprise",
       });
@@ -98,7 +99,7 @@ export const resetUserEvaluationCount = internalMutation({
     
     const usage = await ctx.db
       .query("userUsage")
-      .withIndex("byUserAndMonth", (q) => q.eq("userId", args.userId).eq("month", currentMonth))
+      .withIndex("byUserAndMonth", (q: any) => q.eq("userId", args.userId).eq("month", currentMonth))
       .first();
 
     if (usage) {
@@ -164,7 +165,7 @@ export const createTestUser = internalMutation({
     // Check if user already exists
     const existingUsage = await ctx.db
       .query("userUsage")
-      .withIndex("byUserAndMonth", (q) => q.eq("userId", args.userId).eq("month", currentMonth))
+      .withIndex("byUserAndMonth", (q: any) => q.eq("userId", args.userId).eq("month", currentMonth))
       .first();
 
     if (existingUsage) {
@@ -208,7 +209,7 @@ export const forceIncrementEvaluation = internalMutation({
 
     const usage = await ctx.db
       .query("userUsage")
-      .withIndex("byUserAndMonth", (q) => q.eq("userId", args.userId).eq("month", currentMonth))
+      .withIndex("byUserAndMonth", (q: any) => q.eq("userId", args.userId).eq("month", currentMonth))
       .first();
 
     if (usage) {
@@ -249,12 +250,12 @@ export const getTestUserInfo = internalMutation({
 
     const usage = await ctx.db
       .query("userUsage")
-      .withIndex("byUserAndMonth", (q) => q.eq("userId", args.userId).eq("month", currentMonth))
+      .withIndex("byUserAndMonth", (q: any) => q.eq("userId", args.userId).eq("month", currentMonth))
       .first();
 
     const user = await ctx.db
       .query("users")
-      .withIndex("byExternalId", (q) => q.eq("externalId", args.userId))
+      .withIndex("byExternalId", (q: any) => q.eq("externalId", args.userId))
       .first();
 
     return {

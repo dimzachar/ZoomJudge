@@ -23,9 +23,9 @@ export const adminUpgradeUser = mutation({
   args: {
     userId: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ success: boolean; message: string }> => {
     const adminUserId = await getAuthenticatedUserId(ctx);
-    
+
     // Call internal function with admin check
     return await ctx.runMutation(internal.adminUtils.upgradeUserToEnterprise, {
       userId: args.userId,
@@ -39,9 +39,9 @@ export const adminResetUserCount = mutation({
   args: {
     userId: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ success: boolean; message: string }> => {
     const adminUserId = await getAuthenticatedUserId(ctx);
-    
+
     // Call internal function with admin check
     return await ctx.runMutation(internal.adminUtils.resetUserEvaluationCount, {
       userId: args.userId,
@@ -53,9 +53,9 @@ export const adminResetUserCount = mutation({
 // Public wrapper for getting all user usage statistics
 export const adminGetAllUsage = mutation({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<any[]> => {
     const adminUserId = await getAuthenticatedUserId(ctx);
-    
+
     // Call internal function with admin check
     return await ctx.runMutation(internal.adminUtils.getAllUserUsage, {
       adminUserId,
@@ -70,9 +70,9 @@ export const adminCreateTestUser = mutation({
     tier: v.string(),
     evaluationCount: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ success: boolean; message: string; existing: boolean }> => {
     const adminUserId = await getAuthenticatedUserId(ctx);
-    
+
     // Call internal function with admin check
     return await ctx.runMutation(internal.adminUtils.createTestUser, {
       userId: args.userId,
@@ -88,9 +88,9 @@ export const adminForceIncrement = mutation({
   args: {
     userId: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ success: boolean; message: string; newCount?: number; tier?: string }> => {
     const adminUserId = await getAuthenticatedUserId(ctx);
-    
+
     // Call internal function with admin check
     return await ctx.runMutation(internal.adminUtils.forceIncrementEvaluation, {
       userId: args.userId,
@@ -104,9 +104,9 @@ export const adminGetTestUserInfo = mutation({
   args: {
     userId: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ user: any; usage: any; currentMonth: string }> => {
     const adminUserId = await getAuthenticatedUserId(ctx);
-    
+
     // Call internal function with admin check
     return await ctx.runMutation(internal.adminUtils.getTestUserInfo, {
       userId: args.userId,
@@ -118,9 +118,9 @@ export const adminGetTestUserInfo = mutation({
 // Admin function to check if current user has admin privileges
 export const checkAdminStatus = mutation({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<{ isAdmin: boolean; userId: string }> => {
     const adminUserId = await getAuthenticatedUserId(ctx);
-    
+
     // Check admin permissions using security audit function
     return await ctx.runQuery(internal.securityAudit.checkAdminPermissions, {
       userId: adminUserId,
@@ -136,25 +136,25 @@ export const adminGetSecurityEvents = mutation({
     type: v.optional(v.string()),
     userId: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any[]> => {
     const adminUserId = await getAuthenticatedUserId(ctx);
-    
+
     // Check admin permissions first
     const adminCheck = await ctx.runQuery(internal.securityAudit.checkAdminPermissions, {
       userId: adminUserId,
     });
-    
+
     if (!adminCheck.isAdmin) {
       throw new Error("Unauthorized: Admin privileges required");
     }
-    
+
     // Log admin action
     await ctx.runMutation(internal.securityAudit.logAdminAction, {
       adminUserId,
       action: "get_security_events",
       details: args,
     });
-    
+
     // Get security events
     return await ctx.runQuery(internal.securityAudit.getSecurityEvents, args);
   },
@@ -165,25 +165,25 @@ export const adminGetSecurityStats = mutation({
   args: {
     timeRange: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     const adminUserId = await getAuthenticatedUserId(ctx);
-    
+
     // Check admin permissions first
     const adminCheck = await ctx.runQuery(internal.securityAudit.checkAdminPermissions, {
       userId: adminUserId,
     });
-    
+
     if (!adminCheck.isAdmin) {
       throw new Error("Unauthorized: Admin privileges required");
     }
-    
+
     // Log admin action
     await ctx.runMutation(internal.securityAudit.logAdminAction, {
       adminUserId,
       action: "get_security_stats",
       details: args,
     });
-    
+
     // Get security statistics
     return await ctx.runQuery(internal.securityAudit.getSecurityStats, args);
   },
@@ -194,25 +194,25 @@ export const adminCleanupSecurityEvents = mutation({
   args: {
     daysOld: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ deletedCount: number; cutoffTime: number }> => {
     const adminUserId = await getAuthenticatedUserId(ctx);
-    
+
     // Check admin permissions first
     const adminCheck = await ctx.runQuery(internal.securityAudit.checkAdminPermissions, {
       userId: adminUserId,
     });
-    
+
     if (!adminCheck.isAdmin) {
       throw new Error("Unauthorized: Admin privileges required");
     }
-    
+
     // Log admin action
     await ctx.runMutation(internal.securityAudit.logAdminAction, {
       adminUserId,
       action: "cleanup_security_events",
       details: args,
     });
-    
+
     // Cleanup old security events
     return await ctx.runMutation(internal.securityAudit.cleanupOldSecurityEvents, args);
   },

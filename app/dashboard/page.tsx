@@ -16,7 +16,7 @@ export default function Page() {
   const currentUsage = useQuery(api.userUsage.getCurrentUsage)
 
   // Show loading state while data is being fetched
-  if (evaluationStats === undefined || currentUsage === undefined) {
+  if (evaluationStats === undefined || currentUsage === undefined || currentUsage === null) {
     return (
       <div className="space-y-8">
         {/* Welcome Section */}
@@ -61,7 +61,7 @@ export default function Page() {
   }
 
   const monthlyLimit = tierLimits[userTier] || tierLimits.free
-  const currentCount = currentUsage.evaluationsCount
+  const currentCount = currentUsage?.evaluationsCount || 0
   const isNearLimit = currentCount >= monthlyLimit * 0.8 && userTier === 'free'
   const isAtLimit = currentCount >= monthlyLimit && userTier !== 'enterprise'
 

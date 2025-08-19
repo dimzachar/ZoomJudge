@@ -16,7 +16,7 @@ async function getUserTierFromDatabase(ctx: any, userId: string): Promise<string
 
   const usage = await ctx.db
     .query("userUsage")
-    .withIndex("byUserAndMonth", (q) => q.eq("userId", userId).eq("month", currentMonth))
+    .withIndex("byUserAndMonth", (q: any) => q.eq("userId", userId).eq("month", currentMonth))
     .first();
 
   // Return the tier from database, defaulting to 'free' if no usage record exists
@@ -173,7 +173,7 @@ export const getUserEvaluations = query({
 
     const evaluations = await ctx.db
       .query("evaluations")
-      .withIndex("byUserId", (q) => q.eq("userId", userId))
+      .withIndex("byUserId", (q: any) => q.eq("userId", userId))
       .order("desc")
       .take(limit);
 
@@ -220,7 +220,7 @@ export const getPendingEvaluations = query({
     
     const evaluations = await ctx.db
       .query("evaluations")
-      .withIndex("byStatus", (q) => q.eq("status", "pending"))
+      .withIndex("byStatus", (q: any) => q.eq("status", "pending"))
       .order("asc") // Process oldest first
       .take(limit);
 
@@ -235,7 +235,7 @@ export const getUserEvaluationStats = query({
 
     const allEvaluations = await ctx.db
       .query("evaluations")
-      .withIndex("byUserId", (q) => q.eq("userId", userId))
+      .withIndex("byUserId", (q: any) => q.eq("userId", userId))
       .collect();
 
     const stats = {
@@ -266,10 +266,10 @@ export const getExistingEvaluation = query({
   handler: async (ctx, args) => {
     const existingEvaluation = await ctx.db
       .query("evaluations")
-      .withIndex("byCommitAndCourse", (q) =>
+      .withIndex("byCommitAndCourse", (q: any) =>
         q.eq("commitHash", args.commitHash).eq("course", args.course)
       )
-      .filter((q) => q.eq(q.field("status"), "completed"))
+      .filter((q: any) => q.eq(q.field("status"), "completed"))
       .first();
 
     return existingEvaluation;
@@ -413,10 +413,10 @@ export const getExistingEvaluationInternal = internalQuery({
   handler: async (ctx, args) => {
     const existingEvaluation = await ctx.db
       .query("evaluations")
-      .withIndex("byCommitAndCourse", (q) =>
+      .withIndex("byCommitAndCourse", (q: any) =>
         q.eq("commitHash", args.commitHash).eq("course", args.course)
       )
-      .filter((q) => q.eq(q.field("status"), "completed"))
+      .filter((q: any) => q.eq(q.field("status"), "completed"))
       .first();
 
     return existingEvaluation;
@@ -455,7 +455,7 @@ export const getPendingEvaluationsInternal = internalQuery({
 
     const evaluations = await ctx.db
       .query("evaluations")
-      .withIndex("byStatus", (q) => q.eq("status", "pending"))
+      .withIndex("byStatus", (q: any) => q.eq("status", "pending"))
       .order("asc") // Process oldest first
       .take(limit);
 

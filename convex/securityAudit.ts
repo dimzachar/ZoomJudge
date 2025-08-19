@@ -145,26 +145,41 @@ export const getSecurityEvents = internalQuery({
     userId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("securityEvents");
+    let events;
 
+    // Use the most specific index available
     if (args.type) {
-      query = query.withIndex("byType", (q) => q.eq("type", args.type));
+      events = await ctx.db
+        .query("securityEvents")
+        .withIndex("byType", (q: any) => q.eq("type", args.type))
+        .order("desc")
+        .take(args.limit || 100);
+    } else if (args.userId) {
+      events = await ctx.db
+        .query("securityEvents")
+        .withIndex("byUserId", (q: any) => q.eq("userId", args.userId))
+        .order("desc")
+        .take(args.limit || 100);
+    } else {
+      events = await ctx.db
+        .query("securityEvents")
+        .order("desc")
+        .take(args.limit || 100);
     }
 
-    if (args.userId) {
-      query = query.withIndex("byUserId", (q) => q.eq("userId", args.userId));
+    // Filter by additional criteria if specified
+    let filteredEvents = events;
+
+    if (args.userId && !args.type) {
+      // If we didn't use userId index, filter by userId
+      filteredEvents = filteredEvents.filter(event => event.userId === args.userId);
     }
 
-    const events = await query
-      .order("desc")
-      .take(args.limit || 100);
-
-    // Filter by severity if specified
     if (args.severity) {
-      return events.filter(event => event.severity === args.severity);
+      filteredEvents = filteredEvents.filter(event => event.severity === args.severity);
     }
 
-    return events;
+    return filteredEvents;
   },
 });
 
@@ -179,7 +194,7 @@ export const getSecurityStats = internalQuery({
 
     const recentEvents = await ctx.db
       .query("securityEvents")
-      .withIndex("byTimestamp", (q) => q.gte("timestamp", cutoffTime))
+      .withIndex("byTimestamp", (q: any) => q.gte("timestamp", cutoffTime))
       .collect();
 
     const stats = {
@@ -208,7 +223,7 @@ export const cleanupOldSecurityEvents = internalMutation({
 
     const oldEvents = await ctx.db
       .query("securityEvents")
-      .withIndex("byTimestamp", (q) => q.lt("timestamp", cutoffTime))
+      .withIndex("byTimestamp", (q: any) => q.lt("timestamp", cutoffTime))
       .collect();
 
     let deletedCount = 0;
@@ -230,7 +245,7 @@ export const checkAdminPermissions = internalQuery({
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("byExternalId", (q) => q.eq("externalId", args.userId))
+      .withIndex("byExternalId", (q: any) => q.eq("externalId", args.userId))
       .first();
 
     return {

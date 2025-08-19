@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation, internalQuery, action } from "./_generated/server";
+import { api } from "./_generated/api";
 
 // Helper function to get authenticated user ID
 async function getAuthenticatedUserId(ctx: any): Promise<string> {
@@ -125,7 +126,7 @@ export const updateSubscriptionTier = mutation({
       });
 
       // Schedule Clerk metadata sync
-      await ctx.scheduler.runAfter(0, "userUsage:syncTierToClerk", {
+      await ctx.scheduler.runAfter(0, api.userUsage.syncTierToClerk, {
         userId,
         subscriptionTier: args.subscriptionTier,
       });
@@ -138,7 +139,7 @@ export const updateSubscriptionTier = mutation({
       });
 
       // Schedule Clerk metadata sync
-      await ctx.scheduler.runAfter(0, "userUsage:syncTierToClerk", {
+      await ctx.scheduler.runAfter(0, api.userUsage.syncTierToClerk, {
         userId,
         subscriptionTier: args.subscriptionTier,
       });
@@ -492,7 +493,7 @@ export const syncTierToClerk = action({
       return { success: true, message: `Tier sync scheduled for user ${args.userId}` };
     } catch (error) {
       console.error(`Failed to sync tier to Clerk for user ${args.userId}:`, error);
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   },
 });

@@ -6,7 +6,7 @@
 /**
  * Security event types
  */
-export type SecurityEventType = 
+export type SecurityEventType =
   | 'validation_failure'
   | 'rate_limit_exceeded'
   | 'webhook_invalid'
@@ -15,7 +15,9 @@ export type SecurityEventType =
   | 'config_error'
   | 'repository_access_denied'
   | 'file_access_attempt'
-  | 'api_abuse_detected';
+  | 'api_abuse_detected'
+  | 'unauthorized_api_access'
+  | 'billing_limit_exceeded';
 
 /**
  * Security event interface
@@ -143,6 +145,8 @@ function getEventSeverity(type: SecurityEventType): 'low' | 'medium' | 'high' | 
     case 'auth_failure':
     case 'webhook_invalid':
     case 'api_abuse_detected':
+    case 'unauthorized_api_access':
+    case 'billing_limit_exceeded':
       return 'high';
     case 'rate_limit_exceeded':
     case 'suspicious_activity':
