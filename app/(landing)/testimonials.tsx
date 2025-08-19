@@ -84,7 +84,7 @@ export default function WallOfLoveSection() {
     }, [])
 
     return (
-        <section id="testimonials" className="py-16 md:py-24">
+        <section id="testimonials" className="py-16 md:py-24 testimonials-section">
             <div className="mx-auto max-w-7xl px-6">
                 <div className="text-center max-w-3xl mx-auto">
                     <h2 className="text-foreground text-4xl font-semibold">What Developers Are Saying</h2>

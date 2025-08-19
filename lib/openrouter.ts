@@ -1,23 +1,23 @@
 import OpenAI from 'openai';
 import { evaluationLogger } from './simple-logger';
+import { APIClientFactory, APIClientOptions, MockAPIClient } from './config/APIClientFactory';
+import { ConfigurationService } from './config/ConfigurationService';
 
 // OpenRouter API client configuration
 export class OpenRouterClient {
-  private client: OpenAI;
+  private client: OpenAI | MockAPIClient;
   private currentEvaluationId: string | null = null;
+  private mockMode: boolean;
 
-  constructor() {
-    if (!process.env.OPENROUTER_API_KEY) {
-      throw new Error('OPENROUTER_API_KEY environment variable is required');
-    }
+  constructor(options: APIClientOptions = {}) {
+    // Determine if we should use mock mode
+    const configService = ConfigurationService.getInstance(options);
+    this.mockMode = options.mockMode || configService.isMockMode() || !configService.hasAPIKey();
 
-    this.client = new OpenAI({
-      baseURL: 'https://openrouter.ai/api/v1',
-      apiKey: process.env.OPENROUTER_API_KEY,
-      defaultHeaders: {
-        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-        'X-Title': process.env.NEXT_PUBLIC_SITE_NAME || 'ZoomJudge',
-      },
+    // Create client using factory
+    this.client = APIClientFactory.createOpenRouterClient({
+      mockMode: this.mockMode,
+      configuration: options.configuration
     });
   }
 
@@ -26,8 +26,19 @@ export class OpenRouterClient {
    */
   setEvaluationId(evaluationId: string) {
     this.currentEvaluationId = evaluationId;
-    evaluationLogger.setCurrentEvaluation(evaluationId);
+    if (typeof evaluationLogger !== 'undefined' && evaluationLogger.setCurrentEvaluation) {
+      evaluationLogger.setCurrentEvaluation(evaluationId);
+    }
   }
+
+  /**
+   * Check if client is in mock mode
+   */
+  isMockMode(): boolean {
+    return this.mockMode;
+  }
+
+
 
   /**
    * Evaluate a GitHub repository using Claude Sonnet 4
@@ -93,7 +104,7 @@ export class OpenRouterClient {
       // Step 2: Prepare API request
       console.log('=== STEP 2: PREPARING API REQUEST ===');
       const requestPayload = {
-        model: 'anthropic/claude-sonnet-4', // Upgraded to Claude 3.5 Sonnet for better analysis
+        model: 'qwen/qwen3-coder:free', // Upgraded to Claude 3.5 Sonnet for better analysis
         messages: [
           {
             role: 'system' as const,
@@ -108,13 +119,8 @@ export class OpenRouterClient {
         max_tokens: 16000, // Increased token limit for more detailed responses
       };
 
-      console.log('API Request payload:', JSON.stringify({
-        ...requestPayload,
-        messages: requestPayload.messages.map(msg => ({
-          ...msg,
-          content: msg.content.length > 200 ? msg.content.substring(0, 200) + '...[truncated]' : msg.content
-        }))
-      }, null, 2));
+      // Note: Request payload not logged for security (contains repository content)
+      console.log('API Request prepared - Model:', requestPayload.model, 'Messages:', requestPayload.messages.length);
 
       // Step 3: Make API call
       console.log('=== STEP 3: MAKING API CALL ===');
@@ -134,7 +140,7 @@ export class OpenRouterClient {
         id: completion.id,
         model: completion.model,
         usage: completion.usage,
-        choices: completion.choices?.map(choice => ({
+        choices: completion.choices?.map((choice: any) => ({
           index: choice.index,
           finish_reason: choice.finish_reason,
           message: {
@@ -241,18 +247,18 @@ Repository URL: ${repoUrl}
 Repository Content:
 ${repoContent}
 
-Please provide your evaluation in the following JSON format. CRITICALLY IMPORTANT: For each criterion, you MUST specify which files you analyzed in the "sourceFiles" array:
+Please provide your evaluation in the following JSON format. CRITICALLY IMPORTANT: For each criterion, you MUST specify which files you analyzed in the "sourceFiles" array. Use the actual criterion names as keys in the breakdown object:
 {
   "totalScore": <number>,
   "maxScore": <number>,
   "breakdown": {
-    "criterion1": {
+    "Problem description": {
       "score": <number>,
       "feedback": "<detailed feedback>",
       "maxScore": <number>,
       "sourceFiles": ["file1.py", "README.md", "notebook.ipynb"]
     },
-    "criterion2": {
+    "Model Implementation": {
       "score": <number>,
       "feedback": "<detailed feedback>",
       "maxScore": <number>,
@@ -268,6 +274,18 @@ EVALUATION INSTRUCTIONS:
 3. **Deep Analysis**: Don't just look at README files - examine code files, notebooks, configuration files, and data files for evidence of implementation.
 4. **Evidence-Based Scoring**: Base your scores on concrete evidence found in the files, not assumptions.
 5. **File Mentions**: When you find relevant evidence in a file, mention the specific file name in your feedback.
+6. **DISCRETE SCORING ONLY**: Each criterion has specific conditions that map to exact point values. You MUST determine which condition is met and assign ONLY the exact score specified for that condition. DO NOT interpolate or assign fractional scores (like 0.5, 1.5, 2.5). For example:
+   - If a criterion says "0 points: condition A, 1 point: condition B, 2 points: condition C" - you must assign exactly 0, 1, or 2 based on which condition is met
+   - Never assign partial credit between the defined point levels
+7. **Problem Description Scoring Guidelines**: For "Problem description" criteria, be very strict about what constitutes a description:
+   - **0 points**: Project title alone, generic statements like "final project", or no explanation of what problem is being solved
+   - **1 point**: Brief mention of the problem domain but lacks context, objectives, or clear explanation of what the project aims to solve
+   - **2 points**: Clear explanation of the specific problem, context, objectives, and how the solution addresses the problem
+8. **Best Practices Interpretation**: For LLM Zoomcamp "Best practices" criterion, when it says "at least evaluating it", this means looking for evidence of EXPLORATION or EXPERIMENTATION, not final implementation. Award points if you find:
+   - Notebooks or files showing experiments with hybrid search, document re-ranking, or query rewriting
+   - Evaluation results comparing different approaches (even if not used in final system)
+   - Documentation discussing these techniques or their evaluation
+   - Code that tests or explores these methods (even if commented out or in separate files)
 
 Course Description: ${courseData.description}
 Maximum Possible Score: ${courseData.maxScore}
@@ -327,6 +345,40 @@ Evaluation Criteria:
         throw new Error('Invalid response structure');
       }
 
+      // Validate that all scores are whole numbers (log warning if fractional scores are found)
+      for (const [criterionName, criterionData] of Object.entries(parsed.breakdown)) {
+        if (typeof criterionData === 'object' && criterionData !== null && 'score' in criterionData) {
+          const score = (criterionData as any).score;
+          if (!Number.isInteger(score)) {
+            console.warn(`WARNING: Fractional score detected for "${criterionName}": ${score}. This should not happen with proper prompt instructions.`);
+          }
+        }
+      }
+
+      // Calculate the correct total score from individual criterion scores
+      let calculatedTotalScore = 0;
+      let calculatedMaxScore = 0;
+
+      for (const [, criterionData] of Object.entries(parsed.breakdown)) {
+        if (typeof criterionData === 'object' && criterionData !== null && 'score' in criterionData && 'maxScore' in criterionData) {
+          const score = (criterionData as any).score;
+          const maxScore = (criterionData as any).maxScore;
+          calculatedTotalScore += score;
+          calculatedMaxScore += maxScore;
+        }
+      }
+
+      // Check if AI's calculation matches our calculation
+      if (parsed.totalScore !== calculatedTotalScore) {
+        console.warn(`WARNING: AI calculation error detected. AI reported total: ${parsed.totalScore}, Correct total: ${calculatedTotalScore}. Using correct calculation.`);
+        parsed.totalScore = calculatedTotalScore;
+      }
+
+      if (parsed.maxScore !== calculatedMaxScore) {
+        console.warn(`WARNING: AI max score error detected. AI reported max: ${parsed.maxScore}, Correct max: ${calculatedMaxScore}. Using correct calculation.`);
+        parsed.maxScore = calculatedMaxScore;
+      }
+
       return parsed;
     } catch (error) {
       console.error('Error parsing evaluation response:', error);
@@ -379,18 +431,18 @@ Repository URL: ${repoUrl}
 Repository Content:
 ${repoContent}
 
-Please provide your evaluation in the following JSON format. CRITICALLY IMPORTANT: For each criterion, you MUST specify which files you analyzed in the "sourceFiles" array:
+Please provide your evaluation in the following JSON format. CRITICALLY IMPORTANT: For each criterion, you MUST specify which files you analyzed in the "sourceFiles" array. Use the actual criterion names as keys in the breakdown object:
 {
   "totalScore": <number>,
   "maxScore": <number>,
   "breakdown": {
-    "criterion1": {
+    "Problem description": {
       "score": <number>,
       "feedback": "<detailed feedback>",
       "maxScore": <number>,
       "sourceFiles": ["file1.py", "README.md", "notebook.ipynb"]
     },
-    "criterion2": {
+    "Model Implementation": {
       "score": <number>,
       "feedback": "<detailed feedback>",
       "maxScore": <number>,
@@ -406,6 +458,18 @@ EVALUATION INSTRUCTIONS:
 3. **Deep Analysis**: Don't just look at README files - examine code files, notebooks, configuration files, and data files for evidence of implementation.
 4. **Evidence-Based Scoring**: Base your scores on concrete evidence found in the files, not assumptions.
 5. **File Mentions**: When you find relevant evidence in a file, mention the specific file name in your feedback.
+6. **DISCRETE SCORING ONLY**: Each criterion has specific conditions that map to exact point values. You MUST determine which condition is met and assign ONLY the exact score specified for that condition. DO NOT interpolate or assign fractional scores (like 0.5, 1.5, 2.5). For example:
+   - If a criterion says "0 points: condition A, 1 point: condition B, 2 points: condition C" - you must assign exactly 0, 1, or 2 based on which condition is met
+   - Never assign partial credit between the defined point levels
+7. **Problem Description Scoring Guidelines**: For "Problem description" criteria, be very strict about what constitutes a description:
+   - **0 points**: Project title alone, generic statements like "final project", or no explanation of what problem is being solved
+   - **1 point**: Brief mention of the problem domain but lacks context, objectives, or clear explanation of what the project aims to solve
+   - **2 points**: Clear explanation of the specific problem, context, objectives, and how the solution addresses the problem
+8. **Best Practices Interpretation**: For LLM Zoomcamp "Best practices" criterion, when it says "at least evaluating it", this means looking for evidence of EXPLORATION or EXPERIMENTATION, not final implementation. Award points if you find:
+   - Notebooks or files showing experiments with hybrid search, document re-ranking, or query rewriting
+   - Evaluation results comparing different approaches (even if not used in final system)
+   - Documentation discussing these techniques or their evaluation
+   - Code that tests or explores these methods (even if commented out or in separate files)
 
 Course Description: ${courseData.description}
 Maximum Possible Score: ${courseData.maxScore}

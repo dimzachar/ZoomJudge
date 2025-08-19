@@ -243,7 +243,7 @@ export class BenchmarkRunner {
           courseName: `${repo.courseId} course`,
           criteria: mockCriteria,
           files: mockFiles,
-          maxFiles: 20
+          maxFiles: 50
         };
 
         const hybridResult = await this.hybridSelector.selectFiles(hybridRequest);

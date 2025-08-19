@@ -10,6 +10,53 @@ async function getAuthenticatedUserId(ctx: any): Promise<string> {
   return identity.subject;
 }
 
+// Helper function to get user tier from Convex database (source of truth)
+async function getUserTierFromDatabase(ctx: any, userId: string): Promise<string> {
+  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+
+  const usage = await ctx.db
+    .query("userUsage")
+    .withIndex("byUserAndMonth", (q) => q.eq("userId", userId).eq("month", currentMonth))
+    .first();
+
+  // Return the tier from database, defaulting to 'free' if no usage record exists
+  return usage?.subscriptionTier || 'free';
+}
+
+// Helper function to filter evaluation results based on user tier
+function filterEvaluationResults(evaluation: any, userTier: string): any {
+  if (!evaluation || !evaluation.results) {
+    return evaluation;
+  }
+
+  // Free users only get basic scores, no detailed feedback
+  if (userTier === 'free') {
+    return {
+      ...evaluation,
+      results: {
+        totalScore: evaluation.results.totalScore,
+        maxScore: evaluation.results.maxScore,
+        breakdown: Object.fromEntries(
+          Object.entries(evaluation.results.breakdown || {}).map(([key, value]: [string, any]) => [
+            key,
+            {
+              score: value.score,
+              maxScore: value.maxScore,
+              // Remove feedback and sourceFiles for free users
+              feedback: '',
+              sourceFiles: []
+            }
+          ])
+        ),
+        overallFeedback: '' // Remove overall feedback for free users
+      }
+    };
+  }
+
+  // Paid users get full results
+  return evaluation;
+}
+
 // Create a new evaluation
 export const createEvaluation = mutation({
   args: {
@@ -114,17 +161,24 @@ export const getUserEvaluations = query({
     cursor: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthenticatedUserId(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Authentication required");
+    }
+
+    const userId = identity.subject;
+    const userTier = await getUserTierFromDatabase(ctx, userId);
 
     const limit = args.limit || 20;
-    
+
     const evaluations = await ctx.db
       .query("evaluations")
       .withIndex("byUserId", (q) => q.eq("userId", userId))
       .order("desc")
       .take(limit);
 
-    return evaluations;
+    // Filter results based on user tier
+    return evaluations.map(evaluation => filterEvaluationResults(evaluation, userTier));
   },
 });
 
@@ -134,7 +188,13 @@ export const getEvaluation = query({
     evaluationId: v.id("evaluations"),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthenticatedUserId(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Authentication required");
+    }
+
+    const userId = identity.subject;
+    const userTier = await getUserTierFromDatabase(ctx, userId);
 
     const evaluation = await ctx.db.get(args.evaluationId);
     if (!evaluation) {
@@ -145,7 +205,8 @@ export const getEvaluation = query({
       throw new Error("Unauthorized");
     }
 
-    return evaluation;
+    // Filter results based on user tier
+    return filterEvaluationResults(evaluation, userTier);
   },
 });
 
@@ -288,19 +349,21 @@ export const getEvaluationById = query({
     evaluationId: v.id("evaluations"),
   },
   handler: async (ctx, args) => {
-    const userId = await ctx.auth.getUserIdentity();
-    if (!userId) {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
       throw new Error("Authentication required");
     }
 
+    const userTier = await getUserTierFromDatabase(ctx, identity.subject);
     const evaluation = await ctx.db.get(args.evaluationId);
 
     // Only return evaluation if it belongs to the current user
-    if (!evaluation || evaluation.userId !== userId.subject) {
+    if (!evaluation || evaluation.userId !== identity.subject) {
       return null;
     }
 
-    return evaluation;
+    // Filter results based on user tier
+    return filterEvaluationResults(evaluation, userTier);
   },
 });
 

@@ -14,6 +14,8 @@ import { Loader2, GitBranch, CheckCircle, XCircle, AlertCircle, Info } from 'luc
 import { useAction, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { toast } from 'sonner';
+import { BillingLimitModal, useBillingLimitModal } from '@/components/billing-limit-modal';
+import { debugLog, debugError } from '@/lib/debug-logger';
 
 // Form validation schema
 const evaluationFormSchema = z.object({
@@ -52,7 +54,10 @@ interface EvaluationFormProps {
 export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const courses = useQuery(api.courses.getActiveCourses);
+  const currentUsage = useQuery(api.userUsage.getCurrentUsage);
+  const canPerformEvaluation = useQuery(api.userUsage.canPerformEvaluation);
   const submitEvaluation = useAction(api.evaluationWorkflow.submitEvaluation);
+  const { isOpen: isBillingModalOpen, showModal: showBillingModal, hideModal: hideBillingModal } = useBillingLimitModal();
 
   const {
     register,
@@ -71,23 +76,39 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
 
   const watchedCourseType = watch('courseType');
 
+  // Check if user is at billing limit
+  const isAtLimit = canPerformEvaluation && !canPerformEvaluation.canEvaluate;
+  const userTier = currentUsage?.subscriptionTier || 'free';
+
+  // Calculate tier limits
+  const tierLimits: Record<string, number> = {
+    free: 4,
+    starter: 20,
+    pro: 200,
+    enterprise: -1 // unlimited
+  };
+
+  const monthlyLimit = tierLimits[userTier] || tierLimits.free;
+  const currentCount = currentUsage?.evaluationsCount || 0;
+
   const onSubmit = async (data: EvaluationFormData) => {
-    console.log('=== EVALUATION FORM SUBMIT DEBUG START ===');
-    console.log('Form data submitted:', JSON.stringify(data, null, 2));
+    debugLog('=== EVALUATION FORM SUBMIT DEBUG START ===');
+    debugLog('Form data submitted - Course:', data.courseType, 'Repo URL provided:', !!data.repoUrl);
 
     setIsSubmitting(true);
 
     try {
-      console.log('=== CALLING CONVEX ACTION ===');
+      debugLog('=== CALLING CONVEX ACTION ===');
       const submissionPayload = {
         repoUrl: data.repoUrl,
         courseType: data.courseType,
       };
-      console.log('Submission payload:', JSON.stringify(submissionPayload, null, 2));
+      debugLog('Submission payload prepared - Course:', submissionPayload.courseType);
 
       // Submit evaluation using Convex action (now synchronous)
       const result = await submitEvaluation(submissionPayload);
-      console.log('Convex action result:', JSON.stringify(result, null, 2));
+      // Note: Result data not logged for security (contains detailed feedback)
+      debugLog('Convex action completed - Status:', result.status);
 
       if (result.status === "completed" && result.results) {
         toast.success('Evaluation completed successfully!', {
@@ -99,7 +120,7 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
 
         // Call success callback with results
         if (onSubmissionSuccess && result.evaluationId) {
-          console.log(`Calling success callback with evaluation ID: ${result.evaluationId}`);
+          debugLog('Calling success callback with evaluation ID');
           onSubmissionSuccess(result.evaluationId, data);
         }
       } else if (result.status === "failed") {
@@ -128,24 +149,35 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
 
         // Call success callback
         if (onSubmissionSuccess && result.evaluationId) {
-          console.log(`Calling success callback with evaluation ID: ${result.evaluationId}`);
+          debugLog('Calling success callback with evaluation ID');
           onSubmissionSuccess(result.evaluationId, data);
         }
       }
 
-      console.log('=== EVALUATION FORM SUBMIT DEBUG END ===');
+      debugLog('=== EVALUATION FORM SUBMIT DEBUG END ===');
     } catch (error) {
-      console.error('=== EVALUATION FORM SUBMIT ERROR ===');
-      console.error('Failed to submit evaluation:', error);
-      console.error('Error details:', {
-        name: error instanceof Error ? error.name : 'Unknown',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : 'No stack trace'
-      });
+      debugError('=== EVALUATION FORM SUBMIT ERROR ===');
+      debugError('Failed to submit evaluation:', error instanceof Error ? error.message : 'Unknown error');
+      // Note: Error details not logged for security
 
-      toast.error('Failed to submit evaluation', {
-        description: error instanceof Error ? error.message : 'Please try again later.',
-      });
+      // Check if this is a billing limit error
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const isBillingError = errorMessage.includes('Billing limit exceeded') ||
+                            errorMessage.includes('Monthly limit') ||
+                            errorMessage.includes('evaluations reached');
+
+      if (isBillingError) {
+        // Show billing limit modal for better UX
+        showBillingModal();
+      } else {
+        // Show generic error for other issues
+        toast.error('Failed to submit evaluation', {
+          description: errorMessage.includes('AI service') ?
+            'AI service temporarily unavailable. Please try again in a few minutes.' :
+            'Please try again later.',
+        });
+      }
+
       console.error('=== EVALUATION FORM SUBMIT ERROR END ===');
     } finally {
       setIsSubmitting(false);
@@ -168,6 +200,65 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Billing Limit Warning */}
+        {isAtLimit && (
+          <Alert variant="destructive" className="mb-6">
+            <XCircle className="h-4 w-4" />
+            <AlertDescription>
+              <div className="space-y-2">
+                <p className="font-medium">Monthly evaluation limit reached</p>
+                <p>
+                  You've used all {monthlyLimit} evaluations for your {userTier} plan this month.
+                  {userTier === 'free' && ' Upgrade to get more evaluations or wait for your limit to reset next month.'}
+                </p>
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    size="sm"
+                    onClick={showBillingModal}
+                  >
+                    View Options
+                  </Button>
+                  {userTier === 'free' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => window.open('/dashboard/billing#pricing-plans', '_blank')}
+                    >
+                      Upgrade Plan
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Near Limit Warning */}
+        {!isAtLimit && currentCount >= monthlyLimit * 0.8 && userTier === 'free' && (
+          <Alert className="mb-6 border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950/20">
+            <AlertCircle className="h-4 w-4 text-yellow-600" />
+            <AlertDescription>
+              <div className="space-y-2">
+                <p className="font-medium text-yellow-800 dark:text-yellow-200">
+                  You're close to your monthly limit
+                </p>
+                <p className="text-yellow-700 dark:text-yellow-300">
+                  You have {monthlyLimit - currentCount} evaluations remaining this month.
+                  Consider upgrading for unlimited evaluations.
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-2 border-yellow-300 text-yellow-800 hover:bg-yellow-100 dark:border-yellow-700 dark:text-yellow-200 dark:hover:bg-yellow-900/20"
+                  onClick={() => window.open('/dashboard/billing#pricing-plans', '_blank')}
+                >
+                  View Plans
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Repository URL Input */}
           <div className="space-y-2">
@@ -252,16 +343,21 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
           </div>
 
           {/* Submit Button */}
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={isSubmitting}
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isSubmitting || isAtLimit}
             size="lg"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Evaluating Repository...
+              </>
+            ) : isAtLimit ? (
+              <>
+                <XCircle className="mr-2 h-4 w-4" />
+                Monthly Limit Reached
               </>
             ) : (
               <>
@@ -280,6 +376,16 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
           </AlertDescription>
         </Alert> */}
       </CardContent>
+
+      {/* Billing Limit Modal */}
+      <BillingLimitModal
+        isOpen={isBillingModalOpen}
+        onClose={hideBillingModal}
+        userTier={userTier as 'free' | 'starter' | 'pro' | 'enterprise'}
+        currentUsage={currentCount}
+        monthlyLimit={monthlyLimit}
+        resetDate={currentUsage?.resetAt ? new Date(currentUsage.resetAt) : undefined}
+      />
     </Card>
   );
 }

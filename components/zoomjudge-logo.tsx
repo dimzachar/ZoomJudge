@@ -10,8 +10,8 @@ export function ZoomJudgeIcon({ className, ...props }: SVGProps<SVGSVGElement>) 
       alt="ZoomJudge"
       width={32}
       height={32}
+      priority
       className={cn("w-8 h-8", className)}
-      {...props}
     />
   );
 }

@@ -7,6 +7,11 @@ import { RepoSignature } from './RepositoryFingerprinter';
 import { CourseCriterion } from './CriterionMapper';
 import { HYBRID_CONFIG } from '../config';
 import { evaluationLogger } from '../../simple-logger';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
+// Setup console override to disable logging in production
+import '../../console-override';
 
 export interface CachedStrategy {
   id: string;
@@ -51,10 +56,12 @@ export class IntelligentCache {
   private similarityThreshold: number;
   private maxCacheSize: number;
   private currentEvaluationId: string | null = null;
+  private convexClient: ConvexHttpClient | null = null;
 
-  constructor() {
+  constructor(convexClient?: ConvexHttpClient) {
     this.similarityThreshold = HYBRID_CONFIG.CACHE_SIMILARITY_THRESHOLD;
     this.maxCacheSize = HYBRID_CONFIG.MAX_CACHE_ENTRIES;
+    this.convexClient = convexClient || null;
     this.loadCacheFromStorage();
   }
 
@@ -71,13 +78,14 @@ export class IntelligentCache {
   async findSimilarStrategy(
     repoSignature: RepoSignature,
     courseId: string,
-    criteria: CourseCriterion[]
+    criteria: CourseCriterion[],
+    repoUrl?: string
   ): Promise<CacheResult | null> {
     const startTime = Date.now();
 
     try {
       console.log('🔍 Tier 1 (Intelligent Cache) - Searching for similar strategies...');
-      
+
       // Log cache search start
       await evaluationLogger.logGeneral(
         'CACHE_SEARCH_START',
@@ -91,9 +99,18 @@ export class IntelligentCache {
         }
       );
 
-      // Find similar strategies in cache
-      const similarStrategies = this.findSimilarStrategies(repoSignature, courseId);
-      
+      // First try to find similar strategies from database
+      let similarStrategies: SimilarityMatch[] = [];
+
+      if (this.convexClient) {
+        similarStrategies = await this.findSimilarStrategiesFromDB(repoSignature, courseId);
+      }
+
+      // Fallback to in-memory cache
+      if (similarStrategies.length === 0) {
+        similarStrategies = this.findSimilarStrategies(repoSignature, courseId);
+      }
+
       if (similarStrategies.length === 0) {
         console.log('❌ No similar strategies found in cache');
         return null;
@@ -101,7 +118,7 @@ export class IntelligentCache {
 
       // Select best matching strategy
       const bestMatch = this.selectBestMatch(similarStrategies, criteria);
-      
+
       if (!bestMatch || bestMatch.similarity < this.similarityThreshold) {
         console.log(`❌ Best match similarity ${bestMatch?.similarity || 0} below threshold ${this.similarityThreshold}`);
         return null;
@@ -143,7 +160,7 @@ export class IntelligentCache {
 
     } catch (error) {
       console.error('Error in intelligent cache search:', error);
-      
+
       // Log cache error
       await evaluationLogger.logGeneral(
         'CACHE_SEARCH_ERROR',
@@ -171,11 +188,18 @@ export class IntelligentCache {
       accuracy: number;
       processingTime: number;
       evaluationQuality: number;
-    }
+    },
+    repoUrl?: string
   ): Promise<void> {
     try {
+      // Store in database if Convex client is available
+      if (this.convexClient && repoUrl) {
+        await this.cacheStrategyToDB(repoSignature, courseId, selectedFiles, performance, repoUrl);
+      }
+
+      // Also store in memory cache for immediate access
       const strategyId = this.generateStrategyId(repoSignature, courseId);
-      
+
       const strategy: CachedStrategy = {
         id: strategyId,
         repoSignature,
@@ -200,7 +224,6 @@ export class IntelligentCache {
       }
 
       this.cache.set(strategyId, strategy);
-      await this.saveCacheToStorage();
 
       console.log(`💾 Cached new strategy: ${strategyId} (${selectedFiles.length} files)`);
 
@@ -220,7 +243,7 @@ export class IntelligentCache {
 
     } catch (error) {
       console.error('Error caching strategy:', error);
-      
+
       // Log cache error
       await evaluationLogger.logGeneral(
         'CACHE_STORAGE_ERROR',
@@ -232,6 +255,54 @@ export class IntelligentCache {
           selectedFiles: selectedFiles.length
         }
       );
+    }
+  }
+
+  /**
+   * Cache strategy to database
+   */
+  private async cacheStrategyToDB(
+    repoSignature: RepoSignature,
+    courseId: string,
+    selectedFiles: string[],
+    performance: {
+      accuracy: number;
+      processingTime: number;
+      evaluationQuality: number;
+    },
+    repoUrl: string
+  ): Promise<void> {
+    if (!this.convexClient) return;
+
+    try {
+      // Store repository signature
+      const signatureId = await this.convexClient.mutation(api.hybridCache.storeRepositorySignature, {
+        repoUrl,
+        courseId,
+        signature: repoSignature
+      });
+
+      // Store cached strategy
+      await this.convexClient.mutation(api.hybridCache.storeCachedStrategy, {
+        signatureId,
+        courseId,
+        strategy: {
+          selectedFiles,
+          method: 'hybrid',
+          confidence: 0.9,
+          processingTime: performance.processingTime
+        },
+        performance: {
+          ...performance,
+          usageCount: 1,
+          successRate: 1.0
+        }
+      });
+
+      console.log(`💾 Strategy cached to database for ${repoUrl}`);
+
+    } catch (error) {
+      console.error('Error caching strategy to database:', error);
     }
   }
 
@@ -373,15 +444,37 @@ export class IntelligentCache {
   /**
    * Update strategy usage statistics
    */
-  private async updateStrategyUsage(strategyId: string): Promise<void> {
+  private async updateStrategyUsage(strategyId: string, success: boolean = true, evaluationQuality?: number): Promise<void> {
+    // Update in database if possible
+    if (this.convexClient && strategyId.includes('_')) {
+      try {
+        // Try to parse as database ID
+        await this.convexClient.mutation(api.hybridCache.updateStrategyUsage, {
+          strategyId: strategyId as Id<"cachedStrategies">,
+          success,
+          evaluationQuality
+        });
+      } catch (error) {
+        console.warn('Could not update strategy usage in database:', error);
+      }
+    }
+
+    // Update in memory cache
     const strategy = this.cache.get(strategyId);
     if (!strategy) return;
 
     strategy.performance.usageCount++;
     strategy.metadata.lastUsed = Date.now();
 
+    if (evaluationQuality !== undefined) {
+      // Update average evaluation quality
+      const currentAvg = strategy.performance.evaluationQuality;
+      const newCount = strategy.performance.usageCount;
+      const newAvg = (currentAvg * (newCount - 1) + evaluationQuality) / newCount;
+      strategy.performance.evaluationQuality = newAvg;
+    }
+
     this.cache.set(strategyId, strategy);
-    await this.saveCacheToStorage();
   }
 
   /**
@@ -413,19 +506,92 @@ export class IntelligentCache {
   }
 
   /**
-   * Load cache from persistent storage (placeholder)
+   * Find similar strategies from database
    */
-  private async loadCacheFromStorage(): Promise<void> {
-    // TODO: Implement persistent storage (database, file system, etc.)
-    console.log('📂 Cache loaded from storage (placeholder)');
+  private async findSimilarStrategiesFromDB(
+    targetSignature: RepoSignature,
+    courseId: string
+  ): Promise<SimilarityMatch[]> {
+    if (!this.convexClient) return [];
+
+    try {
+      // Query database for similar signatures
+      const signatures = await this.convexClient.query(api.hybridCache.findSimilarSignatures, {
+        courseId,
+        patternHash: targetSignature.patternHash,
+        technologies: targetSignature.technologies,
+        sizeCategory: targetSignature.sizeCategory,
+        limit: 20
+      });
+
+      const matches: SimilarityMatch[] = [];
+
+      for (const signature of signatures) {
+        // Get cached strategies for this signature
+        const strategies = await this.convexClient.query(api.hybridCache.getCachedStrategies, {
+          signatureId: signature._id
+        });
+
+        for (const strategyDoc of strategies) {
+          const similarity = this.calculateSimilarity(targetSignature, signature.signature);
+
+          if (similarity > 0.5) {
+            const matchedFeatures = this.identifyMatchedFeatures(targetSignature, signature.signature);
+
+            // Convert database document to CachedStrategy format
+            const strategy: CachedStrategy = {
+              id: strategyDoc._id,
+              repoSignature: signature.signature,
+              courseId: strategyDoc.courseId,
+              selectedFiles: strategyDoc.strategy.selectedFiles,
+              performance: strategyDoc.performance,
+              metadata: strategyDoc.metadata
+            };
+
+            matches.push({
+              strategy,
+              similarity,
+              confidence: this.calculateConfidence(similarity, strategyDoc.performance),
+              matchedFeatures
+            });
+          }
+        }
+      }
+
+      // Sort by similarity descending
+      return matches.sort((a, b) => b.similarity - a.similarity);
+
+    } catch (error) {
+      console.error('Error finding similar strategies from database:', error);
+      return [];
+    }
   }
 
   /**
-   * Save cache to persistent storage (placeholder)
+   * Load cache from persistent storage
+   */
+  private async loadCacheFromStorage(): Promise<void> {
+    if (!this.convexClient) {
+      console.log('📂 Cache loaded from memory (no Convex client)');
+      return;
+    }
+
+    try {
+      // Get cache statistics
+      const stats = await this.convexClient.query(api.hybridCache.getCacheStats, {});
+      console.log(`📂 Cache loaded from database: ${stats.totalStrategies} strategies, ${stats.totalSignatures} signatures`);
+    } catch (error) {
+      console.error('Error loading cache from storage:', error);
+      console.log('📂 Cache loaded from memory (database error)');
+    }
+  }
+
+  /**
+   * Save cache to persistent storage
    */
   private async saveCacheToStorage(): Promise<void> {
-    // TODO: Implement persistent storage (database, file system, etc.)
-    console.log('💾 Cache saved to storage (placeholder)');
+    // Database operations are handled in real-time, no batch saving needed
+    console.log('💾 Cache operations saved to database in real-time');
   }
 
   /**

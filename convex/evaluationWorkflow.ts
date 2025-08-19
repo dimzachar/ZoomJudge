@@ -1,8 +1,11 @@
 import { v } from "convex/values";
 import { action, internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { internal, api } from "./_generated/api";
-import { evaluationService } from "../lib/evaluation-service";
+import { getEvaluationService } from "../lib/evaluation-service";
 import { evaluationLogger } from "../lib/simple-logger";
+import { debugLog, debugError } from "../lib/debug-logger";
+// Setup console override to disable logging in production
+import "../lib/console-override";
 // COMMENTED OUT: Web search functionality
 // import { evaluateWithWebSearch } from "../lib/anthropic";
 
@@ -23,16 +26,42 @@ export const submitEvaluation = action({
     };
     error?: string;
   }> => {
-    console.log('=== SUBMIT EVALUATION DEBUG START ===');
-    console.log('Submit evaluation args:', JSON.stringify(args, null, 2));
+    debugLog('=== SUBMIT EVALUATION DEBUG START ===');
+    debugLog('Submit evaluation args:', JSON.stringify(args, null, 2));
 
     const userId = await ctx.auth.getUserIdentity();
-    console.log('User identity:', userId ? { subject: userId.subject, name: userId.name } : 'No user identity');
+    debugLog('User identity:', userId ? { subject: userId.subject, name: userId.name } : 'No user identity');
 
     if (!userId) {
       console.error('Authentication required - no user identity found');
       throw new Error("Authentication required");
     }
+
+    // 🔒 NEW: Add billing limit validation
+    debugLog('=== CHECKING BILLING LIMITS ===');
+    const canEvaluate = await ctx.runQuery(internal.userUsage.canPerformEvaluationInternal, {
+      userId: userId.subject,
+    });
+
+    if (!canEvaluate.canEvaluate) {
+      debugLog(`❌ Billing limit exceeded for user ${userId.subject}: ${canEvaluate.reason}`);
+
+      // Log security event (only if we have usage data)
+      if ('currentCount' in canEvaluate && 'limit' in canEvaluate && 'tier' in canEvaluate) {
+        await ctx.runMutation(internal.securityAudit.logBillingViolation, {
+          userId: userId.subject,
+          attemptedAction: 'evaluation_submission',
+          currentUsage: canEvaluate.currentCount!,
+          limit: canEvaluate.limit!,
+          tier: canEvaluate.tier!,
+          reason: canEvaluate.reason || 'Billing limit exceeded',
+        });
+      }
+
+      throw new Error(`Billing limit exceeded: ${canEvaluate.reason || 'Please upgrade your plan to continue.'}`);
+    }
+
+    console.log(`✅ Billing check passed: ${canEvaluate.currentCount}/${canEvaluate.limit} evaluations used`);
 
     try {
       // Parse repository URL to extract owner, repo name, and commit hash
@@ -65,7 +94,7 @@ export const submitEvaluation = action({
       if (existingEvaluation) {
         console.log('=== FOUND CACHED EVALUATION ===');
         console.log(`Returning cached evaluation ID: ${existingEvaluation._id}`);
-        console.log('Cached results:', JSON.stringify(existingEvaluation.results, null, 2));
+        // Note: Results data not logged for security (contains detailed feedback)
 
         return {
           evaluationId: existingEvaluation._id,
@@ -93,7 +122,7 @@ export const submitEvaluation = action({
 
       // Set the evaluation ID for logging
       evaluationLogger.setCurrentEvaluation(evaluationId);
-      evaluationService.setEvaluationId(evaluationId);
+      getEvaluationService().setEvaluationId(evaluationId);
 
       // Increment user's evaluation count
       console.log('=== INCREMENTING USER EVALUATION COUNT ===');
@@ -119,8 +148,9 @@ export const submitEvaluation = action({
       };
       console.log('Evaluation request:', JSON.stringify(evaluationRequest, null, 2));
 
-      const result = await evaluationService.processEvaluation(evaluationRequest, ctx);
-      console.log('Evaluation service result:', JSON.stringify(result, null, 2));
+      const result = await getEvaluationService().processEvaluation(evaluationRequest, ctx);
+      // Note: Result data not logged for security (contains detailed feedback)
+      console.log('Evaluation service completed:', result.success ? 'SUCCESS' : 'FAILED');
 
       if (result.success && result.results) {
         console.log('=== UPDATING WITH SUCCESSFUL RESULTS ===');
@@ -325,8 +355,9 @@ export const processEvaluation = internalAction({
       };
       console.log('Evaluation request:', JSON.stringify(evaluationRequest, null, 2));
 
-      const result = await evaluationService.processEvaluation(evaluationRequest, ctx);
-      console.log('Evaluation service result:', JSON.stringify(result, null, 2));
+      const result = await getEvaluationService().processEvaluation(evaluationRequest, ctx);
+      // Note: Result data not logged for security (contains detailed feedback)
+      console.log('Evaluation service completed:', result.success ? 'SUCCESS' : 'FAILED');
 
       if (result.success && result.results) {
         console.log('=== UPDATING WITH SUCCESSFUL RESULTS ===');
@@ -391,6 +422,32 @@ export const retryEvaluation = action({
     if (!userId) {
       throw new Error("Authentication required");
     }
+
+    // 🔒 Add billing limit validation for retry
+    console.log('=== CHECKING BILLING LIMITS FOR RETRY ===');
+    const canEvaluate = await ctx.runQuery(internal.userUsage.canPerformEvaluationInternal, {
+      userId: userId.subject,
+    });
+
+    if (!canEvaluate.canEvaluate) {
+      console.log(`❌ Billing limit exceeded for user ${userId.subject}: ${canEvaluate.reason}`);
+
+      // Log security event (only if we have usage data)
+      if ('currentCount' in canEvaluate && 'limit' in canEvaluate && 'tier' in canEvaluate) {
+        await ctx.runMutation(internal.securityAudit.logBillingViolation, {
+          userId: userId.subject,
+          attemptedAction: 'evaluation_retry',
+          currentUsage: canEvaluate.currentCount!,
+          limit: canEvaluate.limit!,
+          tier: canEvaluate.tier!,
+          reason: canEvaluate.reason || 'Billing limit exceeded',
+        });
+      }
+
+      throw new Error(`Billing limit exceeded: ${canEvaluate.reason || 'Please upgrade your plan to continue.'}`);
+    }
+
+    console.log(`✅ Billing check passed for retry: ${canEvaluate.currentCount}/${canEvaluate.limit} evaluations used`);
 
     try {
       const evaluation = await ctx.runQuery(internal.evaluations.getEvaluationByIdInternal, {
@@ -536,7 +593,7 @@ export const testWorkflow = action({
   handler: async (ctx) => {
     try {
       // Test the evaluation service
-      const serviceTest = await evaluationService.testService();
+      const serviceTest = await getEvaluationService().testService();
       
       return {
         serviceConnected: serviceTest,

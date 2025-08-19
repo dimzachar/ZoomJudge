@@ -23,17 +23,17 @@ export const TIER_LIMITS = {
   free: {
     evaluationsPerMonth: 4,
     features: ['basic-score', 'basic-history'],
-    description: '4 repo evals/month only score'
+    description: '4 repository evaluations per month, Basic scoring (no analysis or feedback), One evaluation engine (no model options)'
   },
   starter: {
-    evaluationsPerMonth: 20,
+    evaluationsPerMonth: 20, // Need to specify this based on your requirements
     features: ['basic-score', 'detailed-feedback', 'basic-charts', 'export-pdf', 'email-notifications'],
-    description: '20 repo evals/month + detailed feedback'
+    description: 'Full scoring + LLM feedback, [evaluation limit and other features to be specified]'
   },
   pro: {
-    evaluationsPerMonth: 200,
+    evaluationsPerMonth: 200, // Need to specify this based on your requirements
     features: ['all-starter', 'advanced-analytics', 'comparison-tools', 'priority-processing', 'api-access', 'team-support'],
-    description: '200 repo evals/month + team support'
+    description: '[all Pro features including evaluation limits to be specified]'
   },
   enterprise: {
     evaluationsPerMonth: -1, // unlimited
@@ -46,10 +46,10 @@ export const TIER_LIMITS = {
  * Check if a user tier has access to a specific feature
  */
 export const canAccessFeature = (
-  feature: FeatureKey, 
+  feature: FeatureKey,
   userTier: UserTier
 ): boolean => {
-  const allowedTiers = TIER_FEATURES[feature]
+  const allowedTiers = TIER_FEATURES[feature] as readonly UserTier[]
   return allowedTiers?.includes(userTier) ?? false
 }
 
@@ -57,9 +57,9 @@ export const canAccessFeature = (
  * Get the minimum tier required for a feature
  */
 export const getMinimumTierForFeature = (feature: FeatureKey): UserTier => {
-  const allowedTiers = TIER_FEATURES[feature]
+  const allowedTiers = TIER_FEATURES[feature] as readonly UserTier[]
   if (!allowedTiers || allowedTiers.length === 0) return 'enterprise'
-  
+
   const tierOrder: UserTier[] = ['free', 'starter', 'pro', 'enterprise']
   for (const tier of tierOrder) {
     if (allowedTiers.includes(tier)) {

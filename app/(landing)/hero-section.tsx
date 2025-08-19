@@ -7,6 +7,7 @@ import { HeroHeader } from "./header"
 import Script from 'next/script'
 import gsap from 'gsap'
 import HeroBackground from './hero-background'
+import ThreeAnimation from './three-animation'
 
 export default function HeroSection() {
     const headlineRef = useRef<HTMLDivElement | null>(null)
@@ -70,6 +71,7 @@ export default function HeroSection() {
             <main>
                 <section className="relative min-h-[100vh]">
                     <HeroBackground />
+                    <ThreeAnimation />
 
                     <div className="mx-auto max-w-6xl px-6 md:px-12 min-h-[100vh] flex items-center">
                         <div className="relative pb-20 md:pb-24 max-w-[56ch] mt-16 md:mt-20">

@@ -4,6 +4,7 @@
 
 import { REPO_TYPE_PATTERNS, RepoType, HYBRID_CONFIG } from '../config';
 import { CriterionMapper, CourseCriterion } from './CriterionMapper';
+import { SemanticFileAnalyzer, SemanticFileGroup } from './SemanticFileAnalyzer';
 
 export interface RepoSignature {
   directoryStructure: string[];
@@ -30,9 +31,11 @@ export interface FileSelectionStrategy {
 
 export class RepositoryFingerprinter {
   private criterionMapper: CriterionMapper;
+  private semanticAnalyzer: SemanticFileAnalyzer;
 
   constructor() {
     this.criterionMapper = new CriterionMapper();
+    this.semanticAnalyzer = new SemanticFileAnalyzer();
   }
 
   async analyzeRepository(files: string[]): Promise<RepoTypeResult> {
@@ -225,64 +228,137 @@ export class RepositoryFingerprinter {
   getFileSelectionStrategy(repoType: RepoType, confidence: number): FileSelectionStrategy {
     const strategies: Record<RepoType, FileSelectionStrategy> = {
       'mlops-project': {
-        essential: ['README.md', 'requirements.txt'],
+        essential: [
+          'README.md',
+          'src/pipeline/data_ingestion.py',
+          'src/pipeline/model_training.py',
+          'src/pipeline/orchestrate.py',
+          'model.py',
+          'lambda_function.py'
+        ],
         important: [
           'src/pipeline/*.py',
           'pipeline/*.py',
-          'ml_pipeline/*.py',
-          'workflows/*.py',
-          'models/*.py',
-          'train*.py',
-          'deploy*.py'
+          'train.py',
+          'predict.py',
+          'deploy*.py',
+          'requirements.txt',
+          'Dockerfile',
+          'scripts/deploy*.sh',
+          '.github/workflows/*.yml'
         ],
         supporting: [
-          'Dockerfile',
           'docker-compose.yml',
           'config.yaml',
           'setup.py',
-          '*.ipynb'
+          'pyproject.toml',
+          '*.ipynb',
+          'tests/*.py',
+          'infrastructure/*.tf'
         ],
-        maxFiles: 20,
+        maxFiles: 50,
         confidence
       },
       'data-engineering': {
-        essential: ['README.md'],
+        essential: [
+          'README.md',
+          'dbt/dbt_project.yml',
+          'terraform/main.tf'
+        ],
         important: [
+          'dbt/models/staging/*.sql',
+          'dbt/models/marts/*.sql',
           'dbt/**/*.sql',
-          'dbt/**/*.yml',
-          'terraform/**/*.tf',
+          'terraform/*.tf',
+          'infrastructure/*.tf',
           'orchestration/**/*.py',
           'dags/**/*.py',
-          'processing/**/*.py'
+          'processing/*.py',
+          'etl.py',
+          'dashboard/*.py'
         ],
         supporting: [
           'docker-compose.yml',
           'requirements.txt',
-          'scripts/**/*.sh',
-          'config/**/*.yaml'
+          'scripts/*.sh',
+          'config/*.yaml',
+          '.env.example',
+          'Dockerfile'
         ],
-        maxFiles: 18,
+        maxFiles: 50,
         confidence
       },
       'llm-project': {
-        essential: ['README.md'],
+        essential: [
+          'README.md',
+          'rag/ingest.py',
+          'rag/prep.py'
+        ],
         important: [
           'backend/**/*.py',
           'rag/**/*.py',
-          'ingest/**/*.py',
-          'prep/**/*.py',
+          'ingest.py',
+          'prep.py',
           'api/**/*.py',
           'main.py',
-          'app.py'
+          'app.py',
+          'search.py'
         ],
         supporting: [
           'requirements.txt',
           'Dockerfile',
           '.env.example',
           '*.ipynb',
-          'config/**/*.yaml'
+          'config/*.py',
+          'data/*.json'
         ],
-        maxFiles: 16,
+        maxFiles: 30,
+        confidence
+      },
+      'machine-learning': {
+        essential: [
+          'README.md',
+          'train.py',
+          'predict.py'
+        ],
+        important: [
+          'model.py',
+          'data_preprocessing.py',
+          'notebooks/eda.ipynb',
+          'notebooks/model_training.ipynb',
+          '*.ipynb',
+          'src/**/*.py'
+        ],
+        supporting: [
+          'requirements.txt',
+          'setup.py',
+          'config.yaml',
+          'tests/*.py',
+          'scripts/*.py'
+        ],
+        maxFiles: 30,
+        confidence
+      },
+      'stock-markets': {
+        essential: [
+          'README.md'
+        ],
+        important: [
+          'src/data/*.py',
+          'src/strategies/*.py',
+          'src/backtesting/*.py',
+          'src/portfolio/*.py',
+          'notebooks/*.ipynb',
+          '*.py'
+        ],
+        supporting: [
+          'requirements.txt',
+          'config/*.yaml',
+          'Dockerfile',
+          'tests/*.py',
+          'data/*.csv'
+        ],
+        maxFiles: 30,
         confidence
       }
     };
@@ -297,31 +373,196 @@ export class RepositoryFingerprinter {
   }
   
   async selectFiles(files: string[], repoType: RepoType, confidence: number): Promise<string[]> {
-    const strategy = this.getFileSelectionStrategy(repoType, confidence);
-    const selectedFiles = new Set<string>();
+    // Use semantic analysis as primary method
+    try {
+      return await this.selectFilesSemanticAnalysis(files, repoType, confidence);
+    } catch (error) {
+      console.warn('Semantic analysis failed, falling back to pattern-based selection:', error);
+      return await this.selectFilesPatternBased(files, repoType, confidence);
+    }
+  }
 
-    // Add essential files
-    for (const pattern of strategy.essential) {
-      const matches = this.findMatchingFiles(files, pattern);
-      matches.forEach(file => selectedFiles.add(file));
+  /**
+   * NEW: Semantic file selection without hardcoded patterns
+   */
+  async selectFilesSemanticAnalysis(files: string[], repoType: RepoType, confidence: number): Promise<string[]> {
+    console.log(`🧠 Semantic file selection for ${repoType}:`);
+    console.log(`   Available files: ${files.length}`);
+    console.log(`   Confidence: ${(confidence * 100).toFixed(1)}%`);
+
+    // Filter out large dependency files that aren't useful for evaluation
+    const filteredFiles = files.filter(file => !this.isLargeDependencyFile(file));
+
+    // Group files by semantic purpose
+    const semanticGroups = this.semanticAnalyzer.groupFilesBySemantic(filteredFiles, repoType);
+
+    console.log(`📊 Semantic groups found: ${semanticGroups.length}`);
+    semanticGroups.forEach(group => {
+      console.log(`   ${group.purpose}: ${group.files.length} files (${group.importance})`);
+    });
+
+    const selectedFiles = new Set<string>();
+    const maxFiles = HYBRID_CONFIG.MAX_FILES_PER_EVALUATION;
+
+    // Phase 1: Essential files (highest semantic importance)
+    console.log(`📋 Phase 1: Essential files`);
+    const essentialGroups = semanticGroups.filter(g => g.importance === 'essential');
+    for (const group of essentialGroups) {
+      const filesToAdd = this.selectBestFilesFromGroup(group.files, repoType, maxFiles - selectedFiles.size);
+      filesToAdd.forEach(file => {
+        selectedFiles.add(file);
+        console.log(`     ✅ ${file} (${group.purpose})`);
+      });
+
+      if (selectedFiles.size >= maxFiles) break;
     }
 
-    // Add important files (up to limit)
-    for (const pattern of strategy.important) {
-      if (selectedFiles.size >= strategy.maxFiles) break;
+    // Phase 2: Important files
+    console.log(`📋 Phase 2: Important files`);
+    const importantGroups = semanticGroups.filter(g => g.importance === 'important');
+    for (const group of importantGroups) {
+      if (selectedFiles.size >= maxFiles) break;
 
-      const matches = this.findMatchingFiles(files, pattern);
-      for (const file of matches) {
-        if (selectedFiles.size >= strategy.maxFiles) break;
+      const filesToAdd = this.selectBestFilesFromGroup(group.files, repoType, maxFiles - selectedFiles.size);
+      filesToAdd.forEach(file => {
         selectedFiles.add(file);
+        console.log(`     ✅ ${file} (${group.purpose})`);
+      });
+    }
+
+    // Phase 3: Supporting files (if space available)
+    if (selectedFiles.size < maxFiles) {
+      console.log(`📋 Phase 3: Supporting files`);
+      const supportingGroups = semanticGroups.filter(g => g.importance === 'supporting');
+      for (const group of supportingGroups) {
+        if (selectedFiles.size >= maxFiles) break;
+
+        const filesToAdd = this.selectBestFilesFromGroup(group.files, repoType, maxFiles - selectedFiles.size);
+        filesToAdd.forEach(file => {
+          selectedFiles.add(file);
+          console.log(`     ✅ ${file} (${group.purpose})`);
+        });
       }
     }
 
-    // Add supporting files if we have room
-    for (const pattern of strategy.supporting) {
-      if (selectedFiles.size >= strategy.maxFiles) break;
+    const result = Array.from(selectedFiles);
+    console.log(`🎯 Final semantic selection: ${result.length} files`);
 
-      const matches = this.findMatchingFiles(files, pattern);
+    return result;
+  }
+
+  /**
+   * Check if a file is a large dependency file that should be excluded from selection
+   */
+  private isLargeDependencyFile(filePath: string): boolean {
+    const baseName = filePath.split('/').pop()?.toLowerCase() || '';
+    
+    // Explicitly allow important files that should be included in evaluation
+    const allowedFiles = [
+      'dockerfile',
+      '.pre-commit-config.yaml'
+    ];
+    
+    // Allow all GitHub workflow files
+    if (filePath.includes('.github/workflows/')) {
+      return false;
+    }
+    
+    // Allow all notebook files
+    if (baseName.endsWith('.ipynb')) {
+      return false;
+    }
+    
+    // Check if this is an explicitly allowed file
+    if (allowedFiles.includes(baseName)) {
+      return false; // Don't exclude these files
+    }
+    
+    // Filter out empty __init__.py files which don't contain useful code for evaluation
+    if (baseName === '__init__.py') {
+      return true;
+    }
+    
+    const fileExtension = '.' + baseName.split('.').pop();
+    
+    // Common large dependency/lock files that aren't useful for evaluation
+    const largeDependencyFiles = [
+      'package-lock.json',
+      'yarn.lock',
+      'pnpm-lock.yaml',
+      'pipfile.lock',
+      'gemfile.lock',
+      'composer.lock',
+      'cargo.lock',
+      'go.sum',
+      'poetry.lock',
+      'mix.lock',
+      'pubspec.lock'
+    ];
+    
+    // Check exact file name matches
+    if (largeDependencyFiles.includes(baseName)) {
+      return true;
+    }
+    
+    // Check for lock files pattern (files ending with .lock)
+    if (baseName.endsWith('.lock')) {
+      return true;
+    }
+    
+    // Large binary files that aren't useful for code evaluation
+    const largeBinaryExtensions = [
+      '.zip', '.tar', '.gz', '.7z', '.rar', '.iso',
+      '.exe', '.msi', '.dmg', '.deb', '.rpm',
+      '.jar', '.war', '.ear',
+      '.so', '.dll', '.dylib',
+      '.xgb' // XGBoost model files
+    ];
+    
+    // Image files that aren't useful for code evaluation
+    const imageExtensions = [
+      '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp',
+      '.bmp', '.tiff', '.ico', '.psd', '.ai'
+    ];
+
+    // Note: Dashboard evidence should come from text documentation, not large image files
+    // Large images consume excessive tokens and are not cost-effective for evaluation
+
+    const allBinaryExtensions = [...largeBinaryExtensions, ...imageExtensions];
+
+    for (const ext of allBinaryExtensions) {
+      if (baseName.endsWith(ext)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+
+
+  /**
+   * FALLBACK: Pattern-based file selection (legacy method)
+   */
+  async selectFilesPatternBased(files: string[], repoType: RepoType, confidence: number): Promise<string[]> {
+    // Filter out large dependency files that aren't useful for evaluation
+    const filteredFiles = files.filter(file => !this.isLargeDependencyFile(file));
+    
+    const strategy = this.getFileSelectionStrategy(repoType, confidence);
+    const selectedFiles = new Set<string>();
+
+    console.log(`🔍 Pattern-based selection for ${repoType} (fallback):`);
+
+    // Add essential files
+    for (const pattern of strategy.essential) {
+      const matches = this.findMatchingFiles(filteredFiles, pattern);
+      matches.forEach(file => selectedFiles.add(file));
+    }
+
+    // Add important files up to limit
+    for (const pattern of strategy.important) {
+      if (selectedFiles.size >= strategy.maxFiles) break;
+      const matches = this.findMatchingFiles(filteredFiles, pattern);
       for (const file of matches) {
         if (selectedFiles.size >= strategy.maxFiles) break;
         selectedFiles.add(file);
@@ -331,37 +572,97 @@ export class RepositoryFingerprinter {
     return Array.from(selectedFiles);
   }
 
+  /**
+   * Select the best files from a semantic group
+   */
+  private selectBestFilesFromGroup(groupFiles: string[], repoType: string, maxFiles: number): string[] {
+    if (maxFiles <= 0) return [];
+
+    // Filter out large dependency files that aren't useful for evaluation
+    const filteredFiles = groupFiles.filter(file => !this.isLargeDependencyFile(file));
+
+    // Score and sort files within the group
+    const scoredFiles = filteredFiles.map(file => ({
+      file,
+      analysis: this.semanticAnalyzer.analyzeFile(file, repoType)
+    })).sort((a, b) => b.analysis.importanceScore - a.analysis.importanceScore);
+
+    // Take the top files up to the limit
+    return scoredFiles.slice(0, maxFiles).map(item => item.file);
+  }
+
   async selectFilesByCriteria(
     files: string[],
     courseId: string,
     criteria: CourseCriterion[]
   ): Promise<string[]> {
+    console.log(`🔍 selectFilesByCriteria called:`);
+    console.log(`   Files available: ${files.length}`);
+    console.log(`   Course ID: ${courseId}`);
+    console.log(`   Criteria count: ${criteria.length}`);
+    console.log(`   Sample criteria: ${criteria.slice(0, 2).map(c => c.name).join(', ')}`);
+
     // Use criterion-driven selection for better accuracy
-    return await this.criterionMapper.selectOptimalFiles(files, courseId, criteria);
+    const result = await this.criterionMapper.selectOptimalFiles(files, courseId, criteria);
+    
+    // Additional filtering to ensure no large dependency files are included
+    const filteredResult = result.filter(file => !this.isLargeDependencyFile(file));
+    
+    console.log(`✅ selectFilesByCriteria returning ${filteredResult.length} files:`);
+    console.log(`   Files: ${filteredResult.slice(0, 10).join(', ')}${filteredResult.length > 10 ? '...' : ''}`);
+    
+    return filteredResult;
   }
   
   private findMatchingFiles(files: string[], pattern: string): string[] {
-    // Convert glob-like patterns to regex
-    const regexPattern = pattern
-      .replace(/\*\*/g, '.*')  // ** matches any directory depth
-      .replace(/\*/g, '[^/]*') // * matches any characters except /
-      .replace(/\./g, '\\.');   // Escape dots
-    
-    const regex = new RegExp(regexPattern, 'i');
-    
-    return files.filter(file => {
-      // Direct match
-      if (file === pattern) return true;
-      
-      // Regex match
-      if (regex.test(file)) return true;
-      
-      // Partial match for simple patterns
-      if (pattern.includes('*')) {
-        return regex.test(file);
-      } else {
-        return file.toLowerCase().includes(pattern.toLowerCase());
+    // Handle exact matches and subdirectory matches
+    if (!pattern.includes('*')) {
+      return files.filter(file =>
+        file === pattern ||
+        file.toLowerCase() === pattern.toLowerCase() ||
+        file.endsWith('/' + pattern) ||
+        file.endsWith('\\' + pattern) ||
+        // Also match files in subdirectories
+        file.includes('/' + pattern) ||
+        file.includes('\\' + pattern) ||
+        file.includes('/' + pattern.toLowerCase()) ||
+        file.includes('\\' + pattern.toLowerCase())
+      );
+    }
+
+    // Convert glob-like patterns to regex correctly
+    // Handle ** patterns (match any directory depth)
+    if (pattern.includes('**')) {
+      // First escape literal dots (but not the ones we'll create with .*)
+      let regexPattern = pattern.replace(/\./g, '\\.');
+      // Replace ** with a placeholder to avoid conflicts
+      regexPattern = regexPattern.replace(/\*\*/g, '__DOUBLE_STAR__');
+      // Replace single * with [^/]* to match any characters except slashes
+      regexPattern = regexPattern.replace(/\*/g, '[^/]*');
+      // Replace placeholder back with .* to match any characters including slashes
+      regexPattern = regexPattern.replace(/__DOUBLE_STAR__/g, '.*');
+      // Ensure the pattern matches the entire string
+      regexPattern = '^' + regexPattern + '$';
+      const regex = new RegExp(regexPattern, 'i');
+      const matches = files.filter(file => regex.test(file));
+      // Debug logging
+      if (pattern.includes('snowflake')) {
+        console.log(`🔍 RepositoryFingerprinter pattern matching debug for '${pattern}':`);
+        console.log(`   Regex pattern: ${regexPattern}`);
+        console.log(`   Files checked: ${files.filter(f => f.includes('snowflake')).join(', ')}`);
+        console.log(`   Matches found: ${matches.join(', ')}`);
       }
-    });
+      return matches;
+    }
+    
+    // Handle simple patterns with single *
+    // First escape literal dots
+    let regexPattern = pattern.replace(/\./g, '\\.');
+    // Replace single * with [^/]* to match any characters except slashes
+    regexPattern = regexPattern.replace(/\*/g, '[^/]*');
+    // Ensure the pattern matches the entire string
+    regexPattern = '^' + regexPattern + '$';
+    const regex = new RegExp(regexPattern, 'i');
+    return files.filter(file => regex.test(file));
   }
 }

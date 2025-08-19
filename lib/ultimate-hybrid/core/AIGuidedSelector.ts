@@ -6,6 +6,10 @@
 import OpenAI from 'openai';
 import { CourseCriterion } from './CriterionMapper';
 import { evaluationLogger } from '../../simple-logger';
+import { APIClientFactory, APIClientOptions, MockAPIClient } from '../../config/APIClientFactory';
+import { ConfigurationService } from '../../config/ConfigurationService';
+// Setup console override to disable logging in production
+import '../../console-override';
 
 export interface AIFileSelectionConfig {
   model: string;
@@ -37,37 +41,30 @@ export interface FileSelectionPromptData {
 }
 
 export class AIGuidedSelector {
-  private client: OpenAI | null = null;
+  private client: OpenAI | MockAPIClient | null = null;
   private config: AIFileSelectionConfig;
   private currentEvaluationId: string | null = null;
   private mockMode: boolean = false;
 
-  constructor(config?: Partial<AIFileSelectionConfig> & { mockMode?: boolean }) {
-    this.mockMode = config?.mockMode || false;
-
-    if (!this.mockMode && !process.env.OPENROUTER_API_KEY) {
-      throw new Error('OPENROUTER_API_KEY environment variable is required');
-    }
+  constructor(config?: Partial<AIFileSelectionConfig> & APIClientOptions) {
+    // Determine mock mode
+    const configService = ConfigurationService.getInstance(config);
+    this.mockMode = config?.mockMode || configService.isMockMode() || !configService.hasAPIKey();
 
     // Default configuration for fast/cheap file selection model
     this.config = {
       model: 'qwen/qwen-2.5-coder-32b-instruct', // Fast, cheap model for file selection
       maxTokens: 2000, // Much lower than evaluation model (16K)
       temperature: 0.1, // Low temperature for consistent selection
-      maxFiles: 25, // Maximum files to select
+      maxFiles: 50, // Maximum files to select
       ...config
     };
 
-    if (!this.mockMode) {
-      this.client = new OpenAI({
-        baseURL: 'https://openrouter.ai/api/v1',
-        apiKey: process.env.OPENROUTER_API_KEY,
-        defaultHeaders: {
-          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-          'X-Title': process.env.NEXT_PUBLIC_SITE_NAME || 'ZoomJudge File Selector',
-        },
-      });
-    }
+    // Create client using factory
+    this.client = APIClientFactory.createOpenRouterClient({
+      mockMode: this.mockMode,
+      configuration: config?.configuration
+    });
   }
 
   /**
@@ -75,6 +72,13 @@ export class AIGuidedSelector {
    */
   setEvaluationId(evaluationId: string) {
     this.currentEvaluationId = evaluationId;
+  }
+
+  /**
+   * Check if selector is in mock mode
+   */
+  isMockMode(): boolean {
+    return this.mockMode;
   }
 
   /**
@@ -261,12 +265,33 @@ export class AIGuidedSelector {
   private constructFileSelectionPrompt(promptData: FileSelectionPromptData): string {
     const { repoUrl, courseId, courseName, criteria, files, maxFiles } = promptData;
 
+    // Filter out large binary files that would be problematic to include in the prompt
+    const filteredFiles = files.filter(file => {
+      // Note: Dashboard evidence should come from text documentation, not large image files
+      // Large images consume excessive tokens and are not cost-effective for evaluation
+
+      // Exclude large binary files and known large file types
+      const largeFileExtensions = [
+        '.zip', '.tar', '.gz', '.7z', '.rar', '.iso',
+        '.exe', '.msi', '.dmg', '.deb', '.rpm',
+        '.jar', '.war', '.ear',
+        '.so', '.dll', '.dylib',
+        '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp',
+        '.bmp', '.tiff', '.ico', '.psd', '.ai',
+        '.mp3', '.wav', '.flac', '.mp4', '.mov', '.avi', '.mkv',
+        '.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx'
+      ];
+
+      const fileName = file.toLowerCase();
+      return !largeFileExtensions.some(ext => fileName.endsWith(ext));
+    });
+
     const prompt = `
 You are tasked with selecting the most relevant files from a GitHub repository for evaluation against specific course criteria.
 
 **Repository**: ${repoUrl}
 **Course**: ${courseName} (${courseId})
-**Available Files**: ${files.length}
+**Available Files**: ${filteredFiles.length} (filtered to exclude large/binary files)
 **Maximum Files to Select**: ${maxFiles}
 
 **Course Evaluation Criteria**:
@@ -275,12 +300,12 @@ ${criteria.map((criterion, index) =>
 ).join('\n')}
 
 **Available Files**:
-${files.slice(0, 200).join('\n')}${files.length > 200 ? '\n... [Additional files truncated for brevity]' : ''}
+${filteredFiles.slice(0, 200).join('\n')}${filteredFiles.length > 200 ? '\n... [Additional files truncated for brevity]' : ''}
 
 **Your Task**:
 Select the ${maxFiles} most relevant files that would provide the best evidence for evaluating this repository against the course criteria. Focus on:
 
-1. **Essential files**: README, requirements, configuration files
+1. **Essential files**: README, requirements, configuration files (especially Dockerfile, .pre-commit-config.yaml, and other infrastructure-related configs)
 2. **Criterion-specific files**: Files that directly relate to each evaluation criterion
 3. **Implementation files**: Core code that demonstrates the project's functionality
 4. **Documentation files**: Files that explain the approach and methodology
@@ -307,6 +332,7 @@ Provide your response in the following JSON format:
 - Focus on implementation files over configuration files
 - Ensure selected files actually exist in the provided file list
 - Confidence should be between 0.0 and 1.0 based on how well the selected files cover the criteria
+- Note that large binary files have been filtered out and are not available for selection
 
 Select the files now:`;
 
@@ -336,9 +362,46 @@ Select the files now:`;
       }
 
       // Filter selected files to ensure they exist in available files
-      const validSelectedFiles = parsed.selectedFiles.filter((file: string) => 
-        availableFiles.includes(file)
-      );
+      // Also handle cases where AI might return incorrect paths (e.g., missing leading dot)
+      const validSelectedFiles = parsed.selectedFiles.filter((file: string) => {
+        // First check if the exact file exists
+        if (availableFiles.includes(file)) {
+          return true;
+        }
+        
+        // If not found, try to fix common AI mistakes
+        // Check if removing or adding a leading dot helps
+        if (file.startsWith('./')) {
+          const withoutDotSlash = file.substring(2);
+          if (availableFiles.includes(withoutDotSlash)) {
+            return true;
+          }
+        } else if (file.startsWith('github/') && availableFiles.some(f => f.includes('.github/') && f.endsWith(file.substring(7)))) {
+          // Fix for missing dot in .github paths
+          return true;
+        } else if (file.startsWith('scripts/') && availableFiles.some(f => f.endsWith(file))) {
+          // Check if the file exists in the scripts directory
+          return true;
+        }
+        
+        return false;
+      }).map((file: string) => {
+        // Fix the file path if needed
+        if (availableFiles.includes(file)) {
+          return file;
+        }
+        
+        // Fix for missing dot in .github paths
+        if (file.startsWith('github/')) {
+          const fixedPath = '.github/' + file.substring(7);
+          if (availableFiles.includes(fixedPath)) {
+            return fixedPath;
+          }
+        }
+        
+        // Return the original file if no fix is found
+        return file;
+      }).filter((file: string) => availableFiles.includes(file));
 
       // If no valid files found, fall back to basic selection
       if (validSelectedFiles.length === 0) {
@@ -403,7 +466,7 @@ Select the files now:`;
    * Generate smart mock file selection based on course criteria
    */
   private generateSmartMockSelection(promptData: FileSelectionPromptData): string[] {
-    const { files, criteria, courseId, maxFiles } = promptData;
+    const { files, courseId, maxFiles } = promptData;
     const selectedFiles = new Set<string>();
 
     // Always include README
@@ -437,7 +500,14 @@ Select the files now:`;
         /orchestration.*\.py$/i,
         /etl.*\.py$/i,
         /pipeline.*\.py$/i,
-        /dashboard.*\.(py|sql)$/i
+        /dashboard.*\.(py|sql)$/i,
+        // Include Python files that likely contain SQL for data warehouse operations
+        /.*snowflake.*\.py$/i,
+        /.*warehouse.*\.py$/i,
+        /.*dwh.*\.py$/i,
+        /.*refresh.*\.py$/i,
+        /.*materialize.*\.py$/i,
+        /.*transform.*\.py$/i
       ];
 
       for (const pattern of dePatterns) {
@@ -507,4 +577,6 @@ Select the files now:`;
 
     return Array.from(selectedFiles).slice(0, this.config.maxFiles);
   }
+
+
 }

@@ -1,5 +1,7 @@
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
+// Setup console override to disable logging in production
+import "../lib/console-override";
 
 // Setup action to initialize the database with default data
 export const initializeDatabase = action({

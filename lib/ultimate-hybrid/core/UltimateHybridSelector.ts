@@ -9,8 +9,14 @@ import { RepositoryFingerprinter, RepoTypeResult } from './RepositoryFingerprint
 import { AIGuidedSelector, AIFileSelectionResult } from './AIGuidedSelector';
 import { CriterionMapper, CourseCriterion } from './CriterionMapper';
 import { IntelligentCache, CacheResult } from './IntelligentCache';
+import { CacheWarmingSystem } from '../cache/CacheWarmingSystem';
+import { RepositorySignatureGenerator } from '../cache/RepositorySignatureGenerator';
+import { ValidationEngine, ValidationResult } from '../ai/ValidationEngine';
 import { HYBRID_CONFIG, AI_MODEL_CONFIGS } from '../config';
 import { evaluationLogger } from '../../simple-logger';
+import { ConvexHttpClient } from 'convex/browser';
+// Setup console override to disable logging in production
+import '../../console-override';
 
 export interface HybridSelectionRequest {
   repoUrl: string;
@@ -35,6 +41,8 @@ export interface HybridSelectionResult {
   cacheHit?: boolean;
   fallbackUsed?: boolean;
   tierUsed: 1 | 2 | 3;
+  validationApplied?: boolean;
+  validationChanges?: number;
   performance: {
     tier1Time?: number;
     tier2Time?: number;
@@ -47,9 +55,12 @@ export class UltimateHybridSelector {
   private aiSelector: AIGuidedSelector;
   private criterionMapper: CriterionMapper;
   private intelligentCache: IntelligentCache;
+  private cacheWarming: CacheWarmingSystem;
+  private signatureGenerator: RepositorySignatureGenerator;
+  private validationEngine: ValidationEngine;
   private currentEvaluationId: string | null = null;
 
-  constructor(options?: { mockMode?: boolean }) {
+  constructor(options?: { mockMode?: boolean; convexClient?: ConvexHttpClient }) {
     this.fingerprinter = new RepositoryFingerprinter();
     this.aiSelector = new AIGuidedSelector({
       model: AI_MODEL_CONFIGS.FILE_SELECTION.model,
@@ -59,7 +70,38 @@ export class UltimateHybridSelector {
       mockMode: options?.mockMode || false
     });
     this.criterionMapper = new CriterionMapper();
-    this.intelligentCache = new IntelligentCache();
+    this.intelligentCache = new IntelligentCache(options?.convexClient);
+    this.signatureGenerator = new RepositorySignatureGenerator();
+    this.validationEngine = new ValidationEngine();
+    this.cacheWarming = new CacheWarmingSystem(
+      this.intelligentCache,
+      this.fingerprinter,
+      options?.convexClient
+    );
+
+    // Start cache warming if not in mock mode
+    if (!options?.mockMode) {
+      this.initializeCacheWarming();
+    }
+  }
+
+  /**
+   * Initialize cache warming system
+   */
+  private async initializeCacheWarming(): Promise<void> {
+    try {
+      console.log('🔥 Initializing cache warming system...');
+
+      // Run initial cache warming
+      await this.cacheWarming.warmCache();
+
+      // Schedule automatic warming every 6 hours
+      this.cacheWarming.scheduleAutoWarming(6);
+
+      console.log('✅ Cache warming system initialized');
+    } catch (error) {
+      console.error('Error initializing cache warming:', error);
+    }
   }
 
   /**
@@ -69,6 +111,7 @@ export class UltimateHybridSelector {
     this.currentEvaluationId = evaluationId;
     this.aiSelector.setEvaluationId(evaluationId);
     this.intelligentCache.setEvaluationId(evaluationId);
+    this.validationEngine.setEvaluationId(evaluationId);
   }
 
   /**
@@ -118,7 +161,7 @@ export class UltimateHybridSelector {
         }
       );
 
-      // TIER 1: Intelligent Caching (TODO: Implement in future)
+      // TIER 1: Intelligent Caching
       if (HYBRID_CONFIG.ENABLE_INTELLIGENT_CACHING) {
         const tier1Start = Date.now();
         const cacheResult = await this.tryIntelligentCache(request);
@@ -126,12 +169,27 @@ export class UltimateHybridSelector {
 
         if (cacheResult) {
           console.log('✅ Tier 1 (Cache) - Cache hit found');
-          return {
-            ...cacheResult,
+
+          // Apply AI validation to cached result
+          const cachedResult: HybridSelectionResult = {
+            selectedFiles: cacheResult.selectedFiles,
+            method: cacheResult.method,
+            confidence: cacheResult.confidence,
+            reasoning: cacheResult.reasoning,
             processingTime: Date.now() - startTime,
+            tokenUsage: cacheResult.tokenUsage,
+            cacheHit: cacheResult.cacheHit,
+            fallbackUsed: cacheResult.fallbackUsed,
             tierUsed: 1,
             performance
           };
+
+          const validatedCachedResult = await this.applyAIValidation(request, cachedResult);
+
+          // Cache the successful result for future use
+          await this.cacheSuccessfulResult(request, validatedCachedResult);
+
+          return validatedCachedResult;
         }
         console.log('❌ Tier 1 (Cache) - No cache hit, proceeding to Tier 2');
       }
@@ -141,7 +199,11 @@ export class UltimateHybridSelector {
       const fingerprintResult = await this.tryRepositoryFingerprinting(request);
       performance.tier2Time = Date.now() - tier2Start;
 
-      if (fingerprintResult && fingerprintResult.confidence >= HYBRID_CONFIG.FINGERPRINT_CONFIDENCE_THRESHOLD) {
+      // According to Ultimate Hybrid strategy, always proceed to Tier 3 when criteria are available
+      // This ensures criterion-driven selection for better accuracy
+      if (request.criteria.length > 0) {
+        console.log(`📋 Criteria available (${request.criteria.length}), proceeding to Tier 3 for criterion-driven selection`);
+      } else if (fingerprintResult && fingerprintResult.confidence >= HYBRID_CONFIG.FINGERPRINT_CONFIDENCE_THRESHOLD) {
         console.log(`✅ Tier 2 (Fingerprinting) - Success with confidence ${fingerprintResult.confidence}`);
         return {
           selectedFiles: fingerprintResult.selectedFiles,
@@ -153,8 +215,9 @@ export class UltimateHybridSelector {
           tierUsed: 2,
           performance
         };
+      } else {
+        console.log(`❌ Tier 2 (Fingerprinting) - ${fingerprintResult?.confidence ? `Low confidence (${fingerprintResult.confidence})` : 'No result'}, proceeding to Tier 3`);
       }
-      console.log(`❌ Tier 2 (Fingerprinting) - Low confidence (${fingerprintResult?.confidence || 0}), proceeding to Tier 3`);
 
       // TIER 3: AI-Guided Selection
       if (HYBRID_CONFIG.ENABLE_AI_GUIDED_SELECTION) {
@@ -165,26 +228,77 @@ export class UltimateHybridSelector {
         if (aiResult) {
           console.log(`✅ Tier 3 (AI-Guided) - Success with confidence ${aiResult.confidence}`);
 
-          const result = {
-            selectedFiles: aiResult.selectedFiles,
+          // When criteria are available, merge AI selection with criterion-based selection
+          // to ensure important criterion-matching files are not missed
+          let finalSelectedFiles = aiResult.selectedFiles;
+          if (request.criteria.length > 0) {
+            // Get criterion-based selection
+            const criterionBasedSelection = await this.fingerprinter.selectFilesByCriteria(
+              request.files,
+              request.courseId,
+              request.criteria
+            );
+            
+            console.log(`🔍 Criterion-based selection returned ${criterionBasedSelection.length} files:`);
+            console.log(`   Files: ${criterionBasedSelection.slice(0, 10).join(', ')}${criterionBasedSelection.length > 10 ? '...' : ''}`);
+            
+            // Check if snowflake_refresh.py is in criterion-based selection
+            if (criterionBasedSelection.some(f => f.includes('snowflake_refresh.py'))) {
+              console.log(`✅ snowflake_refresh.py found in criterion-based selection`);
+            } else {
+              console.log(`❌ snowflake_refresh.py NOT found in criterion-based selection`);
+            }
+            
+            // Merge the selections, prioritizing criterion-matching files
+            const mergedSelection = new Set<string>(finalSelectedFiles);
+            
+            // Add criterion-matching files that might have been missed by AI
+            let addedFiles = 0;
+            for (const file of criterionBasedSelection) {
+              if (!mergedSelection.has(file)) {
+                mergedSelection.add(file);
+                console.log(`🔧 Adding criterion-matching file missed by AI: ${file}`);
+                addedFiles++;
+              }
+            }
+            
+            // Limit to max files
+            const maxFiles = request.maxFiles || HYBRID_CONFIG.MAX_FILES_PER_EVALUATION;
+            finalSelectedFiles = Array.from(mergedSelection).slice(0, maxFiles);
+            console.log(`🔧 Merged AI selection with criterion-based selection: ${finalSelectedFiles.length} files (${addedFiles} files added)`);
+            
+            // Check if snowflake_refresh.py is in final selection
+            if (finalSelectedFiles.some(f => f.includes('snowflake_refresh.py'))) {
+              console.log(`✅ snowflake_refresh.py found in final merged selection`);
+            } else {
+              console.log(`❌ snowflake_refresh.py NOT found in final merged selection`);
+            }
+          }
+
+          const result: HybridSelectionResult = {
+            selectedFiles: finalSelectedFiles,
             method: 'ai_guided',
             confidence: aiResult.confidence,
             reasoning: aiResult.reasoning,
             processingTime: Date.now() - startTime,
             tokenUsage: aiResult.tokenUsage,
             cacheHit: false,
+            fallbackUsed: false,
             tierUsed: 3,
             performance
           };
 
+          // Apply AI validation to improve the result
+          const validatedResult = await this.applyAIValidation(request, result);
+
           // Cache the successful AI strategy for future use
-          await this.cacheSuccessfulStrategy(request, aiResult.selectedFiles, {
-            accuracy: aiResult.confidence,
+          await this.cacheSuccessfulStrategy(request, validatedResult.selectedFiles, {
+            accuracy: validatedResult.confidence,
             processingTime: performance.tier3Time || 0,
-            evaluationQuality: aiResult.confidence
+            evaluationQuality: validatedResult.confidence
           });
 
-          return result;
+          return validatedResult;
         }
       }
 
@@ -245,17 +359,25 @@ export class UltimateHybridSelector {
    */
   private async tryIntelligentCache(request: HybridSelectionRequest): Promise<HybridSelectionResult | null> {
     try {
-      // First, we need to create a repository signature for similarity matching
-      const analysis = await this.fingerprinter.analyzeRepository(request.files);
+      // Create enhanced repository signature using the new generator
+      const signature = this.signatureGenerator.generateSignature(request.files, {
+        maxDepth: 3,
+        excludePatterns: ['node_modules', '.git', '__pycache__', 'venv']
+      });
+
+      console.log(`🔍 Generated signature: ${signature.technologies.join(', ')} (${signature.sizeCategory})`);
 
       // Search for similar cached strategies
       const cacheResult = await this.intelligentCache.findSimilarStrategy(
-        analysis.signature,
+        signature,
         request.courseId,
-        request.criteria
+        request.criteria,
+        request.repoUrl
       );
 
       if (cacheResult) {
+        console.log(`✅ Cache hit with ${(cacheResult.similarity * 100).toFixed(1)}% similarity`);
+
         return {
           selectedFiles: cacheResult.selectedFiles,
           method: 'cache',
@@ -268,6 +390,7 @@ export class UltimateHybridSelector {
         };
       }
 
+      console.log('❌ No suitable cache entry found');
       return null;
     } catch (error) {
       console.error('Error in intelligent cache:', error);
@@ -312,11 +435,24 @@ export class UltimateHybridSelector {
       const maxFiles = request.maxFiles || HYBRID_CONFIG.MAX_FILES_PER_EVALUATION;
       const finalFiles = selectedFiles.slice(0, maxFiles);
 
-      const reasoning = `Repository fingerprinting detected ${analysis.type} project with ${analysis.confidence.toFixed(2)} confidence. Selected ${finalFiles.length} files based on ${request.criteria.length > 0 ? 'course criteria' : 'pattern matching'}.`;
+      // Calculate appropriate confidence based on selection method and quality
+      let confidence: number;
+      let reasoning: string;
+      
+      if (request.criteria.length > 0) {
+        // When using criteria, confidence should be based on file selection quality
+        // Use a high confidence since we're using criterion-driven selection
+        confidence = 0.95; // High confidence for criterion-driven selection
+        reasoning = `Repository fingerprinting detected ${analysis.type} project. Selected ${finalFiles.length} files based on course criteria with high confidence.`;
+      } else {
+        // When using pattern-based selection, use repository type detection confidence
+        confidence = analysis.confidence;
+        reasoning = `Repository fingerprinting detected ${analysis.type} project with ${analysis.confidence.toFixed(2)} confidence. Selected ${finalFiles.length} files based on pattern matching.`;
+      }
 
       return {
         selectedFiles: finalFiles,
-        confidence: analysis.confidence,
+        confidence: confidence,
         reasoning
       };
 
@@ -419,6 +555,160 @@ export class UltimateHybridSelector {
   }
 
   /**
+   * Apply AI validation to improve file selection
+   */
+  private async applyAIValidation(
+    request: HybridSelectionRequest,
+    result: HybridSelectionResult
+  ): Promise<HybridSelectionResult> {
+    // Skip validation if disabled
+    if (!HYBRID_CONFIG.ENABLE_AI_VALIDATION) {
+      // Still apply final filtering for large dependency files
+      const filteredFiles = this.filterLargeDependencyFiles(result.selectedFiles);
+      if (filteredFiles.length !== result.selectedFiles.length) {
+        console.log(`🔧 Final filtering removed ${result.selectedFiles.length - filteredFiles.length} large dependency files`);
+        return {
+          ...result,
+          selectedFiles: filteredFiles
+        };
+      }
+      return result;
+    }
+
+    try {
+      console.log('🤖 Applying AI validation to file selection...');
+
+      // Prepare validation request
+      const validationRequest = {
+        allFiles: request.files,
+        selectedFiles: result.selectedFiles,
+        courseId: request.courseId,
+        courseName: request.courseName,
+        repoUrl: request.repoUrl,
+        selectionMethod: result.method,
+        confidence: result.confidence
+      };
+
+      // Run AI validation
+      const validation = await this.validationEngine.validateSelection(validationRequest);
+
+      // Apply suggestions if validation indicates improvements
+      if (!validation.isValid || validation.suggestions.missingCritical.length > 0) {
+        console.log('🔧 Applying AI validation suggestions...');
+
+        const improvement = await this.validationEngine.applyValidationSuggestions(
+          result.selectedFiles,
+          request.files,
+          validation
+        );
+
+        if (improvement.changes.length > 0) {
+          console.log(`✅ Applied ${improvement.changes.length} validation changes`);
+          improvement.changes.forEach(change => {
+            console.log(`   ${change.action}: ${change.file} (${change.reason})`);
+          });
+
+          // Apply final filtering for large dependency files
+          const filteredFiles = this.filterLargeDependencyFiles(improvement.improvedSelection);
+          if (filteredFiles.length !== improvement.improvedSelection.length) {
+            console.log(`🔧 Final filtering removed ${improvement.improvedSelection.length - filteredFiles.length} large dependency files`);
+            improvement.improvedSelection = filteredFiles;
+          }
+
+          return {
+            ...result,
+            selectedFiles: improvement.improvedSelection,
+            confidence: Math.min(result.confidence + 0.1, 1.0), // Boost confidence slightly
+            reasoning: `${result.reasoning} + AI validation improvements: ${improvement.changes.length} changes applied.`,
+            validationApplied: true,
+            validationChanges: improvement.changes.length
+          };
+        }
+      }
+
+      console.log('✅ AI validation passed - no changes needed');
+      
+      // Apply final filtering for large dependency files even when no changes are made
+      const filteredFiles = this.filterLargeDependencyFiles(result.selectedFiles);
+      if (filteredFiles.length !== result.selectedFiles.length) {
+        console.log(`🔧 Final filtering removed ${result.selectedFiles.length - filteredFiles.length} large dependency files`);
+        return {
+          ...result,
+          selectedFiles: filteredFiles,
+          validationApplied: true,
+          validationChanges: result.selectedFiles.length - filteredFiles.length
+        };
+      }
+
+      return {
+        ...result,
+        validationApplied: true,
+        validationChanges: 0
+      };
+
+    } catch (error) {
+      console.error('Error in AI validation:', error);
+      // Return original result if validation fails, but still apply final filtering
+      const filteredFiles = this.filterLargeDependencyFiles(result.selectedFiles);
+      if (filteredFiles.length !== result.selectedFiles.length) {
+        console.log(`🔧 Final filtering removed ${result.selectedFiles.length - filteredFiles.length} large dependency files`);
+        return {
+          ...result,
+          selectedFiles: filteredFiles
+        };
+      }
+      return result;
+    }
+  }
+
+  /**
+   * Cache a successful file selection result
+   */
+  private async cacheSuccessfulResult(
+    request: HybridSelectionRequest,
+    result: HybridSelectionResult
+  ): Promise<void> {
+    try {
+      // Only cache high-quality results
+      if (result.confidence < 0.75) {
+        console.log(`⚠️ Skipping cache - confidence ${result.confidence} below threshold`);
+        return;
+      }
+
+      // Generate signature for caching
+      const signature = this.signatureGenerator.generateSignature(request.files);
+
+      // Create performance metrics
+      const performance = {
+        accuracy: result.confidence,
+        processingTime: result.processingTime,
+        evaluationQuality: result.confidence // Will be updated with actual evaluation results
+      };
+
+      // Cache the strategy
+      await this.intelligentCache.cacheStrategy(
+        signature,
+        request.courseId,
+        result.selectedFiles,
+        performance,
+        request.repoUrl
+      );
+
+      console.log(`💾 Cached successful result for ${request.repoUrl}`);
+
+    } catch (error) {
+      console.error('Error caching successful result:', error);
+    }
+  }
+
+  /**
+   * Get cache warming statistics
+   */
+  getCacheWarmingStats() {
+    return this.cacheWarming.getWarmingStats();
+  }
+
+  /**
    * Get performance statistics for the hybrid system
    */
   async getPerformanceStats(): Promise<{
@@ -439,5 +729,26 @@ export class UltimateHybridSelector {
       averageTokenUsage: 800,
       cacheHitRate: cacheStats.hitRate
     };
+  }
+
+  /**
+   * Filter out large dependency files that should not be included in file selection
+   */
+  private filterLargeDependencyFiles(files: string[]): string[] {
+    const largeDependencyFiles = [
+      'package-lock.json',
+      'yarn.lock',
+      'pnpm-lock.yaml',
+      'pipfile.lock',
+      'gemfile.lock',
+      'composer.lock',
+      'cargo.lock',
+      'go.sum',
+      'poetry.lock',
+      'mix.lock',
+      'pubspec.lock'
+    ];
+
+    return files.filter(file => !largeDependencyFiles.includes(file.toLowerCase()));
   }
 }

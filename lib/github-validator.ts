@@ -43,7 +43,7 @@ export function validateGitHubUrl(url: string): RepoValidationResult {
     if (!validationResult.success) {
       return {
         isValid: false,
-        error: validationResult.error.errors[0]?.message || 'Invalid GitHub commit URL format'
+        error: validationResult.error.issues[0]?.message || 'Invalid GitHub commit URL format'
       };
     }
 
@@ -192,11 +192,20 @@ export async function checkRepoAccessibility(repoInfo: GitHubRepoInfo): Promise<
 }
 
 /**
- * Fetch repository file content
+ * Fetch repository file content with size limitations for large files
  */
 export async function fetchRepoFile(repoInfo: GitHubRepoInfo, filePath: string): Promise<string | null> {
   try {
     const fileUrl = `${repoInfo.rawUrl}/${filePath}`;
+    
+    // For IPython notebooks, we want to fetch the full content for proper optimization
+    const isNotebook = filePath.endsWith('.ipynb');
+    const MAX_FILE_SIZE = isNotebook ? 500 * 1024 : 100 * 1024; // 500KB for notebooks, 100KB for others
+    
+    if (isNotebook) {
+      console.log(`Fetching IPython notebook: ${filePath} (max ${MAX_FILE_SIZE} bytes)`);
+    }
+    
     const response = await fetch(fileUrl, {
       method: 'GET',
       headers: {
@@ -205,7 +214,16 @@ export async function fetchRepoFile(repoInfo: GitHubRepoInfo, filePath: string):
     });
 
     if (response.ok) {
-      return await response.text();
+      const content = await response.text();
+      
+      // Apply size limits for large files
+      if (content.length > MAX_FILE_SIZE) {
+        console.log(`Truncating large file ${filePath} (${content.length} bytes)`);
+        return content.substring(0, MAX_FILE_SIZE) + 
+          '\n\n[File truncated due to size limits]';
+      }
+      
+      return content;
     }
     return null;
   } catch (error) {
@@ -225,7 +243,7 @@ function calculateFileImportanceScore(filePath: string): number {
   if (fileName.includes('readme')) score += 100;
   if (fileName.includes('evaluation') || fileName.includes('eval')) score += 95;
   if (fileName.includes('analysis') || fileName.includes('experiment')) score += 90;
-  if (fileName.endsWith('.ipynb')) score += 85;
+  if (fileName.endsWith('.ipynb')) score += 75;
   if (fileName.endsWith('.md')) score += 80;
   if (fileName.endsWith('.sql')) score += 75; // dbt models
 

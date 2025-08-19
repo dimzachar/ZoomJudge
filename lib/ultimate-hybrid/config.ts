@@ -13,7 +13,7 @@ export const HYBRID_CONFIG = {
   MAX_CACHE_ENTRIES: 1000,
 
   // File selection limits
-  MAX_FILES_PER_EVALUATION: 25,
+  MAX_FILES_PER_EVALUATION: 50,
   MIN_FILES_PER_EVALUATION: 5,
 
   // AI settings
@@ -30,6 +30,7 @@ export const HYBRID_CONFIG = {
   ENABLE_INTELLIGENT_CACHING: true,
   ENABLE_AI_GUIDED_SELECTION: true,
   ENABLE_REPOSITORY_FINGERPRINTING: true,
+  ENABLE_AI_VALIDATION: true,
 
   // Monitoring
   METRICS_COLLECTION_ENABLED: true,
@@ -41,7 +42,7 @@ export const HYBRID_CONFIG = {
 export const AI_MODEL_CONFIGS = {
   // File Selection Model - Fast and cheap for file selection decisions
   FILE_SELECTION: {
-    model: 'qwen/qwen-2.5-coder-32b-instruct',
+    model: 'qwen/qwen3-coder:free',
     maxTokens: 2000,
     temperature: 0.1,
     purpose: 'file_selection',
@@ -150,6 +151,50 @@ export const REPO_TYPE_PATTERNS = {
       'ingest',
       'prep',
       'api'
+    ]
+  },
+  'machine-learning': {
+    indicators: [
+      /train/i,
+      /model/i,
+      /predict/i,
+      /ml/i,
+      /machine.learning/i,
+      /sklearn/i,
+      /tensorflow/i,
+      /pytorch/i
+    ],
+    required: [
+      /\.py$/,
+      /\.ipynb$/
+    ],
+    directories: [
+      'src',
+      'models',
+      'notebooks',
+      'data',
+      'scripts'
+    ]
+  },
+  'stock-markets': {
+    indicators: [
+      /stock/i,
+      /trading/i,
+      /market/i,
+      /portfolio/i,
+      /backtesting/i,
+      /strategy/i,
+      /finance/i
+    ],
+    required: [
+      /\.py$/
+    ],
+    directories: [
+      'src',
+      'strategies',
+      'backtesting',
+      'portfolio',
+      'data'
     ]
   }
 } as const;

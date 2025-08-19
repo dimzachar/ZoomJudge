@@ -24,6 +24,8 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { useUserTier } from '@/components/clerk-billing-gate';
+import { canAccessFeature } from '@/lib/tier-permissions';
 
 interface EvaluationResultsProps {
   limit?: number;
@@ -53,7 +55,7 @@ export function EvaluationResults({ limit = 10 }: EvaluationResultsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
+      {/* Stats Cards
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
@@ -104,7 +106,7 @@ export function EvaluationResults({ limit = 10 }: EvaluationResultsProps) {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
 
       {/* Evaluations List */}
       <Card>
@@ -128,6 +130,8 @@ export function EvaluationResults({ limit = 10 }: EvaluationResultsProps) {
 
 function EvaluationCard({ evaluation }: { evaluation: any }) {
   const deleteEvaluation = useMutation(api.evaluations.deleteEvaluation);
+  const userTier = useUserTier();
+  const canViewDetailedFeedback = canAccessFeature('detailed-feedback', userTier);
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this evaluation?')) {
@@ -249,10 +253,17 @@ function EvaluationCard({ evaluation }: { evaluation: any }) {
               </Button>
             </div>
           </div>
-          {evaluation.results.overallFeedback && (
+          {canViewDetailedFeedback && evaluation.results.overallFeedback && (
             <p className="text-sm text-muted-foreground">
               {evaluation.results.overallFeedback}
             </p>
+          )}
+          {!canViewDetailedFeedback && (
+            <div className="mt-2 p-2 bg-muted/30 rounded-md border border-dashed">
+              <p className="text-xs text-muted-foreground text-center">
+                Upgrade to see detailed feedback and analysis
+              </p>
+            </div>
           )}
         </div>
       )}
