@@ -112,38 +112,42 @@ export default function DemoPage() {
             title="Problem Description"
             description="Clear explanation of the problem being solved and approach taken"
             score={2}
+            maxScore={2}
             statusLabel="Excellent"
             delta="+1"
             feedback="The problem description is comprehensive and well-structured. It clearly outlines the business case, technical requirements, and expected outcomes. Consider adding more details about data sources and constraints."
             isLocked={userTier === 'free'}
             onUpgrade={handleUpgrade}
           />
-          
+
           <EvaluationCard
             title="Data Ingestion Pipeline"
             description="Implementation of data collection and preprocessing workflows"
             score={1}
+            maxScore={2}
             statusLabel="OK"
             feedback="The ingestion pipeline covers basic requirements but lacks error handling and monitoring. Consider implementing retry mechanisms and data quality checks."
             isLocked={userTier === 'free'}
             onUpgrade={handleUpgrade}
           />
-          
+
           <EvaluationCard
             title="Code Quality"
             description="Code organization, documentation, and best practices"
             score={2}
+            maxScore={2}
             statusLabel="Excellent"
             delta="+2"
             feedback="Excellent code structure with proper documentation and type hints. The modular design makes it easy to understand and maintain."
             isLocked={userTier === 'free'}
             onUpgrade={handleUpgrade}
           />
-          
+
           <EvaluationCard
             title="Testing Coverage"
             description="Unit tests, integration tests, and test coverage"
             score={0}
+            maxScore={1}
             statusLabel="Needs Work"
             delta="-1"
             feedback="Limited testing coverage detected. Consider adding unit tests for core functions and integration tests for the pipeline. Aim for at least 80% code coverage."
