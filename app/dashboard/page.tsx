@@ -19,12 +19,12 @@ export default function Page() {
   // Show loading state while data is being fetched
   if (evaluationStats === undefined || currentUsage === undefined || currentUsage === null) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-6 sm:space-y-8">
         {/* Welcome Section */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">Welcome to ZoomJudge</h1>
-            <p className="text-muted-foreground text-lg">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Welcome to ZoomJudge</h1>
+            <p className="text-muted-foreground text-base sm:text-lg">
               Get AI-powered evaluation and feedback for your GitHub repositories across different Zoomcamp courses.
             </p>
           </div>
@@ -32,18 +32,18 @@ export default function Page() {
         </div>
 
         {/* Loading Dashboard Stats */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-semibold tracking-tight">Overview</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="space-y-3 sm:space-y-4">
+          <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">Overview</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-32" />
+              <Skeleton key={i} className="h-28 sm:h-32" />
             ))}
           </div>
         </div>
 
         {/* Recent Evaluations */}
-        <div className="space-y-4">
-          {/* <h2 className="text-2xl font-semibold tracking-tight">Recent Evaluations</h2> */}
+        <div className="space-y-3 sm:space-y-4">
+          {/* <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">Recent Evaluations</h2> */}
           <EvaluationResults />
         </div>
       </div>
@@ -60,7 +60,7 @@ export default function Page() {
   const isAtLimit = currentCount >= monthlyLimit && userTier !== 'enterprise'
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Usage Warning Banner */}
       {(isNearLimit || isAtLimit) && (
         <Alert className={isAtLimit ? "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/20" : "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950/20"}>
@@ -93,10 +93,10 @@ export default function Page() {
       )}
 
       {/* Welcome Section */}
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Welcome to ZoomJudge</h1>
-          <p className="text-muted-foreground text-lg">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Welcome to ZoomJudge</h1>
+          <p className="text-muted-foreground text-base sm:text-lg">
             Get AI-powered evaluation and feedback for your GitHub repositories across different Zoomcamp courses.
           </p>
         </div>
@@ -106,8 +106,8 @@ export default function Page() {
       </div>
 
       {/* Dashboard Stats - Now using real data */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-semibold tracking-tight">Overview</h2>
+      <div className="space-y-3 sm:space-y-4">
+        <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">Overview</h2>
         <DashboardStats
           stats={{
             total: evaluationStats.total,
@@ -123,7 +123,7 @@ export default function Page() {
       </div>
 
       {/* Recent Evaluations */}
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         <EvaluationResults />
       </div>
     </div>

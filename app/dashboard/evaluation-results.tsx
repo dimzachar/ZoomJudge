@@ -42,10 +42,10 @@ export function EvaluationResults({ limit = 10 }: EvaluationResultsProps) {
   if (evaluations.length === 0) {
     return (
       <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No evaluations yet</h3>
-          <p className="text-muted-foreground text-center mb-4">
+        <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12">
+          <FileText className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-3 sm:mb-4" />
+          <h3 className="text-base sm:text-lg font-semibold mb-2">No evaluations yet</h3>
+          <p className="text-muted-foreground text-center mb-4 text-sm sm:text-base px-4">
             Submit your first GitHub repository to get started with AI-powered evaluation.
           </p>
         </CardContent>
@@ -54,7 +54,7 @@ export function EvaluationResults({ limit = 10 }: EvaluationResultsProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Stats Cards
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -110,14 +110,14 @@ export function EvaluationResults({ limit = 10 }: EvaluationResultsProps) {
 
       {/* Evaluations List */}
       <Card>
-        <CardHeader>
-          <CardTitle>Recent Evaluations</CardTitle>
-          <CardDescription>
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-base sm:text-lg">Recent Evaluations</CardTitle>
+          <CardDescription className="text-sm">
             Your latest repository evaluations and their results
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+        <CardContent className="pt-0">
+          <div className="space-y-3 sm:space-y-4">
             {evaluations.map((evaluation) => (
               <EvaluationCard key={evaluation._id} evaluation={evaluation} />
             ))}
@@ -188,16 +188,16 @@ function EvaluationCard({ evaluation }: { evaluation: any }) {
   };
 
   return (
-    <div className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
+    <div className="border rounded-lg p-3 sm:p-4 hover:bg-muted/50 transition-colors">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
-            <h3 className="font-medium">{evaluation.repoOwner}/{evaluation.repoName}</h3>
+            <h3 className="font-medium text-sm sm:text-base truncate">{evaluation.repoOwner}/{evaluation.repoName}</h3>
             <Button
               variant="ghost"
               size="sm"
               asChild
-              className="h-6 w-6 p-0"
+              className="h-6 w-6 p-0 flex-shrink-0"
             >
               <a
                 href={evaluation.repoUrl}
@@ -208,16 +208,16 @@ function EvaluationCard({ evaluation }: { evaluation: any }) {
               </a>
             </Button>
           </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
             <Calendar className="h-3 w-3" />
             {formatDistanceToNow(new Date(evaluation.createdAt), { addSuffix: true })}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className={getCourseColor(evaluation.course)}>
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <Badge variant="secondary" className={`${getCourseColor(evaluation.course)} text-xs`}>
             {evaluation.course}
           </Badge>
-          <Badge variant="secondary" className={getStatusColor(evaluation.status)}>
+          <Badge variant="secondary" className={`${getStatusColor(evaluation.status)} text-xs`}>
             <span className="flex items-center gap-1">
               {getStatusIcon(evaluation.status)}
               {evaluation.status}
@@ -227,7 +227,7 @@ function EvaluationCard({ evaluation }: { evaluation: any }) {
             variant="ghost"
             size="sm"
             onClick={handleDelete}
-            className="h-6 w-6 p-0 text-muted-foreground hover:text-red-600"
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-red-600 flex-shrink-0"
           >
             <Trash2 className="h-3 w-3" />
           </Button>
@@ -236,16 +236,16 @@ function EvaluationCard({ evaluation }: { evaluation: any }) {
 
       {evaluation.status === 'completed' && evaluation.results && (
         <div className="mt-3 p-3 bg-muted/30 rounded-md">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
             <span className="text-sm font-medium">Score</span>
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-bold">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <span className="text-base sm:text-lg font-bold">
                 {evaluation.totalScore}/{evaluation.maxScore}
-                <span className="text-sm text-muted-foreground ml-1">
+                <span className="text-xs sm:text-sm text-muted-foreground ml-1">
                   ({Math.round((evaluation.totalScore / evaluation.maxScore) * 100)}%)
                 </span>
               </span>
-              <Button variant="outline" size="sm" asChild>
+              <Button variant="outline" size="sm" asChild className="w-full sm:w-auto min-h-[44px] text-xs sm:text-sm">
                 <Link href={`/dashboard/evaluation/${evaluation._id}`}>
                   <Eye className="h-3 w-3 mr-1" />
                   View Details
@@ -254,7 +254,7 @@ function EvaluationCard({ evaluation }: { evaluation: any }) {
             </div>
           </div>
           {canViewDetailedFeedback && evaluation.results.overallFeedback && (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               {evaluation.results.overallFeedback}
             </p>
           )}

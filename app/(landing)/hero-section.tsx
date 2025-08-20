@@ -73,12 +73,12 @@ export default function HeroSection() {
                     <HeroBackground />
                     <ThreeAnimation />
 
-                    <div className="mx-auto max-w-6xl px-6 md:px-12 min-h-[100vh] flex items-center">
-                        <div className="relative pb-20 md:pb-24 max-w-[56ch] mt-16 md:mt-20">
+                    <div className="mx-auto max-w-6xl px-4 sm:px-6 md:px-12 min-h-[100vh] flex items-center">
+                        <div className="relative pb-16 sm:pb-20 md:pb-24 max-w-[56ch] mt-12 sm:mt-16 md:mt-20">
                             <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-70 [mask-image:radial-gradient(65%_55%_at_45%_50%,#000_70%,transparent)]" />
 
-                            <h1 className="text-left text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[0.95] text-balance" aria-label={HEADLINE}>
-                                <div ref={headlineRef} className="flex flex-wrap gap-x-3 gap-y-2">
+                            <h1 className="text-left text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[0.95] text-balance" aria-label={HEADLINE}>
+                                <div ref={headlineRef} className="flex flex-wrap gap-x-2 sm:gap-x-3 gap-y-1 sm:gap-y-2">
                                     {words.map((word, wi) => (
                                         <div key={wi} className="overflow-hidden">
                                             {Array.from(word).map((ch, ci) => (
@@ -89,17 +89,17 @@ export default function HeroSection() {
                                 </div>
                             </h1>
 
-                            <p className="mt-8 text-lg md:text-xl text-white/70">
+                            <p className="mt-6 sm:mt-8 text-base sm:text-lg md:text-xl text-white/70 max-w-prose">
                                 Instant, AI‑powered codebase evaluations with clear, prioritized insights.
                             </p>
 
-                            <div ref={ctaContainerRef} className="mt-10 flex flex-wrap items-center gap-3">
-                                <Button asChild size="lg" className="h-12 md:h-14 px-7 md:px-8 text-base md:text-lg hero-glow-button">
+                            <div ref={ctaContainerRef} className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+                                <Button asChild size="lg" className="w-full sm:w-auto h-12 md:h-14 px-6 sm:px-7 md:px-8 text-base md:text-lg hero-glow-button min-h-[44px]">
                                     <Link href="/dashboard">
                                         <span>Evaluate For Free</span>
                                     </Link>
                                 </Button>
-                                <Button variant="outline" asChild className="h-12 md:h-14 px-7 md:px-8 text-base md:text-lg border-white/20 bg-white/5 text-white/90 hover:bg-white/10 hover:border-white/30 hover:text-white backdrop-blur-sm transition-all duration-300">
+                                <Button variant="outline" asChild className="w-full sm:w-auto h-12 md:h-14 px-6 sm:px-7 md:px-8 text-base md:text-lg border-white/20 bg-white/5 text-white/90 hover:bg-white/10 hover:border-white/30 hover:text-white backdrop-blur-sm transition-all duration-300 min-h-[44px]">
                                     <Link href="/demo">See it in action</Link>
                                 </Button>
                             </div>

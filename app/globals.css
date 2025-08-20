@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./responsive-utilities.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -329,5 +330,17 @@
 .hero-glow-button:hover::before {
   opacity: 0.7;
   filter: blur(26px);
+}
+
+/* Bottom navigation safe area support for mobile devices */
+.pb-safe-area-inset-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Ensure bottom navigation doesn't interfere with content */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe-area-inset-bottom {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
+  }
 }
 

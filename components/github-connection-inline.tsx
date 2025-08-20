@@ -69,11 +69,11 @@ export function GitHubConnectionInline({ className }: GitHubConnectionInlineProp
       <Separator />
 
       {/* GitHub Connection */}
-      <div className="space-y-4 pt-4">
-        <div className="flex items-center justify-between">
+      <div className="space-y-3 sm:space-y-4 pt-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <IconBrandGithub className="h-4 w-4" />
-            <span className="text-sm font-medium select-text">GitHub Account</span>
+            <IconBrandGithub className="h-4 w-4 flex-shrink-0" />
+            <span className="text-sm sm:text-base font-medium select-text">GitHub Account</span>
             {githubAccount && (
               <Badge variant="secondary" className="text-xs">
                 Connected
@@ -84,35 +84,35 @@ export function GitHubConnectionInline({ className }: GitHubConnectionInlineProp
 
         {githubAccount ? (
           // Connected GitHub Account
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/50">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="p-3 rounded-lg border bg-muted/50 space-y-3">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
+                <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0">
                   <IconBrandGithub className="h-4 w-4 text-gray-900 dark:text-gray-100" />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">@{githubAccount.username}</span>
+                    <span className="text-sm font-medium break-all">@{githubAccount.username}</span>
                     {githubAccount.verification?.status === 'verified' && (
-                      <IconCheck className="h-3 w-3 text-green-600" />
+                      <IconCheck className="h-3 w-3 text-green-600 flex-shrink-0" />
                     )}
                   </div>
                   {githubAccount.emailAddress && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground break-all">
                       {githubAccount.emailAddress}
                     </p>
                   )}
                 </div>
               </div>
-              
-              <div className="flex gap-2">
+
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleViewProfile}
-                  className="h-8"
+                  className="min-h-[44px] w-full sm:w-auto"
                 >
-                  <IconExternalLink className="h-3 w-3 mr-1" />
+                  <IconExternalLink className="h-3 w-3 mr-2" />
                   View
                 </Button>
                 <Button
@@ -120,35 +120,35 @@ export function GitHubConnectionInline({ className }: GitHubConnectionInlineProp
                   size="sm"
                   onClick={handleDisconnectGitHub}
                   disabled={isLoading === 'github'}
-                  className="h-8"
+                  className="min-h-[44px] w-full sm:w-auto"
                 >
-                  <IconUnlink className="h-3 w-3 mr-1" />
+                  <IconUnlink className="h-3 w-3 mr-2" />
                   Disconnect
                 </Button>
               </div>
             </div>
-            
-            <p className="text-xs text-muted-foreground">
+
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Your GitHub account is used to access repositories for evaluation and analysis.
             </p>
           </div>
         ) : (
           // No GitHub Account Connected
           <div className="space-y-3">
-            <div className="flex items-start gap-3 p-3 rounded-lg border border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20">
+            <div className="flex items-start gap-3 p-3 sm:p-4 rounded-lg border border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20">
               <IconAlertTriangle className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
-              <div className="space-y-2 flex-1">
-                <p className="text-sm font-medium text-orange-900 dark:text-orange-100">
+              <div className="space-y-2 sm:space-y-3 flex-1 min-w-0">
+                <p className="text-sm sm:text-base font-medium text-orange-900 dark:text-orange-100">
                   GitHub Account Required
                 </p>
-                <p className="text-xs text-orange-700 dark:text-orange-200">
+                <p className="text-xs sm:text-sm text-orange-700 dark:text-orange-200 break-words">
                   Connect your GitHub account to evaluate repositories and access all ZoomJudge features.
                 </p>
                 <Button
                   size="sm"
                   onClick={handleConnectGitHub}
                   disabled={isLoading === 'github'}
-                  className="h-8 bg-orange-600 hover:bg-orange-700 text-white"
+                  className="min-h-[44px] w-full sm:w-auto bg-orange-600 hover:bg-orange-700 text-white"
                 >
                   <IconBrandGithub className="h-3 w-3 mr-2" />
                   Connect GitHub

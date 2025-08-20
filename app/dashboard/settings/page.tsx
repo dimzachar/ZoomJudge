@@ -143,11 +143,11 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 md:space-y-8">
       {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">
+      <div className="space-y-1 sm:space-y-2">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Settings</h1>
+        <p className="text-muted-foreground text-sm sm:text-base">
           Manage your account settings and preferences.
         </p>
       </div>
@@ -163,21 +163,21 @@ export default function SettingsPage() {
             Update your personal information and profile picture.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4 sm:space-y-6">
           {/* Profile Picture */}
-          <div className="flex items-center gap-4">
-            <Avatar className="h-20 w-20">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-4">
+            <Avatar className="h-16 w-16 sm:h-20 sm:w-20 flex-shrink-0">
               <AvatarImage src={user?.imageUrl} alt={user?.fullName || ""} />
-              <AvatarFallback className="text-lg">
+              <AvatarFallback className="text-base sm:text-lg">
                 {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
               </AvatarFallback>
             </Avatar>
-            <div className="space-y-2">
-              <Button variant="outline" size="sm" onClick={handleChangePhoto}>
+            <div className="space-y-2 text-center sm:text-left">
+              <Button variant="outline" size="sm" onClick={handleChangePhoto} className="min-h-[44px] w-full sm:w-auto">
                 <IconEdit className="h-4 w-4 mr-2" />
                 Change photo
               </Button>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 JPG, GIF or PNG. 1MB max.
               </p>
             </div>
@@ -186,11 +186,11 @@ export default function SettingsPage() {
           <Separator />
 
           {/* Name */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-sm font-medium select-text">Full name</span>
-                <p className="text-sm text-muted-foreground">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <span className="text-sm sm:text-base font-medium select-text">Full name</span>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   This is your display name on ZoomJudge.
                 </p>
               </div>
@@ -199,21 +199,24 @@ export default function SettingsPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsEditingName(true)}
+                  className="min-h-[44px] w-full sm:w-auto"
                 >
-                  <IconEdit className="h-4 w-4" />
+                  <IconEdit className="h-4 w-4 mr-2 sm:mr-0" />
+                  <span className="sm:hidden">Edit Name</span>
                 </Button>
               )}
             </div>
 
             {isEditingName ? (
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Input
                       id="firstName"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       placeholder="First name"
+                      className="min-h-[44px]"
                     />
                   </div>
                   <div>
@@ -222,11 +225,12 @@ export default function SettingsPage() {
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       placeholder="Last name"
+                      className="min-h-[44px]"
                     />
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={handleSaveName}>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button size="sm" onClick={handleSaveName} className="min-h-[44px] w-full sm:w-auto">
                     <IconCheck className="h-4 w-4 mr-2" />
                     Save
                   </Button>
@@ -238,6 +242,7 @@ export default function SettingsPage() {
                       setFirstName(user?.firstName || "")
                       setLastName(user?.lastName || "")
                     }}
+                    className="min-h-[44px] w-full sm:w-auto"
                   >
                     <IconX className="h-4 w-4 mr-2" />
                     Cancel

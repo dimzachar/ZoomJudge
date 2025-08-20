@@ -190,33 +190,33 @@ export default function BillingPage() {
 
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6 md:space-y-8">
       {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Billing</h1>
-        <p className="text-muted-foreground">
+      <div className="space-y-1 sm:space-y-2">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Billing</h1>
+        <p className="text-muted-foreground text-sm sm:text-base">
           Manage your subscription and billing information.
         </p>
       </div>
 
       {/* Current Plan */}
       <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
-        <CardHeader>
-          <div className="flex items-center justify-between">
+        <CardHeader className="pb-3 sm:pb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <IconSparkles className="h-5 w-5 text-primary" />
-              <CardTitle>Current Plan</CardTitle>
+              <IconSparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              <CardTitle className="text-base sm:text-lg">Current Plan</CardTitle>
             </div>
-            <Badge variant="secondary" className="capitalize">
+            <Badge variant="secondary" className="capitalize text-xs sm:text-sm w-fit">
               {tierInfo.name}
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-2xl font-bold capitalize">{tierInfo.name}</h3>
-              <p className="text-muted-foreground">{tierInfo.description}</p>
+        <CardContent className="space-y-3 sm:space-y-4 pt-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="text-xl sm:text-2xl font-bold capitalize">{tierInfo.name}</h3>
+              <p className="text-muted-foreground text-sm sm:text-base">{tierInfo.description}</p>
               {nextBillingDate && userTier !== 'free' && (
                 <p className="text-sm text-muted-foreground mt-2">
                   Next billing: {new Date(nextBillingDate).toLocaleDateString()}
@@ -237,27 +237,27 @@ export default function BillingPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 pt-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 pt-4">
             {userTier !== 'free' ? (
               <>
-                <Button variant="outline" size="sm" onClick={handleManageBilling}>
+                <Button variant="outline" size="sm" onClick={handleManageBilling} className="w-full sm:w-auto min-h-[44px]">
                   <IconCreditCard className="h-4 w-4 mr-2" />
                   Manage Billing
                   <IconExternalLink className="h-3 w-3 ml-1" />
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleDownloadInvoices}>
+                <Button variant="outline" size="sm" onClick={handleDownloadInvoices} className="w-full sm:w-auto min-h-[44px]">
                   <IconDownload className="h-4 w-4 mr-2" />
                   Download Invoices
                 </Button>
               </>
             ) : (
               <>
-                <Button onClick={handleUpgrade}>
+                <Button onClick={handleUpgrade} className="w-full sm:w-auto min-h-[44px]">
                   <IconSparkles className="h-4 w-4 mr-2" />
                   Upgrade Plan
                 </Button>
                 {hasSubscriptionMismatch() && (
-                  <Button variant="outline" size="sm" onClick={handleSyncSubscription}>
+                  <Button variant="outline" size="sm" onClick={handleSyncSubscription} className="w-full sm:w-auto min-h-[44px]">
                     <IconRefresh className="h-4 w-4 mr-2" />
                     Sync Subscription
                   </Button>
@@ -275,9 +275,9 @@ export default function BillingPage() {
       <BillingHistory />
 
       {/* Plans */}
-      <div id="pricing-plans" className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Available Plans</h2>
+      <div id="pricing-plans" className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <h2 className="text-xl sm:text-2xl font-bold">Available Plans</h2>
           {userTier === 'free' && (
             <Badge variant="outline" className="text-primary">
               Choose your plan

@@ -37,21 +37,21 @@ export function StatsCard({
 }: StatsCardProps) {
   return (
     <Card className={cn("transition-all duration-200 hover:shadow-md", className)}>
-      <CardContent className="p-6">
+      <CardContent className="p-3 sm:p-4 md:p-6">
         <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-3xl font-bold">{value}</p>
+          <div className="space-y-1 sm:space-y-2 min-w-0 flex-1">
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{title}</p>
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold">{value}</p>
             {description && (
               <p className="text-xs text-muted-foreground">{description}</p>
             )}
             {trend && (
               <div className="flex items-center gap-1">
-                <IconTrendingUp 
+                <IconTrendingUp
                   className={cn(
                     "h-3 w-3",
                     trend.isPositive ? "text-green-600" : "text-red-600"
-                  )} 
+                  )}
                 />
                 <span className={cn(
                   "text-xs font-medium",
@@ -63,8 +63,8 @@ export function StatsCard({
               </div>
             )}
           </div>
-          <div className="p-3 bg-muted/50 rounded-full">
-            <Icon className="h-6 w-6 text-muted-foreground" />
+          <div className="p-2 sm:p-3 bg-muted/50 rounded-full ml-2 sm:ml-3 flex-shrink-0">
+            <Icon className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-muted-foreground" />
           </div>
         </div>
       </CardContent>
@@ -96,7 +96,7 @@ export function DashboardStats({
   const usagePercentage = monthlyLimit > 0 ? (currentUsage / monthlyLimit) * 100 : 0
   
   return (
-    <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6", className)}>
+    <div className={cn("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6", className)}>
       {/* Total Evaluations */}
       <StatsCard
         title="Total Evaluations"
@@ -126,23 +126,23 @@ export function DashboardStats({
       {/* Average Score or Usage */}
       {userTier === 'free' ? (
         <Card className="transition-all duration-200 hover:shadow-md border-purple-200 dark:border-purple-800">
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 md:p-6">
             <div className="flex items-center justify-between">
-              <div className="space-y-2">
+              <div className="space-y-2 min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-muted-foreground">Monthly Usage</p>
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Monthly Usage</p>
                   <Badge variant="outline" className="text-xs">
                     {userTier.charAt(0).toUpperCase() + userTier.slice(1)}
                   </Badge>
                 </div>
-                <p className="text-3xl font-bold">
-                  {currentUsage}<span className="text-lg text-muted-foreground">/{monthlyLimit}</span>
+                <p className="text-xl sm:text-2xl md:text-3xl font-bold">
+                  {currentUsage}<span className="text-sm sm:text-base md:text-lg text-muted-foreground">/{monthlyLimit}</span>
                 </p>
                 <div className="w-full bg-muted rounded-full h-2">
-                  <div 
+                  <div
                     className={cn(
                       "h-2 rounded-full transition-all duration-300",
-                      usagePercentage >= 100 ? "bg-red-600" : 
+                      usagePercentage >= 100 ? "bg-red-600" :
                       usagePercentage >= 75 ? "bg-yellow-600" : "bg-blue-600"
                     )}
                     style={{ width: `${Math.min(usagePercentage, 100)}%` }}
@@ -152,8 +152,8 @@ export function DashboardStats({
                   {monthlyLimit - currentUsage} evaluations remaining
                 </p>
               </div>
-              <div className="p-3 bg-purple-50 dark:bg-purple-950/20 rounded-full">
-                <IconTarget className="h-6 w-6 text-purple-600" />
+              <div className="p-2 sm:p-3 bg-purple-50 dark:bg-purple-950/20 rounded-full ml-2 sm:ml-3 flex-shrink-0">
+                <IconTarget className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-purple-600" />
               </div>
             </div>
           </CardContent>

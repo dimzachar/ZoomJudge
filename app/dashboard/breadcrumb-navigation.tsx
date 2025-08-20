@@ -44,22 +44,23 @@ export function BreadcrumbNavigation({
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link href="/dashboard">
-                <IconHome className="h-4 w-4" />
+              <Link href="/dashboard" className="flex items-center">
+                <IconHome className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="sr-only">Dashboard</span>
               </Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           {customItems.map((item, index) => (
             <React.Fragment key={index}>
               <BreadcrumbSeparator>
-                <IconChevronRight className="h-4 w-4" />
+                <IconChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
               </BreadcrumbSeparator>
               <BreadcrumbItem>
                 {item.isCurrentPage ? (
-                  <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                  <BreadcrumbPage className="text-xs sm:text-sm">{item.label}</BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink asChild>
-                    <Link href={item.href!}>{item.label}</Link>
+                    <Link href={item.href!} className="text-xs sm:text-sm">{item.label}</Link>
                   </BreadcrumbLink>
                 )}
               </BreadcrumbItem>
@@ -98,22 +99,23 @@ export function BreadcrumbNavigation({
       <BreadcrumbList>
         <BreadcrumbItem>
           <BreadcrumbLink asChild>
-            <Link href="/dashboard">
-              <IconHome className="h-4 w-4" />
+            <Link href="/dashboard" className="flex items-center">
+              <IconHome className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="sr-only">Dashboard</span>
             </Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
         {breadcrumbItems.map((item, index) => (
           <React.Fragment key={index}>
             <BreadcrumbSeparator>
-              <IconChevronRight className="h-4 w-4" />
+              <IconChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
             </BreadcrumbSeparator>
             <BreadcrumbItem>
               {item.isCurrentPage ? (
-                <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                <BreadcrumbPage className="text-xs sm:text-sm">{item.label}</BreadcrumbPage>
               ) : (
                 <BreadcrumbLink asChild>
-                  <Link href={item.href!}>{item.label}</Link>
+                  <Link href={item.href!} className="text-xs sm:text-sm">{item.label}</Link>
                 </BreadcrumbLink>
               )}
             </BreadcrumbItem>

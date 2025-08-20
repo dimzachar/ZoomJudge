@@ -7,41 +7,57 @@ import PixelCard from '@/components/react-bits/pixel-card'
 
 export default function CallToAction() {
     return (
-        <section id="newsletter" className="py-16 px-6">
-            <div className=" mx-auto max-w-5xl rounded-3xl px-6 py-12 md:py-20 lg:py-32">
-                <PixelCard variant="blue" className="w-full max-w-5xl h-auto aspect-[16/9]">
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center px-6">
-                        <h2 className="text-balance text-4xl font-semibold lg:text-5xl">Ready to Evaluate?</h2>
-                        <p className="mt-4 max-w-xl mx-auto">Join thousands of developers improving their Zoomcamp projects with AI-powered feedback. Subscribe for launch updates and pro tips.</p>
+        <section id="newsletter" className="py-12 sm:py-16 px-4 sm:px-6">
+            <div className="mx-auto max-w-5xl px-4 sm:px-6">
+                <PixelCard variant="blue" className="w-full h-[500px] sm:h-[400px] md:h-[350px]">
+                    <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-6">
+                        <div className="text-center w-full max-w-2xl">
+                            <h2 className="text-balance text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-white">
+                                Ready to Evaluate?
+                            </h2>
+                            <p className="mt-3 sm:mt-4 text-sm sm:text-base text-gray-200 max-w-lg mx-auto">
+                                Join thousands of developers improving their Zoomcamp projects with AI-powered feedback. 
+                                Subscribe for launch updates and pro tips.
+                            </p>
 
-                        <div className="mt-8 flex flex-wrap justify-center gap-3">
-                            <form
-                                onSubmit={(e) => e.preventDefault()}
-                                className="flex w-full max-w-xl items-center gap-3">
-                                <Input type="email" required placeholder="Enter your email" className="flex-1" />
-                                <Button type="submit" size="lg">Subscribe</Button>
-                            </form>
-                        </div>
+                            <div className="mt-6 sm:mt-8 space-y-4">
+                                <div className="flex flex-col sm:flex-row justify-center gap-3 max-w-md mx-auto">
+                                    <Input 
+                                        type="email" 
+                                        required 
+                                        placeholder="Enter your email" 
+                                        className="flex-1 min-h-[44px] text-base bg-white text-black" 
+                                    />
+                                    <Button 
+                                        type="submit" 
+                                        size="lg" 
+                                        className="min-h-[44px] px-6"
+                                    >
+                                        Subscribe
+                                    </Button>
+                                </div>
 
-                        <div className="mt-6 flex flex-wrap justify-center gap-4">
-                            <Button asChild size="lg">
-                                <Link href="/dashboard">
-                                    <span>Start Evaluating</span>
-                                </Link>
-                            </Button>
-                            <Button asChild size="lg" variant="outline">
-                                <Link href="#features">
-                                    <span>Learn More</span>
-                                </Link>
-                            </Button>
+                                <div className="flex flex-col sm:flex-row justify-center gap-3 max-w-md mx-auto">
+                                    <Button asChild size="lg" className="w-full sm:flex-1 min-h-[44px]">
+                                        <Link href="/dashboard">
+                                            Start Evaluating
+                                        </Link>
+                                    </Button>
+                                    <Button asChild size="lg" variant="outline" className="w-full sm:flex-1 min-h-[44px] border-white text-white hover:bg-white hover:text-black">
+                                        <Link href="#features">
+                                            Learn More
+                                        </Link>
+                                    </Button>
+                                </div>
+                            </div>
+                            
+                            <p className="mt-4 text-xs sm:text-sm text-gray-300">
+                                No spam. Unsubscribe anytime.
+                            </p>
                         </div>
-                        <p className="mt-3 text-xs text-muted-foreground">No spam. Unsubscribe anytime.</p>
                     </div>
-                </div>
                 </PixelCard>
             </div>
-            
         </section>
     )
 }

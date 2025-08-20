@@ -184,31 +184,32 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <GitBranch className="h-5 w-5" />
+      <CardHeader className="pb-4 sm:pb-6">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+          <GitBranch className="h-4 w-4 sm:h-5 sm:w-5" />
           Evaluate Repository
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-sm">
           Submit your GitHub repository for AI-powered evaluation and feedback
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         {/* Billing Limit Warning */}
         {isAtLimit && (
-          <Alert variant="destructive" className="mb-6">
+          <Alert variant="destructive" className="mb-4 sm:mb-6">
             <XCircle className="h-4 w-4" />
             <AlertDescription>
               <div className="space-y-2">
-                <p className="font-medium">Monthly evaluation limit reached</p>
-                <p>
+                <p className="font-medium text-sm sm:text-base">Monthly evaluation limit reached</p>
+                <p className="text-sm">
                   You've used all {monthlyLimit} evaluations for your {userTier} plan this month.
                   {userTier === 'free' && ' Upgrade to get more evaluations or wait for your limit to reset next month.'}
                 </p>
-                <div className="flex gap-2 mt-2">
+                <div className="flex flex-col sm:flex-row gap-2 mt-2">
                   <Button
                     size="sm"
                     onClick={showBillingModal}
+                    className="w-full sm:w-auto min-h-[44px]"
                   >
                     View Options
                   </Button>
@@ -217,6 +218,7 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
                       size="sm"
                       variant="outline"
                       onClick={() => window.open('/dashboard/billing#pricing-plans', '_blank')}
+                      className="w-full sm:w-auto min-h-[44px]"
                     >
                       Upgrade Plan
                     </Button>
@@ -229,21 +231,21 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
 
         {/* Near Limit Warning */}
         {!isAtLimit && currentCount >= monthlyLimit * 0.8 && userTier === 'free' && (
-          <Alert className="mb-6 border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950/20">
+          <Alert className="mb-4 sm:mb-6 border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950/20">
             <AlertCircle className="h-4 w-4 text-yellow-600" />
             <AlertDescription>
               <div className="space-y-2">
-                <p className="font-medium text-yellow-800 dark:text-yellow-200">
+                <p className="font-medium text-yellow-800 dark:text-yellow-200 text-sm sm:text-base">
                   You're close to your monthly limit
                 </p>
-                <p className="text-yellow-700 dark:text-yellow-300">
+                <p className="text-yellow-700 dark:text-yellow-300 text-sm">
                   You have {monthlyLimit - currentCount} evaluations remaining this month.
                   Consider upgrading for unlimited evaluations.
                 </p>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="mt-2 border-yellow-300 text-yellow-800 hover:bg-yellow-100 dark:border-yellow-700 dark:text-yellow-200 dark:hover:bg-yellow-900/20"
+                  className="mt-2 border-yellow-300 text-yellow-800 hover:bg-yellow-100 dark:border-yellow-700 dark:text-yellow-200 dark:hover:bg-yellow-900/20 w-full sm:w-auto min-h-[44px]"
                   onClick={() => window.open('/dashboard/billing#pricing-plans', '_blank')}
                 >
                   View Plans
@@ -253,30 +255,30 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
           {/* Repository URL Input */}
           <div className="space-y-2">
-            <Label htmlFor="repoUrl">GitHub Commit URL</Label>
+            <Label htmlFor="repoUrl" className="text-sm sm:text-base">GitHub Commit URL</Label>
             <Input
               id="repoUrl"
               type="url"
               placeholder="https://github.com/username/repository/commit/abc123..."
               {...register('repoUrl')}
-              className={errors.repoUrl ? 'border-red-500' : ''}
+              className={`min-h-[44px] text-sm sm:text-base ${errors.repoUrl ? 'border-red-500' : ''}`}
             />
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Please provide a commit-specific URL. This ensures consistent evaluation results and prevents duplicate processing of the same code.
             </p>
             {errors.repoUrl && (
               <Alert variant="destructive">
                 <XCircle className="h-4 w-4" />
-                <AlertDescription>{errors.repoUrl.message}</AlertDescription>
+                <AlertDescription className="text-sm">{errors.repoUrl.message}</AlertDescription>
               </Alert>
             )}
             {!errors.repoUrl && (
               <Alert>
                 <Info className="h-4 w-4" />
-                <AlertDescription>
+                <AlertDescription className="text-sm">
                   <strong>How to get a commit URL:</strong>
                   <br />
                   1. Go to your GitHub repository
@@ -293,11 +295,11 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
 
           {/* Course Selection */}
           <div className="space-y-3">
-            <Label>Course Type</Label>
+            <Label className="text-sm sm:text-base">Course Type</Label>
             {courses === undefined ? (
               <div className="flex flex-wrap gap-2">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="h-10 w-24 bg-muted rounded-md animate-pulse"></div>
+                  <div key={i} className="h-10 w-20 sm:w-24 bg-muted rounded-md animate-pulse"></div>
                 ))}
               </div>
             ) : (
@@ -307,7 +309,7 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
                     key={course.courseId}
                     type="button"
                     className={`
-                      px-3 py-2 rounded-md text-sm font-medium transition-colors
+                      px-2 sm:px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors min-h-[44px] flex items-center
                       ${watchedCourseType === course.courseId
                         ? getCourseColor(course.courseId)
                         : 'bg-muted text-muted-foreground hover:bg-muted/80 border border-border'
@@ -315,9 +317,9 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
                     `}
                     onClick={() => handleCourseSelect(course.courseId)}
                   >
-                    {course.courseId}
+                    <span className="truncate">{course.courseId}</span>
                     {watchedCourseType === course.courseId && (
-                      <CheckCircle className="ml-2 h-4 w-4 inline" />
+                      <CheckCircle className="ml-1 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                     )}
                   </button>
                 ))}
@@ -331,7 +333,7 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
             {errors.courseType && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{errors.courseType.message}</AlertDescription>
+                <AlertDescription className="text-sm">{errors.courseType.message}</AlertDescription>
               </Alert>
             )}
           </div>
@@ -339,24 +341,27 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
           {/* Submit Button */}
           <Button
             type="submit"
-            className="w-full"
+            className="w-full min-h-[44px] text-sm sm:text-base"
             disabled={isSubmitting || isAtLimit}
             size="lg"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Evaluating Repository...
+                <span className="hidden sm:inline">Evaluating Repository...</span>
+                <span className="sm:hidden">Evaluating...</span>
               </>
             ) : isAtLimit ? (
               <>
                 <XCircle className="mr-2 h-4 w-4" />
-                Monthly Limit Reached
+                <span className="hidden sm:inline">Monthly Limit Reached</span>
+                <span className="sm:hidden">Limit Reached</span>
               </>
             ) : (
               <>
                 <GitBranch className="mr-2 h-4 w-4" />
-                Start Evaluation
+                <span className="hidden sm:inline">Start Evaluation</span>
+                <span className="sm:hidden">Start</span>
               </>
             )}
           </Button>

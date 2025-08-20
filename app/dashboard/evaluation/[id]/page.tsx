@@ -52,26 +52,26 @@ export default function EvaluationDetailPage({ params }: EvaluationDetailPagePro
 
   if (evaluation === null) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => router.back()}>
+          <Button variant="ghost" size="sm" onClick={() => router.back()} className="min-h-[44px]">
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-2xl font-bold tracking-tight">Evaluation Not Found</h1>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Evaluation Not Found</h1>
         </div>
-        
+
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
+          <AlertDescription className="text-sm sm:text-base">
             This evaluation could not be found or you don't have permission to view it.
           </AlertDescription>
         </Alert>
-        
-        <div className="flex gap-2">
-          <Button asChild>
+
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button asChild className="w-full sm:w-auto min-h-[44px]">
             <Link href="/dashboard">Go to Dashboard</Link>
           </Button>
-          <Button variant="outline" asChild>
+          <Button variant="outline" asChild className="w-full sm:w-auto min-h-[44px]">
             <Link href="/dashboard/history">View History</Link>
           </Button>
         </div>
@@ -81,12 +81,12 @@ export default function EvaluationDetailPage({ params }: EvaluationDetailPagePro
 
   if (evaluation.status !== 'completed' || !evaluation.results) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => router.back()}>
+          <Button variant="ghost" size="sm" onClick={() => router.back()} className="min-h-[44px]">
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-2xl font-bold tracking-tight">Evaluation Details</h1>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Evaluation Details</h1>
         </div>
         
         <Card>

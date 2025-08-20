@@ -28,25 +28,25 @@ export function OverallRepoScore({
 }: OverallRepoScoreProps) {
   const sizeConfig = {
     sm: {
-      container: 'w-40 h-24',
-      strokeWidth: 8,
-      radius: 60,
-      textSize: 'text-lg',
-      labelSize: 'text-sm'
+      container: 'w-32 h-20 sm:w-40 sm:h-24',
+      strokeWidth: 6,
+      radius: 50,
+      textSize: 'text-base sm:text-lg',
+      labelSize: 'text-xs sm:text-sm'
     },
     md: {
-      container: 'w-48 h-28',
-      strokeWidth: 10,
-      radius: 75,
-      textSize: 'text-2xl',
-      labelSize: 'text-base'
+      container: 'w-40 h-24 sm:w-48 sm:h-28',
+      strokeWidth: 8,
+      radius: 60,
+      textSize: 'text-lg sm:text-2xl',
+      labelSize: 'text-sm sm:text-base'
     },
     lg: {
-      container: 'w-56 h-32',
-      strokeWidth: 12,
-      radius: 90,
-      textSize: 'text-3xl',
-      labelSize: 'text-lg'
+      container: 'w-48 h-28 sm:w-56 sm:h-32',
+      strokeWidth: 10,
+      radius: 75,
+      textSize: 'text-xl sm:text-3xl',
+      labelSize: 'text-base sm:text-lg'
     }
   }
 
@@ -148,7 +148,7 @@ export function OverallRepoScore({
 
   return (
     <Card className={cn("", className)}>
-      <CardContent className="p-6 text-center">
+      <CardContent className="p-3 sm:p-4 md:p-6 text-center">
         <div className={cn("mx-auto relative", config.container)}>
           <svg className="w-full h-full" viewBox={`0 0 ${radius * 2} ${radius + 20}`}>
             {/* Background semicircle */}
@@ -183,14 +183,14 @@ export function OverallRepoScore({
               <div className={cn("font-bold", config.textSize, getScoreColor(score))}>
                 {score}
               </div>
-              <div className={cn("text-xs font-medium", getScoreColor(score))}>
+              <div className={cn("text-xs sm:text-sm font-medium", getScoreColor(score))}>
                 {getScoreLabel(score)}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="mt-4 space-y-1">
+        <div className="mt-3 sm:mt-4 space-y-1">
           <h3 className={cn("font-medium", config.labelSize)}>{label}</h3>
           {caption && (
             <p className="text-xs text-muted-foreground">{caption}</p>

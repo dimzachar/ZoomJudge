@@ -208,15 +208,15 @@ export function EvaluationCard({
     : undefined
 
   return (
-    <Card className={cn("transition-all duration-200 hover:shadow-md", className)}>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1 flex-1">
-            <h3 className="font-medium text-sm">{title}</h3>
-            <p className="text-xs text-muted-foreground line-clamp-2">{description}</p>
+    <Card className={cn("transition-all duration-200 hover:shadow-md w-full max-w-full overflow-hidden", className)}>
+      <CardHeader className="pb-2 sm:pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-4">
+          <div className="space-y-1 flex-1 min-w-0">
+            <h3 className="font-medium text-sm sm:text-base break-words">{title}</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 break-words">{description}</p>
           </div>
-          <div className="flex items-center gap-2 ml-4">
-            <Badge variant="secondary" className={getStatusStyle(statusLabel)}>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Badge variant="secondary" className={`${getStatusStyle(statusLabel)} text-xs`}>
               {statusLabel}
             </Badge>
             {delta && DeltaIcon && (
@@ -230,15 +230,15 @@ export function EvaluationCard({
       </CardHeader>
       
       <CardContent className="pt-0">
-        <div className="flex items-center gap-3">
-          <div className={cn("p-2 rounded-full", config.bgColor)}>
-            <ScoreIcon className={cn("h-4 w-4", config.color)} />
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className={cn("p-1.5 sm:p-2 rounded-full", config.bgColor)}>
+            <ScoreIcon className={cn("h-3 w-3 sm:h-4 sm:w-4", config.color)} />
           </div>
-          <div className="flex-1">
-            <div className="text-sm font-medium">{score}/{maxScore} points</div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs sm:text-sm font-medium">{score}/{maxScore} points</div>
             <div className="w-full bg-muted rounded-full h-1.5 mt-1">
-              <div 
-                className={cn("h-1.5 rounded-full transition-all duration-500", 
+              <div
+                className={cn("h-1.5 rounded-full transition-all duration-500",
                   percentage >= 80 ? 'bg-green-600' : percentage >= 40 ? 'bg-yellow-600' : 'bg-red-600'
                 )}
                 style={{ width: `${(score / maxScore) * 100}%` }}
@@ -248,15 +248,15 @@ export function EvaluationCard({
         </div>
 
         {feedback && (
-          <div className="mt-3 p-3 bg-muted/30 rounded-md">
-            <p className="text-xs text-muted-foreground leading-relaxed">
+          <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-muted/30 rounded-md">
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed break-words whitespace-pre-wrap">
               {feedback}
             </p>
           </div>
         )}
 
         {displaySourceFiles && displaySourceFiles.length > 0 && (
-          <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800">
+          <div className="mt-2 sm:mt-3 p-2 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800">
             <div className="flex items-center gap-1 mb-1">
               <svg className="h-3 w-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -278,13 +278,13 @@ export function EvaluationCard({
                         href={href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/60 transition-colors"
+                        className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/60 transition-colors break-all"
                         title={file}
                       >
                         {label}
                       </a>
                     ) : (
-                      <span className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded" title={file}>
+                      <span className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded break-all" title={file}>
                         {label}
                       </span>
                     )}

@@ -4,7 +4,7 @@ import FeaturesOne from "./features-one";
 import PricingSection from "./pricing-section";
 import CallToAction from "./call-to-action";
 import FAQs from "./faqs";
-import Footer from "./footer";
+import { MobileFooter } from "@/components/mobile-footer";
 
 export default function Home() {
   return (
@@ -15,7 +15,7 @@ export default function Home() {
       <PricingSection />
       <FAQs />
       <CallToAction />
-      <Footer />
+      <MobileFooter variant="full" />
     </div>
   );
 }

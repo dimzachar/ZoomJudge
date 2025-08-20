@@ -30,21 +30,21 @@ const faqs = [
 
 export default function FAQs() {
   return (
-    <section id="faq" className="scroll-py-16 py-16 md:scroll-py-32 md:py-32">
-      <div className="mx-auto max-w-5xl px-6">
+    <section id="faq" className="scroll-py-12 py-12 sm:py-16 md:scroll-py-24 md:py-24 lg:scroll-py-32 lg:py-32">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6">
         <div className="text-center">
-          <h2 className="mb-2 text-3xl font-semibold md:text-4xl">Frequently Asked Questions</h2>
-          <p className="text-muted-foreground">Quick answers to common questions about ZoomJudge.</p>
+          <h2 className="mb-2 text-2xl sm:text-3xl md:text-4xl font-semibold">Frequently Asked Questions</h2>
+          <p className="text-muted-foreground text-base sm:text-lg">Quick answers to common questions about ZoomJudge.</p>
         </div>
 
-        <div className="mt-10 space-y-4 sm:mx-auto sm:max-w-2xl">
+        <div className="mt-8 sm:mt-10 space-y-3 sm:space-y-4 sm:mx-auto sm:max-w-2xl">
           {faqs.map((item, idx) => (
-            <Collapsible key={idx} className="rounded-xl border bg-background">
-              <CollapsibleTrigger className="w-full px-4 py-4 text-left font-medium flex items-center justify-between">
-                <span>{item.q}</span>
+            <Collapsible key={idx} className="rounded-lg sm:rounded-xl border bg-background">
+              <CollapsibleTrigger className="w-full px-4 py-4 text-left font-medium flex items-center justify-between gap-4 min-h-[44px]">
+                <span className="text-sm sm:text-base">{item.q}</span>
                 <ChevronDown className="size-4 shrink-0 transition-transform data-[state=open]:rotate-180" />
               </CollapsibleTrigger>
-              <CollapsibleContent className="px-4 pb-4 text-sm text-muted-foreground">
+              <CollapsibleContent className="px-4 pb-4 text-sm sm:text-base text-muted-foreground">
                 {item.a}
               </CollapsibleContent>
             </Collapsible>

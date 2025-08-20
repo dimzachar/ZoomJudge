@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
+import { MobileNavigation } from "@/components/mobile-navigation"
 
 import { dark } from '@clerk/themes'
 import { useTheme } from "next-themes"

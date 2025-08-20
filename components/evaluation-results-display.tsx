@@ -323,40 +323,42 @@ export function EvaluationResultsDisplay({
   }
 
   return (
-    <div className={cn("space-y-6", className)}>
+    <div className={cn("space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden", className)}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="space-y-1 min-w-0 flex-1">
           <div className="flex items-center gap-2">
             {onBack && (
-              <Button variant="ghost" size="sm" onClick={onBack}>
+              <Button variant="ghost" size="sm" onClick={onBack} className="flex-shrink-0">
                 <IconArrowLeft className="h-4 w-4" />
               </Button>
             )}
-            <h1 className="text-2xl font-bold tracking-tight">Evaluation Results</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight break-words">Evaluation Results</h1>
           </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <span>{repoName}</span>
-            <Badge variant="outline">{courseType}</Badge>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-muted-foreground">
+            <span className="text-sm sm:text-base break-all">{repoName}</span>
+            <Badge variant="outline" className="text-xs sm:text-sm flex-shrink-0 w-fit">{courseType}</Badge>
           </div>
         </div>
-        
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleShare}>
-            <IconShare className="h-4 w-4 mr-2" />
-            Share
+
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Button variant="outline" size="sm" onClick={handleShare} className="min-h-[44px] text-xs sm:text-sm">
+            <IconShare className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Share</span>
+            <span className="sm:hidden">Share</span>
           </Button>
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" size="sm" asChild className="min-h-[44px] text-xs sm:text-sm">
             <a href={repoUrl} target="_blank" rel="noopener noreferrer">
-              <IconExternalLink className="h-4 w-4 mr-2" />
-              View Repo
+              <IconExternalLink className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">View Repo</span>
+              <span className="sm:hidden">Repo</span>
             </a>
           </Button>
         </div>
       </div>
 
       {/* Overall Score */}
-      <div className="flex justify-center">
+      <div className="flex justify-center px-4 sm:px-0">
         <OverallRepoScore
           score={percentage}
           label="Overall Repository Score"
@@ -365,15 +367,13 @@ export function EvaluationResultsDisplay({
         />
       </div>
 
-
-
       {/* Detailed Breakdown */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Detailed Breakdown</CardTitle>
+      <Card className="w-full max-w-full overflow-hidden">
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-base sm:text-lg break-words">Detailed Breakdown</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-4">
+        <CardContent className="pt-0">
+          <div className="grid gap-3 sm:gap-4 w-full">
             {evaluationCards.map((card) => (
               <EvaluationCard
                 key={card.key}
@@ -393,8 +393,8 @@ export function EvaluationResultsDisplay({
 
       {/* Score Metadata */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs sm:text-sm text-muted-foreground">
             <span>Evaluation ID: {evaluationId}</span>
             <span>Completed just now</span>
           </div>

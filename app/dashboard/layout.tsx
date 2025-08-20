@@ -3,10 +3,44 @@
 import { TopNavigation } from "@/app/dashboard/top-navigation"
 import { BreadcrumbNavigation } from "@/app/dashboard/breadcrumb-navigation"
 import { LoadingBar } from "@/app/dashboard/loading-bar"
+import { BottomNavigation, useBottomNavigationPadding } from "@/components/bottom-navigation"
 import { useUser } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { Loader2 } from "lucide-react"
+import {
+  IconDashboard,
+  IconFileAi,
+  IconListDetails,
+  IconChartBar,
+} from "@tabler/icons-react"
+import { cn } from "@/lib/utils"
+
+// Bottom navigation items for mobile/tablet
+const bottomNavigationItems = [
+  {
+    title: "Dashboard",
+    href: "/dashboard",
+    icon: IconDashboard,
+    shortLabel: "Home",
+  },
+  {
+    title: "New Evaluation",
+    href: "/dashboard/new-evaluation",
+    icon: IconFileAi,
+    shortLabel: "New",
+  },
+  {
+    title: "History",
+    href: "/dashboard/history",
+    icon: IconListDetails,
+  },
+  {
+    title: "Analytics",
+    href: "/dashboard/analytics",
+    icon: IconChartBar,
+  },
+]
 
 export default function DashboardLayout({
   children,
@@ -15,6 +49,7 @@ export default function DashboardLayout({
 }) {
   const { user, isLoaded } = useUser()
   const router = useRouter()
+  const bottomPadding = useBottomNavigationPadding()
 
   useEffect(() => {
     // Only redirect if Clerk has finished loading and user is not authenticated
@@ -45,8 +80,11 @@ export default function DashboardLayout({
       <LoadingBar />
       <TopNavigation />
 
-      <main className="container mx-auto px-4 py-6">
-        <div className="mb-6">
+      <main className={cn(
+        "container mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6",
+        bottomPadding
+      )}>
+        <div className="mb-3 sm:mb-4 md:mb-6">
           <BreadcrumbNavigation />
         </div>
 
@@ -54,6 +92,9 @@ export default function DashboardLayout({
           {children}
         </div>
       </main>
+
+      {/* Bottom Navigation for Mobile/Tablet */}
+      <BottomNavigation items={bottomNavigationItems} />
     </div>
   )
 }

@@ -1,0 +1,287 @@
+/* Mobile-first responsive utilities for ZoomJudge */
+
+/* Touch target minimum sizes for mobile accessibility */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Responsive text scaling */
+.text-responsive-xs {
+  @apply text-xs sm:text-sm;
+}
+
+.text-responsive-sm {
+  @apply text-sm sm:text-base;
+}
+
+.text-responsive-base {
+  @apply text-base sm:text-lg;
+}
+
+.text-responsive-lg {
+  @apply text-lg sm:text-xl;
+}
+
+.text-responsive-xl {
+  @apply text-xl sm:text-2xl;
+}
+
+.text-responsive-2xl {
+  @apply text-2xl sm:text-3xl;
+}
+
+.text-responsive-3xl {
+  @apply text-2xl sm:text-3xl md:text-4xl;
+}
+
+.text-responsive-4xl {
+  @apply text-3xl sm:text-4xl md:text-5xl;
+}
+
+/* Responsive spacing utilities */
+.space-responsive-sm {
+  @apply space-y-3 sm:space-y-4;
+}
+
+.space-responsive-md {
+  @apply space-y-4 sm:space-y-6;
+}
+
+.space-responsive-lg {
+  @apply space-y-6 sm:space-y-8;
+}
+
+/* Responsive padding utilities */
+.p-responsive-sm {
+  @apply p-4 sm:p-6;
+}
+
+.p-responsive-md {
+  @apply p-4 sm:p-6 md:p-8;
+}
+
+.px-responsive {
+  @apply px-4 sm:px-6;
+}
+
+.py-responsive {
+  @apply py-4 sm:py-6;
+}
+
+/* Responsive grid utilities */
+.grid-responsive-2 {
+  @apply grid-cols-1 sm:grid-cols-2;
+}
+
+.grid-responsive-3 {
+  @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-3;
+}
+
+.grid-responsive-4 {
+  @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-4;
+}
+
+/* Responsive flex utilities */
+.flex-responsive-col {
+  @apply flex-col sm:flex-row;
+}
+
+.flex-responsive-row {
+  @apply flex-row sm:flex-col;
+}
+
+/* Responsive gap utilities */
+.gap-responsive-sm {
+  @apply gap-3 sm:gap-4;
+}
+
+.gap-responsive-md {
+  @apply gap-4 sm:gap-6;
+}
+
+.gap-responsive-lg {
+  @apply gap-6 sm:gap-8;
+}
+
+/* Mobile navigation utilities */
+.mobile-nav-hidden {
+  @apply hidden md:flex;
+}
+
+.mobile-nav-visible {
+  @apply flex md:hidden;
+}
+
+/* Responsive container utilities */
+.container-responsive {
+  @apply mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* Responsive card utilities */
+.card-responsive {
+  @apply rounded-lg sm:rounded-xl;
+}
+
+/* Responsive button utilities */
+.btn-responsive {
+  @apply w-full sm:w-auto min-h-[44px];
+}
+
+/* Responsive modal/dialog utilities */
+.modal-responsive {
+  @apply w-[95vw] sm:w-[90vw] md:w-[80vw] lg:w-[70vw] xl:w-[60vw];
+  max-width: 600px;
+}
+
+/* Responsive table utilities */
+.table-responsive {
+  @apply overflow-x-auto;
+}
+
+.table-responsive table {
+  @apply min-w-full;
+}
+
+/* Responsive image utilities */
+.img-responsive {
+  @apply w-full h-auto;
+}
+
+/* Responsive form utilities */
+.form-responsive {
+  @apply space-y-4 sm:space-y-6;
+}
+
+.form-group-responsive {
+  @apply flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4;
+}
+
+/* Responsive sidebar utilities */
+.sidebar-responsive {
+  @apply w-full sm:w-64 md:w-72;
+}
+
+/* Hide scrollbars on mobile for better UX */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Responsive aspect ratios */
+.aspect-responsive-video {
+  @apply aspect-[4/3] sm:aspect-video;
+}
+
+.aspect-responsive-square {
+  @apply aspect-square sm:aspect-[4/3];
+}
+
+/* Mobile-specific utilities */
+@media (max-width: 640px) {
+  .mobile-full-width {
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+  }
+
+  .mobile-safe-area {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Mobile footer optimizations */
+  .mobile-footer-compact {
+    padding: 0.75rem 1rem;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+
+  .mobile-footer-spacing {
+    margin-bottom: 4rem; /* Space for bottom navigation */
+  }
+}
+
+/* Tablet-specific utilities */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .tablet-optimized {
+    @apply px-6 py-4;
+  }
+}
+
+/* Responsive font weight utilities */
+.font-responsive-medium {
+  @apply font-medium sm:font-semibold;
+}
+
+.font-responsive-semibold {
+  @apply font-semibold sm:font-bold;
+}
+
+/* Responsive border radius utilities */
+.rounded-responsive {
+  @apply rounded-lg sm:rounded-xl;
+}
+
+.rounded-responsive-full {
+  @apply rounded-xl sm:rounded-2xl;
+}
+
+/* Responsive shadow utilities */
+.shadow-responsive {
+  @apply shadow-sm sm:shadow-md;
+}
+
+.shadow-responsive-lg {
+  @apply shadow-md sm:shadow-lg;
+}
+
+/* Responsive z-index utilities for mobile overlays */
+.z-mobile-overlay {
+  z-index: 9999;
+}
+
+.z-mobile-modal {
+  z-index: 10000;
+}
+
+/* Responsive line height utilities */
+.leading-responsive {
+  @apply leading-tight sm:leading-normal;
+}
+
+/* Responsive max-width utilities */
+.max-w-responsive-sm {
+  @apply max-w-full sm:max-w-sm;
+}
+
+.max-w-responsive-md {
+  @apply max-w-full sm:max-w-md;
+}
+
+.max-w-responsive-lg {
+  @apply max-w-full sm:max-w-lg;
+}
+
+.max-w-responsive-xl {
+  @apply max-w-full sm:max-w-xl;
+}
+
+/* Responsive overflow utilities */
+.overflow-responsive {
+  @apply overflow-hidden sm:overflow-visible;
+}
+
+/* Mobile-first breakpoint utilities */
+.mobile-only {
+  @apply block sm:hidden;
+}
+
+.tablet-up {
+  @apply hidden sm:block;
+}
+
+.desktop-up {
+  @apply hidden lg:block;
+}

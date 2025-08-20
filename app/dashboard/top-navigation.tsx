@@ -112,20 +112,20 @@ export function TopNavigation() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center">
-        {/* Logo */}
-        <div className="mr-6">
+      <div className="container flex h-12 sm:h-14 items-center px-3 sm:px-4 md:px-6">
+        {/* Logo - always visible */}
+        <div className="mr-4 md:mr-6">
           <Link href="/dashboard" className="flex items-center space-x-2">
             <ZoomJudgeLogo variant="full" size="sm" />
           </Link>
         </div>
 
-        {/* Main Navigation */}
-        <nav className="flex items-center space-x-6 text-sm font-medium">
+        {/* Main Navigation - Desktop only (mobile/tablet uses bottom nav) */}
+        <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium">
           {navigationItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
-            
+
             return (
               <Link
                 key={item.href}
@@ -145,12 +145,14 @@ export function TopNavigation() {
 
 
         {/* Right side - User menu and actions */}
-        <div className="ml-auto flex items-center space-x-4">
-          {/* Theme Toggle */}
-          <ThemeToggle />
+        <div className="ml-auto flex items-center space-x-2 lg:space-x-4">
+          {/* Theme Toggle - Desktop only */}
+          <div className="hidden lg:block">
+            <ThemeToggle />
+          </div>
 
-          {/* Notifications */}
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+          {/* Notifications - Desktop only */}
+          <Button variant="ghost" size="sm" className="hidden lg:flex h-8 w-8 p-0">
             <IconBell className="h-4 w-4" />
           </Button>
 
