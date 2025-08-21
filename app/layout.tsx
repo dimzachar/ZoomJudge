@@ -25,6 +25,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "ZoomJudge - AI-Powered Repository Evaluation",
   description: "Get detailed feedback and scoring for your Zoomcamp projects using advanced AI analysis. Evaluate GitHub repositories across Data Engineering, ML, MLOps, LLM, and Stock Markets courses.",
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({
