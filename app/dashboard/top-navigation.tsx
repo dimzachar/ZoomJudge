@@ -14,6 +14,7 @@ import {
 
 import { ZoomJudgeLogo } from "@/components/zoomjudge-logo"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { ModeToggle } from "@/components/mode-toggle"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useUser, useClerk } from "@clerk/nextjs"
@@ -146,7 +147,10 @@ export function TopNavigation() {
 
         {/* Right side - User menu and actions */}
         <div className="ml-auto flex items-center space-x-2 lg:space-x-4">
-          {/* Theme Toggle - Desktop only */}
+          {/* Theme Toggle - Mobile: compact button, Desktop: full toggle */}
+          <div className="lg:hidden">
+            <ModeToggle />
+          </div>
           <div className="hidden lg:block">
             <ThemeToggle />
           </div>

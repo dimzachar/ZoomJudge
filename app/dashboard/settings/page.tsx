@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
+import { useTheme } from "next-themes"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,12 +24,16 @@ import {
   IconEdit,
   IconCheck,
   IconX,
-
+  IconPalette,
+  IconSun,
+  IconMoon,
+  IconDeviceDesktop,
 } from "@tabler/icons-react"
 
 export default function SettingsPage() {
   const { user } = useUser()
   const { openUserProfile } = useClerk()
+  const { theme, setTheme } = useTheme()
   const [isEditingName, setIsEditingName] = useState(false)
   const [firstName, setFirstName] = useState(user?.firstName || "")
   const [lastName, setLastName] = useState(user?.lastName || "")
@@ -272,6 +277,116 @@ export default function SettingsPage() {
 
           {/* GitHub Connection - Inline */}
           <GitHubConnectionInline />
+        </CardContent>
+      </Card>
+
+      {/* Appearance */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <IconPalette className="h-5 w-5" />
+            <CardTitle>Appearance</CardTitle>
+          </div>
+          <CardDescription>
+            Customize the appearance of the application.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <span className="text-sm font-medium">Theme</span>
+              <p className="text-sm text-muted-foreground">
+                Choose your preferred theme for the application.
+              </p>
+            </div>
+
+            {mounted && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Light Theme */}
+                <button
+                  onClick={() => setTheme("light")}
+                  className={`relative flex flex-col items-center gap-3 p-4 rounded-lg border-2 transition-all hover:bg-accent/50 ${
+                    theme === "light"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-accent-foreground/20"
+                  }`}
+                >
+                  <IconSun className={`h-6 w-6 ${theme === "light" ? "text-primary" : "text-muted-foreground"}`} />
+                  <div className="text-center">
+                    <div className={`text-sm font-medium ${theme === "light" ? "text-primary" : "text-foreground"}`}>
+                      Light
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Light theme
+                    </div>
+                  </div>
+                  {theme === "light" && (
+                    <div className="absolute top-2 right-2 h-2 w-2 bg-primary rounded-full" />
+                  )}
+                </button>
+
+                {/* Dark Theme */}
+                <button
+                  onClick={() => setTheme("dark")}
+                  className={`relative flex flex-col items-center gap-3 p-4 rounded-lg border-2 transition-all hover:bg-accent/50 ${
+                    theme === "dark"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-accent-foreground/20"
+                  }`}
+                >
+                  <IconMoon className={`h-6 w-6 ${theme === "dark" ? "text-primary" : "text-muted-foreground"}`} />
+                  <div className="text-center">
+                    <div className={`text-sm font-medium ${theme === "dark" ? "text-primary" : "text-foreground"}`}>
+                      Dark
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Dark theme
+                    </div>
+                  </div>
+                  {theme === "dark" && (
+                    <div className="absolute top-2 right-2 h-2 w-2 bg-primary rounded-full" />
+                  )}
+                </button>
+
+                {/* System Theme */}
+                <button
+                  onClick={() => setTheme("system")}
+                  className={`relative flex flex-col items-center gap-3 p-4 rounded-lg border-2 transition-all hover:bg-accent/50 ${
+                    theme === "system"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-accent-foreground/20"
+                  }`}
+                >
+                  <IconDeviceDesktop className={`h-6 w-6 ${theme === "system" ? "text-primary" : "text-muted-foreground"}`} />
+                  <div className="text-center">
+                    <div className={`text-sm font-medium ${theme === "system" ? "text-primary" : "text-foreground"}`}>
+                      System
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Follow system
+                    </div>
+                  </div>
+                  {theme === "system" && (
+                    <div className="absolute top-2 right-2 h-2 w-2 bg-primary rounded-full" />
+                  )}
+                </button>
+              </div>
+            )}
+
+            {!mounted && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex flex-col items-center gap-3 p-4 rounded-lg border-2 border-border">
+                    <div className="h-6 w-6 bg-muted rounded animate-pulse" />
+                    <div className="text-center space-y-1">
+                      <div className="h-4 w-12 bg-muted rounded animate-pulse" />
+                      <div className="h-3 w-16 bg-muted rounded animate-pulse" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
