@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { useUser } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -8,11 +7,8 @@ import { Separator } from "@/components/ui/separator"
 import {
   IconBrandGithub,
   IconCheck,
-  IconExternalLink,
-  IconUnlink,
-  IconAlertTriangle
+  IconExternalLink
 } from "@tabler/icons-react"
-import { toast } from "sonner"
 
 interface GitHubConnectionInlineProps {
   className?: string
@@ -20,7 +16,6 @@ interface GitHubConnectionInlineProps {
 
 export function GitHubConnectionInline({ className }: GitHubConnectionInlineProps) {
   const { user } = useUser()
-  const [isLoading, setIsLoading] = useState<string | null>(null)
 
   if (!user) {
     return null
@@ -29,69 +24,9 @@ export function GitHubConnectionInline({ className }: GitHubConnectionInlineProp
   const externalAccounts = user.externalAccounts || []
   const githubAccount = externalAccounts.find(account => account.provider === 'github')
 
-  // If user doesn't have GitHub connected and signed in with other methods,
-  // don't show the GitHub connection section since account linking may not be available
-  const hasOtherAccounts = externalAccounts.some(account => account.provider !== 'github')
-  const hasPasswordAuth = user.passwordEnabled
-
-  // Only show GitHub connection if:
-  // 1. User already has GitHub connected, OR
-  // 2. User signed up with email/password (can add any OAuth), OR
-  // 3. User has no other external accounts (fresh account)
-  if (!githubAccount && hasOtherAccounts && !hasPasswordAuth) {
+  // Only show GitHub section if user has GitHub connected
+  if (!githubAccount) {
     return null
-  }
-
-  const handleConnectGitHub = async () => {
-    setIsLoading('github')
-    try {
-      // Use Clerk's OAuth flow to connect GitHub
-      if (user) {
-        // Create the external account connection
-        const externalAccount = await user.createExternalAccount({
-          strategy: 'oauth_github',
-          redirectUrl: `${window.location.origin}/dashboard/settings`,
-        })
-
-        // If the account creation requires a redirect, handle it
-        if (externalAccount.verification?.externalVerificationRedirectURL) {
-          window.location.href = externalAccount.verification.externalVerificationRedirectURL
-        } else {
-          toast.success('GitHub account connected successfully!')
-        }
-      }
-    } catch (error) {
-      console.error('Failed to connect GitHub:', error)
-
-      // Handle specific error cases
-      if (error instanceof Error) {
-        if (error.message.includes('already_exists')) {
-          toast.error('This GitHub account is already connected to another user.')
-        } else {
-          toast.error('Failed to connect GitHub account. Please try again.')
-        }
-      } else {
-        toast.error('Failed to connect GitHub account. Please try again.')
-      }
-    } finally {
-      setIsLoading(null)
-    }
-  }
-
-  const handleDisconnectGitHub = async () => {
-    if (!githubAccount) return
-
-    setIsLoading('github')
-    try {
-      // Use Clerk's method to disconnect GitHub account
-      await user?.deleteExternalAccount(githubAccount.id)
-      toast.success('GitHub account disconnected successfully.')
-    } catch (error) {
-      console.error('Failed to disconnect GitHub:', error)
-      toast.error('Failed to disconnect GitHub account. Please try again.')
-    } finally {
-      setIsLoading(null)
-    }
   }
 
   const handleViewProfile = () => {
@@ -118,81 +53,42 @@ export function GitHubConnectionInline({ className }: GitHubConnectionInlineProp
           </div>
         </div>
 
-        {githubAccount ? (
-          // Connected GitHub Account
-          <div className="space-y-3 sm:space-y-4">
-            <div className="p-3 rounded-lg border bg-muted/50 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0">
-                  <IconBrandGithub className="h-4 w-4 text-gray-900 dark:text-gray-100" />
-                </div>
-                <div className="space-y-1 min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium break-all">@{githubAccount.username}</span>
-                    {githubAccount.verification?.status === 'verified' && (
-                      <IconCheck className="h-3 w-3 text-green-600 flex-shrink-0" />
-                    )}
-                  </div>
-                  {githubAccount.emailAddress && (
-                    <p className="text-xs text-muted-foreground break-all">
-                      {githubAccount.emailAddress}
-                    </p>
+        {/* Connected GitHub Account - Read Only */}
+        <div className="space-y-3 sm:space-y-4">
+          <div className="p-3 rounded-lg border bg-muted/50 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+                <IconBrandGithub className="h-4 w-4 text-gray-900 dark:text-gray-100" />
+              </div>
+              <div className="space-y-1 min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium break-all">@{githubAccount.username}</span>
+                  {githubAccount.verification?.status === 'verified' && (
+                    <IconCheck className="h-3 w-3 text-green-600 flex-shrink-0" />
                   )}
                 </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleViewProfile}
-                  className="min-h-[44px] w-full sm:w-auto"
-                >
-                  <IconExternalLink className="h-3 w-3 mr-2" />
-                  View
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDisconnectGitHub}
-                  disabled={isLoading === 'github'}
-                  className="min-h-[44px] w-full sm:w-auto"
-                >
-                  <IconUnlink className="h-3 w-3 mr-2" />
-                  Disconnect
-                </Button>
+                {githubAccount.emailAddress && (
+                  <p className="text-xs text-muted-foreground break-all">
+                    {githubAccount.emailAddress}
+                  </p>
+                )}
               </div>
             </div>
 
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Your GitHub account is used to access repositories for evaluation and analysis.
-            </p>
-          </div>
-        ) : (
-          // No GitHub Account Connected
-          <div className="space-y-3">
-            <div className="flex items-start gap-3 p-3 sm:p-4 rounded-lg border border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20">
-              <IconAlertTriangle className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
-              <div className="space-y-2 sm:space-y-3 flex-1 min-w-0">
-                <p className="text-sm sm:text-base font-medium text-orange-900 dark:text-orange-100">
-                  GitHub Account Required
-                </p>
-                <p className="text-xs sm:text-sm text-orange-700 dark:text-orange-200 break-words">
-                  Connect your GitHub account to evaluate repositories and access all ZoomJudge features.
-                </p>
-                <Button
-                  size="sm"
-                  onClick={handleConnectGitHub}
-                  disabled={isLoading === 'github'}
-                  className="min-h-[44px] w-full sm:w-auto bg-orange-600 hover:bg-orange-700 text-white"
-                >
-                  <IconBrandGithub className="h-3 w-3 mr-2" />
-                  {isLoading === 'github' ? 'Connecting...' : 'Connect GitHub'}
-                </Button>
-              </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleViewProfile}
+                className="min-h-[44px] w-full sm:w-auto"
+              >
+                <IconExternalLink className="h-3 w-3 mr-2" />
+                View Profile
+              </Button>
             </div>
           </div>
-        )}
+
+        </div>
       </div>
     </div>
   )
