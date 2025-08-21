@@ -49,7 +49,7 @@ const getCourseColor = (courseId: string) => {
 
 
 interface EvaluationFormProps {
-  onSubmissionSuccess?: (evaluationId: string, data: { repoUrl: string; courseType: string }) => void;
+  onSubmissionSuccess?: (evaluationId: string, data: { repoUrl: string; courseType: string }, results?: any) => void;
 }
 
 export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
@@ -114,8 +114,8 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
 
         // Call success callback with results
         if (onSubmissionSuccess && result.evaluationId) {
-          debugLog('Calling success callback with evaluation ID');
-          onSubmissionSuccess(result.evaluationId, data);
+          debugLog('Calling success callback with evaluation ID and cached results');
+          onSubmissionSuccess(result.evaluationId, data, result.results);
         }
       } else if (result.status === "failed") {
         // Show user-friendly error messages
@@ -144,7 +144,9 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
         // Call success callback
         if (onSubmissionSuccess && result.evaluationId) {
           debugLog('Calling success callback with evaluation ID');
-          onSubmissionSuccess(result.evaluationId, data);
+          // Pass cached results if available (when status is completed)
+          const resultsToPass = result.status === 'completed' ? result.results : undefined;
+          onSubmissionSuccess(result.evaluationId, data, resultsToPass);
         }
       }
 

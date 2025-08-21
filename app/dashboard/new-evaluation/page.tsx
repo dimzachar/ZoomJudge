@@ -14,38 +14,59 @@ export default function NewEvaluationPage() {
     repoUrl: string
     courseType: string
   } | null>(null)
+  const [cachedResults, setCachedResults] = useState<any>(null)
 
-  // Fetch evaluation details when we have an ID
+  // Fetch evaluation details when we have an ID (only if we don't have cached results)
   const evaluation = useQuery(
     api.evaluations.getEvaluationById,
-    currentEvaluationId ? { evaluationId: currentEvaluationId as any } : "skip"
+    currentEvaluationId && !cachedResults ? { evaluationId: currentEvaluationId as any } : "skip"
   )
 
-  const handleEvaluationSuccess = (evaluationId: string, data: { repoUrl: string; courseType: string }) => {
+  const handleEvaluationSuccess = (evaluationId: string, data: { repoUrl: string; courseType: string }, results?: any) => {
+    console.log('=== EVALUATION SUCCESS CALLBACK ===')
+    console.log('evaluationId:', evaluationId)
+    console.log('results provided:', !!results)
+    if (results) {
+      console.log('results structure:', {
+        totalScore: results.totalScore,
+        maxScore: results.maxScore,
+        hasBreakdown: !!results.breakdown,
+        breakdownKeys: results.breakdown ? Object.keys(results.breakdown) : []
+      })
+    }
+
     setCurrentEvaluationId(evaluationId)
     setEvaluationData(data)
+    // If results are provided (from cached evaluation), use them directly
+    if (results) {
+      setCachedResults(results)
+    }
+    console.log('=== END EVALUATION SUCCESS CALLBACK ===')
   }
 
   const handleBackToForm = () => {
     setCurrentEvaluationId(null)
     setEvaluationData(null)
+    setCachedResults(null)
   }
 
   // Trigger confetti + toast once when evaluation completes
   const hasCelebratedRef = useRef(false)
   useEffect(() => {
+    const resultsForCelebration = cachedResults || evaluation?.results
+    const statusForCelebration = cachedResults ? 'completed' : evaluation?.status
+
     if (
       !hasCelebratedRef.current &&
       currentEvaluationId &&
-      evaluation &&
-      evaluation.status === 'completed' &&
-      evaluation.results &&
+      statusForCelebration === 'completed' &&
+      resultsForCelebration &&
       evaluationData
     ) {
       hasCelebratedRef.current = true
 
       const stop = celebrate(1800)
-      const score = Math.round((evaluation.results.totalScore / evaluation.results.maxScore) * 100)
+      const score = Math.round((resultsForCelebration.totalScore / resultsForCelebration.maxScore) * 100)
       toast.success('Evaluation completed! 🎉', {
         description: `Great job! Your repository scored ${score}% in the ${evaluationData.courseType} evaluation.`,
         duration: 4000,
@@ -53,13 +74,32 @@ export default function NewEvaluationPage() {
 
       return () => stop()
     }
-  }, [currentEvaluationId, evaluation, evaluationData])
+  }, [currentEvaluationId, evaluation, evaluationData, cachedResults])
 
-  // Show results if we have a completed evaluation
-  if (currentEvaluationId && evaluation && evaluation.status === 'completed' && evaluation.results && evaluationData) {
+
+
+  // Determine which results to use - cached results take priority
+  const resultsToUse = cachedResults || evaluation?.results
+  const statusToCheck = cachedResults ? 'completed' : evaluation?.status
+
+  // Debug the display logic
+  console.log('=== RESULTS DISPLAY CHECK ===')
+  console.log('currentEvaluationId:', currentEvaluationId)
+  console.log('statusToCheck:', statusToCheck)
+  console.log('resultsToUse exists:', !!resultsToUse)
+  console.log('evaluationData exists:', !!evaluationData)
+  console.log('cachedResults exists:', !!cachedResults)
+  console.log('evaluation?.results exists:', !!evaluation?.results)
+
+  const shouldShowResults = currentEvaluationId && statusToCheck === 'completed' && resultsToUse && evaluationData
+  console.log('shouldShowResults:', shouldShowResults)
+  console.log('=== END RESULTS DISPLAY CHECK ===')
+
+  // Show results if we have a completed evaluation (either cached or from query)
+  if (shouldShowResults) {
     return (
       <EvaluationResultsDisplay
-        results={evaluation.results}
+        results={resultsToUse}
         repoUrl={evaluationData.repoUrl}
         courseType={evaluationData.courseType}
         evaluationId={currentEvaluationId}
