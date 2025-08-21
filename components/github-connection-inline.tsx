@@ -12,6 +12,7 @@ import {
   IconUnlink,
   IconAlertTriangle
 } from "@tabler/icons-react"
+import { toast } from "sonner"
 
 interface GitHubConnectionInlineProps {
   className?: string
@@ -28,16 +29,50 @@ export function GitHubConnectionInline({ className }: GitHubConnectionInlineProp
   const externalAccounts = user.externalAccounts || []
   const githubAccount = externalAccounts.find(account => account.provider === 'github')
 
+  // If user doesn't have GitHub connected and signed in with other methods,
+  // don't show the GitHub connection section since account linking may not be available
+  const hasOtherAccounts = externalAccounts.some(account => account.provider !== 'github')
+  const hasPasswordAuth = user.passwordEnabled
+
+  // Only show GitHub connection if:
+  // 1. User already has GitHub connected, OR
+  // 2. User signed up with email/password (can add any OAuth), OR
+  // 3. User has no other external accounts (fresh account)
+  if (!githubAccount && hasOtherAccounts && !hasPasswordAuth) {
+    return null
+  }
+
   const handleConnectGitHub = async () => {
     setIsLoading('github')
     try {
-      // This would typically redirect to OAuth flow
-      // For now, we'll show a placeholder
-      console.log('Connecting to GitHub...')
-      // In a real implementation, you'd use Clerk's OAuth methods
-      // await user.createExternalAccount({ provider: 'github' })
+      // Use Clerk's OAuth flow to connect GitHub
+      if (user) {
+        // Create the external account connection
+        const externalAccount = await user.createExternalAccount({
+          strategy: 'oauth_github',
+          redirectUrl: `${window.location.origin}/dashboard/settings`,
+        })
+
+        // If the account creation requires a redirect, handle it
+        if (externalAccount.verification?.externalVerificationRedirectURL) {
+          window.location.href = externalAccount.verification.externalVerificationRedirectURL
+        } else {
+          toast.success('GitHub account connected successfully!')
+        }
+      }
     } catch (error) {
       console.error('Failed to connect GitHub:', error)
+
+      // Handle specific error cases
+      if (error instanceof Error) {
+        if (error.message.includes('already_exists')) {
+          toast.error('This GitHub account is already connected to another user.')
+        } else {
+          toast.error('Failed to connect GitHub account. Please try again.')
+        }
+      } else {
+        toast.error('Failed to connect GitHub account. Please try again.')
+      }
     } finally {
       setIsLoading(null)
     }
@@ -45,14 +80,15 @@ export function GitHubConnectionInline({ className }: GitHubConnectionInlineProp
 
   const handleDisconnectGitHub = async () => {
     if (!githubAccount) return
-    
+
     setIsLoading('github')
     try {
-      console.log(`Disconnecting GitHub account ${githubAccount.id}...`)
-      // In a real implementation:
-      // await user.deleteExternalAccount(githubAccount.id)
+      // Use Clerk's method to disconnect GitHub account
+      await user?.deleteExternalAccount(githubAccount.id)
+      toast.success('GitHub account disconnected successfully.')
     } catch (error) {
       console.error('Failed to disconnect GitHub:', error)
+      toast.error('Failed to disconnect GitHub account. Please try again.')
     } finally {
       setIsLoading(null)
     }
@@ -151,7 +187,7 @@ export function GitHubConnectionInline({ className }: GitHubConnectionInlineProp
                   className="min-h-[44px] w-full sm:w-auto bg-orange-600 hover:bg-orange-700 text-white"
                 >
                   <IconBrandGithub className="h-3 w-3 mr-2" />
-                  Connect GitHub
+                  {isLoading === 'github' ? 'Connecting...' : 'Connect GitHub'}
                 </Button>
               </div>
             </div>
