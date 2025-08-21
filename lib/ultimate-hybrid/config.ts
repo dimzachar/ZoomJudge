@@ -80,7 +80,7 @@ export const AI_MODEL_CONFIGS = {
 
   // Evaluation Model - High quality for final evaluation
   EVALUATION: {
-    model: 'qwen/qwen3-235b-a22b-2507',
+    model: 'z-ai/glm-4.5-air:free',
     maxTokens: 16000,
     temperature: 0.1,
     purpose: 'evaluation',
@@ -91,7 +91,7 @@ export const AI_MODEL_CONFIGS = {
   // Alternative evaluation models for fallback
   EVALUATION_ALTERNATIVES: [
     {
-      model: 'z-ai/glm-4.5-air:free',
+      model: 'anthropic/claude-sonnet-4',
       maxTokens: 16000,
       temperature: 0.1,
       purpose: 'evaluation',
@@ -99,7 +99,7 @@ export const AI_MODEL_CONFIGS = {
       description: 'Free backup model for evaluation when primary fails'
     },
     {
-      model: 'anthropic/claude-sonnet-4',
+      model: 'qwen/qwen-2.5-coder-32b-instruct',
       maxTokens: 16000,
       temperature: 0.1,
       purpose: 'evaluation',
