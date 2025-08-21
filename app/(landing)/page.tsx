@@ -5,6 +5,7 @@ import PricingSection from "./pricing-section";
 import CallToAction from "./call-to-action";
 import FAQs from "./faqs";
 import { MobileFooter } from "@/components/mobile-footer";
+import FooterSection from "./footer";
 
 export default function Home() {
   return (
@@ -15,6 +16,7 @@ export default function Home() {
       <PricingSection />
       <FAQs />
       <CallToAction />
+      {/* <FooterSection /> */}
       <MobileFooter variant="full" />
     </div>
   );

@@ -12,7 +12,6 @@ import { SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
 import { MobileNavigation } from "@/components/mobile-navigation"
 
 import { dark } from '@clerk/themes'
-import { useTheme } from "next-themes"
 
 
 
@@ -29,12 +28,12 @@ export const HeroHeader = () => {
     const [menuState, setMenuState] = React.useState(false)
     const [isScrolled, setIsScrolled] = React.useState(false)
     const [mounted, setMounted] = React.useState(false)
-    const { theme } = useTheme()
     const signUpButtonRef = React.useRef<HTMLDivElement>(null)
     const getStartedButtonRef = React.useRef<HTMLDivElement>(null)
 
+    // Always use dark theme for landing page
     const appearance = {
-        baseTheme: mounted && theme === "dark" ? dark : undefined,
+        baseTheme: mounted ? dark : undefined,
     }
 
     React.useEffect(() => {

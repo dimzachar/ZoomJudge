@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { ZoomJudgeLogo } from '@/components/zoomjudge-logo'
-import { ThemeToggle } from '@/components/theme-toggle'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {

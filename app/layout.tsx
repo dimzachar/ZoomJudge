@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ConditionalThemeProvider } from "@/components/theme-provider";
 
 import { ClerkProvider } from '@clerk/nextjs'
 import ConvexClientProvider from '@/components/ConvexClientProvider'
@@ -43,12 +43,7 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} antialiased overscroll-none`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+        <ConditionalThemeProvider>
           <ClerkProvider>
             <ConvexClientProvider>
               {children}
@@ -56,7 +51,7 @@ export default function RootLayout({
               <Analytics />
             </ConvexClientProvider>
           </ClerkProvider>
-        </ThemeProvider>
+        </ConditionalThemeProvider>
       </body>
     </html>
   );

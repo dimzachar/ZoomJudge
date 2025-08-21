@@ -3,6 +3,7 @@ import { PricingTable } from "@clerk/nextjs";
 import { useUser } from "@clerk/nextjs";
 import { dark } from '@clerk/themes'
 import { useTheme } from "next-themes"
+import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 import { useUserTier } from "@/components/clerk-billing-gate"
 import { toast } from "sonner"
@@ -13,10 +14,15 @@ import { IconAlertTriangle, IconRefresh } from "@tabler/icons-react"
 export default function CustomClerkPricing() {
     const { user } = useUser()
     const { theme } = useTheme()
+    const pathname = usePathname()
     const userTier = useUserTier()
     const [mounted, setMounted] = useState(false)
     const [hasError, setHasError] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
+
+    // Force dark theme for landing page, otherwise use system theme
+    const isLandingPage = pathname === "/"
+    const effectiveTheme = isLandingPage ? "dark" : theme
 
     // Ensure component is mounted before accessing theme
     useEffect(() => {
@@ -200,7 +206,7 @@ export default function CustomClerkPricing() {
 
             <PricingTable
                     appearance={{
-                        baseTheme: theme === "dark" ? dark : undefined,
+                        baseTheme: effectiveTheme === "dark" ? dark : undefined,
                         elements: {
                             pricingTableCardTitle: { // title
                                 fontSize: 18,
@@ -208,7 +214,7 @@ export default function CustomClerkPricing() {
                             },
                             pricingTableCardDescription: { // description
                                 fontSize: 14,
-                                color: theme === "dark" ? "#a1a1aa" : "#71717a"
+                                color: effectiveTheme === "dark" ? "#a1a1aa" : "#71717a"
                             },
                             pricingTableCardFee: { // price
                                 fontSize: 32,
@@ -221,8 +227,8 @@ export default function CustomClerkPricing() {
                             },
                             pricingTableCard: {
                                 borderRadius: '12px',
-                                border: theme === "dark" ? '1px solid #374151' : '1px solid #e5e7eb',
-                                boxShadow: theme === "dark"
+                                border: effectiveTheme === "dark" ? '1px solid #374151' : '1px solid #e5e7eb',
+                                boxShadow: effectiveTheme === "dark"
                                     ? '0 4px 6px -1px rgba(0, 0, 0, 0.3)'
                                     : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                                 transition: 'all 0.2s ease-in-out',
@@ -251,22 +257,22 @@ export default function CustomClerkPricing() {
                                 transform: 'translate(-50%, -50%)',
                                 maxHeight: '90vh',
                                 overflowY: 'auto',
-                                backgroundColor: theme === "dark" ? "#0a0a0a" : "#ffffff",
-                                border: `1px solid ${theme === "dark" ? "#27272a" : "#e4e4e7"}`,
+                                backgroundColor: effectiveTheme === "dark" ? "#0a0a0a" : "#ffffff",
+                                border: `1px solid ${effectiveTheme === "dark" ? "#27272a" : "#e4e4e7"}`,
                                 borderRadius: '12px',
-                                boxShadow: theme === "dark"
+                                boxShadow: effectiveTheme === "dark"
                                     ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
                                     : '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
                             },
                             // Style form elements in modal
                             formFieldInput: {
-                                backgroundColor: theme === "dark" ? "#18181b" : "#f4f4f5",
-                                border: `1px solid ${theme === "dark" ? "#3f3f46" : "#d4d4d8"}`,
-                                color: theme === "dark" ? "#ffffff" : "#000000",
+                                backgroundColor: effectiveTheme === "dark" ? "#18181b" : "#f4f4f5",
+                                border: `1px solid ${effectiveTheme === "dark" ? "#3f3f46" : "#d4d4d8"}`,
+                                color: effectiveTheme === "dark" ? "#ffffff" : "#000000",
                                 borderRadius: '6px',
                             },
                             formFieldLabel: {
-                                color: theme === "dark" ? "#ffffff" : "#000000",
+                                color: effectiveTheme === "dark" ? "#ffffff" : "#000000",
                             },
                             formButtonPrimary: {
                                 backgroundColor: "hsl(var(--primary))",
