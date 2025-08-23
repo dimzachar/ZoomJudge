@@ -1,6 +1,5 @@
 "use client"
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Card, CardContent } from '@/components/ui/card'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -38,6 +37,8 @@ const allTestimonials: Testimonial[] = [
 
 const topRow = allTestimonials.slice(0, 10)
 const bottomRow = allTestimonials.slice(10, 20)
+
+
 
 export default function WallOfLoveSection() {
     const containerRef = useRef<HTMLDivElement | null>(null)
@@ -97,10 +98,11 @@ export default function WallOfLoveSection() {
                                 <Card key={`top-${i}`} className="testimonial-card min-w-[420px]">
                                     <CardContent className="pt-6">
                                         <div className="flex items-center gap-3">
-                                            <Avatar className="size-9">
-                                                <AvatarImage alt={t.name} src={t.image} />
-                                                <AvatarFallback>{t.name.slice(0,2).toUpperCase()}</AvatarFallback>
-                                            </Avatar>
+                                            <img
+                                                src={t.image}
+                                                alt={t.name}
+                                                className="size-9 rounded-full object-cover"
+                                            />
                                             <div>
                                                 <h3 className="font-medium leading-none">{t.name}</h3>
                                                 <p className="text-muted-foreground text-xs">{t.company}</p>
@@ -119,10 +121,11 @@ export default function WallOfLoveSection() {
                                 <Card key={`bottom-${i}`} className="testimonial-card min-w-[420px]">
                                     <CardContent className="pt-6">
                                         <div className="flex items-center gap-3">
-                                            <Avatar className="size-9">
-                                                <AvatarImage alt={t.name} src={t.image} />
-                                                <AvatarFallback>{t.name.slice(0,2).toUpperCase()}</AvatarFallback>
-                                            </Avatar>
+                                            <img
+                                                src={t.image}
+                                                alt={t.name}
+                                                className="size-9 rounded-full object-cover"
+                                            />
                                             <div>
                                                 <h3 className="font-medium leading-none">{t.name}</h3>
                                                 <p className="text-muted-foreground text-xs">{t.company}</p>

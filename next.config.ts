@@ -10,7 +10,7 @@ const securityHeaders = [
       "worker-src 'self' blob:",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.clerk.accounts.dev https://*.accounts.dev",
       "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data: https: blob:",
+      "img-src 'self' data: https: blob: https://randomuser.me",
       "connect-src 'self' https://api.convex.cloud https://*.convex.cloud wss://*.convex.cloud https://openrouter.ai https://clerk.dev https://*.clerk.accounts.dev https://*.accounts.dev https://api.clerk.dev https://clerk-telemetry.com https://api.stripe.com https://*.stripe.com https://vitals.vercel-insights.com https://vercel.live",
       "frame-src 'self' https://js.clerk.dev https://*.clerk.accounts.dev https://*.accounts.dev https://js.stripe.com https://*.stripe.com",
       "form-action 'self' https://*.accounts.dev https://*.clerk.accounts.dev",

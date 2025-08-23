@@ -75,6 +75,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Handle external images (like randomuser.me) - let browser handle them normally
+  if (url.hostname === 'randomuser.me') {
+    return;
+  }
+
   // API routes - Network first with cache fallback
   if (API_ROUTES.some(route => url.pathname.startsWith(route) || url.href.includes(route))) {
     event.respondWith(
