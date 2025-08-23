@@ -1,6 +1,20 @@
 import { EvaluationResults } from "@/app/dashboard/evaluation-results"
 import { QuickActions } from "@/app/dashboard/quick-actions"
 import { DashboardContent } from "@/app/dashboard/dashboard-content"
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Dashboard - ZoomJudge | AI Repository Evaluation Platform',
+  description: 'Access your ZoomJudge dashboard to evaluate GitHub repositories, view evaluation history, and get AI-powered feedback for your Zoomcamp projects.',
+  keywords: 'ZoomJudge dashboard, repository evaluation dashboard, GitHub analysis dashboard, AI code review dashboard',
+  alternates: {
+    canonical: '/dashboard',
+  },
+  robots: {
+    index: false, // Dashboard should not be indexed as it's user-specific
+    follow: true,
+  },
+}
 
 export default function Page() {
   return (

@@ -1,0 +1,23 @@
+{
+  "name": "ZoomJudge - AI-Powered Repository Evaluation",
+  "short_name": "ZoomJudge",
+  "description": "AI-powered GitHub repository evaluation platform for Zoomcamp projects",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["developer", "education", "productivity"],
+  "lang": "en",
+  "dir": "ltr",
+  "scope": "/",
+  "id": "zoomjudge-app"
+}

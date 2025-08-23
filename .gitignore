@@ -189,3 +189,7 @@ jspm_packages/
 # Temporary folders
 tmp/
 temp/
+
+# !seo.md
+!README.md
+# !seo-optimization-plan.md
