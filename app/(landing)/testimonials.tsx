@@ -85,53 +85,53 @@ export default function WallOfLoveSection() {
     }, [])
 
     return (
-        <section id="testimonials" className="py-16 md:py-24 testimonials-section">
-            <div className="mx-auto max-w-7xl px-6">
+        <section id="testimonials" className="py-12 sm:py-16 md:py-20 lg:py-24 testimonials-section">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6">
                 <div className="text-center max-w-3xl mx-auto">
-                    <h2 className="text-foreground text-4xl font-semibold">What Developers Are Saying</h2>
-                    <p className="text-muted-foreground mt-3">Actionable, fair, and fast feedback that helps you ship with confidence.</p>
+                    <h2 className="text-foreground text-2xl sm:text-3xl md:text-4xl font-semibold">What Developers Are Saying</h2>
+                    <p className="text-muted-foreground mt-3 text-sm sm:text-base">Actionable, fair, and fast feedback that helps you ship with confidence.</p>
                 </div>
-                <div ref={containerRef} className="mt-16 md:mt-20">
+                <div ref={containerRef} className="mt-12 sm:mt-16 md:mt-20">
                     <div className="overflow-hidden">
-                        <div ref={topRowRef} className="flex gap-5 will-change-transform">
+                        <div ref={topRowRef} className="flex gap-3 sm:gap-4 md:gap-5 will-change-transform">
                             {topRow.map((t, i) => (
-                                <Card key={`top-${i}`} className="testimonial-card min-w-[420px]">
-                                    <CardContent className="pt-6">
-                                        <div className="flex items-center gap-3">
+                                <Card key={`top-${i}`} className="testimonial-card min-w-[280px] sm:min-w-[320px] md:min-w-[380px] lg:min-w-[420px]">
+                                    <CardContent className="pt-4 sm:pt-5 md:pt-6">
+                                        <div className="flex items-center gap-2 sm:gap-3">
                                             <img
                                                 src={t.image}
                                                 alt={t.name}
-                                                className="size-9 rounded-full object-cover"
+                                                className="size-8 sm:size-9 rounded-full object-cover"
                                             />
-                                            <div>
-                                                <h3 className="font-medium leading-none">{t.name}</h3>
-                                                <p className="text-muted-foreground text-xs">{t.company}</p>
+                                            <div className="min-w-0 flex-1">
+                                                <h3 className="text-sm sm:text-base font-medium leading-none truncate">{t.name}</h3>
+                                                <p className="text-muted-foreground text-xs sm:text-sm truncate">{t.company}</p>
                                             </div>
                                         </div>
-                                        <blockquote className="mt-4 text-sm leading-relaxed">“{t.quote}”</blockquote>
+                                        <blockquote className="mt-3 sm:mt-4 text-sm sm:text-base leading-relaxed">“{t.quote}”</blockquote>
                                     </CardContent>
                                 </Card>
                             ))}
                         </div>
                     </div>
 
-                    <div className="mt-4 overflow-hidden">
-                        <div ref={bottomRowRef} className="flex gap-5 will-change-transform">
+                    <div className="mt-3 sm:mt-4 md:mt-5 overflow-hidden">
+                        <div ref={bottomRowRef} className="flex gap-3 sm:gap-4 md:gap-5 will-change-transform">
                             {bottomRow.map((t, i) => (
-                                <Card key={`bottom-${i}`} className="testimonial-card min-w-[420px]">
-                                    <CardContent className="pt-6">
-                                        <div className="flex items-center gap-3">
+                                <Card key={`bottom-${i}`} className="testimonial-card min-w-[280px] sm:min-w-[320px] md:min-w-[380px] lg:min-w-[420px]">
+                                    <CardContent className="pt-4 sm:pt-5 md:pt-6">
+                                        <div className="flex items-center gap-2 sm:gap-3">
                                             <img
                                                 src={t.image}
                                                 alt={t.name}
-                                                className="size-9 rounded-full object-cover"
+                                                className="size-8 sm:size-9 rounded-full object-cover"
                                             />
-                                            <div>
-                                                <h3 className="font-medium leading-none">{t.name}</h3>
-                                                <p className="text-muted-foreground text-xs">{t.company}</p>
+                                            <div className="min-w-0 flex-1">
+                                                <h3 className="text-sm sm:text-base font-medium leading-none truncate">{t.name}</h3>
+                                                <p className="text-muted-foreground text-xs sm:text-sm truncate">{t.company}</p>
                                             </div>
                                         </div>
-                                        <blockquote className="mt-4 text-sm leading-relaxed">“{t.quote}”</blockquote>
+                                        <blockquote className="mt-3 sm:mt-4 text-sm sm:text-base leading-relaxed">“{t.quote}”</blockquote>
                                     </CardContent>
                                 </Card>
                             ))}
