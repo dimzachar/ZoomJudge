@@ -7,6 +7,7 @@ import { ClerkProvider } from '@clerk/nextjs'
 import ConvexClientProvider from '@/components/ConvexClientProvider'
 import { Toaster } from "sonner"
 import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 // Setup console override to disable logging in production
 import "@/lib/console-override";
@@ -165,6 +166,7 @@ export default function RootLayout({
               {children}
               <Toaster richColors position="top-right" />
               <Analytics />
+              <SpeedInsights />
             </ConvexClientProvider>
           </ClerkProvider>
         </ConditionalThemeProvider>
