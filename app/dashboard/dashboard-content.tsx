@@ -2,7 +2,7 @@
 
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import { DashboardStats } from "@/components/dashboard-stats"
+import { LazyDashboardStats as DashboardStats } from "@/components/lazy-dashboard-stats"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"

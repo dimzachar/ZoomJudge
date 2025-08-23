@@ -1,4 +1,4 @@
-import { EvaluationResults } from "@/app/dashboard/evaluation-results"
+import { LazyEvaluationResults as EvaluationResults } from "@/components/lazy-evaluation-results"
 import { QuickActions } from "@/app/dashboard/quick-actions"
 import { DashboardContent } from "@/app/dashboard/dashboard-content"
 import { Metadata } from 'next'

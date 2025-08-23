@@ -1,23 +1,41 @@
 "use client"
 
-import React, { useEffect, useMemo, useRef } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { HeroHeader } from "./header"
-import Script from 'next/script'
-import gsap from 'gsap'
 import HeroBackground from './hero-background'
 import ThreeAnimation from './three-animation'
+import { useIntersectionObserver } from "@/hooks/use-intersection-observer"
+
+// Lazy load GSAP only when needed
+const loadGSAP = () => import('gsap')
 
 export default function HeroSection() {
     const headlineRef = useRef<HTMLDivElement | null>(null)
     const ctaContainerRef = useRef<HTMLDivElement | null>(null)
+    const [gsapLoaded, setGsapLoaded] = useState(false)
+    const [gsap, setGsap] = useState<any>(null)
+    const { elementRef, isIntersecting } = useIntersectionObserver({
+        threshold: 0.1,
+        triggerOnce: true,
+    })
 
     const HEADLINE = 'AI-POWERED REPO EVALUATION, FINALLY.'
     const words = useMemo(() => HEADLINE.split(' '), [])
 
+    // Load GSAP only when component is visible
     useEffect(() => {
-        if (!headlineRef.current) return
+        if (isIntersecting && !gsapLoaded) {
+            loadGSAP().then((gsapModule) => {
+                setGsap(gsapModule.default || gsapModule)
+                setGsapLoaded(true)
+            })
+        }
+    }, [isIntersecting, gsapLoaded])
+
+    useEffect(() => {
+        if (!headlineRef.current || !gsap || !gsapLoaded) return
         const chars = headlineRef.current.querySelectorAll('.headline-char')
         gsap.set(chars, { yPercent: 120, opacity: 0 })
         gsap.to(chars, {
@@ -27,11 +45,11 @@ export default function HeroSection() {
             duration: 0.6,
             stagger: 0.03,
         })
-    }, [])
+    }, [gsap, gsapLoaded])
 
     useEffect(() => {
         const container = ctaContainerRef.current
-        if (!container) return
+        if (!container || !gsap || !gsapLoaded) return
         const button = container.querySelector<HTMLButtonElement>('button, [data-slot="button"]')
         if (!button) return
 
@@ -63,13 +81,16 @@ export default function HeroSection() {
             container.removeEventListener('mouseleave', handleLeave)
             cancelAnimationFrame(rafId)
         }
-    }, [])
+    }, [gsap, gsapLoaded])
 
     return (
         <>
             <HeroHeader />
             <main>
-                <section className="relative min-h-[100vh]">
+                <section
+                    ref={elementRef}
+                    className="relative min-h-[100vh]"
+                >
                     <HeroBackground />
                     <ThreeAnimation />
 

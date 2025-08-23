@@ -48,7 +48,7 @@ export default function CustomClerkPricing() {
             // Look for Clerk pricing table elements in the DOM
             const pricingElements = document.querySelectorAll('[data-clerk-element="pricing-table"], .cl-pricing-table, [class*="pricing"]')
             if (pricingElements.length > 0) {
-                console.log('Clerk PricingTable elements detected in DOM')
+                // console.log('Clerk PricingTable elements detected in DOM') // Disabled to reduce console noise
                 setIsLoading(false)
                 setHasError(false)
                 return true
@@ -72,18 +72,18 @@ export default function CustomClerkPricing() {
         return () => observer.disconnect()
     }, [mounted, hasError])
 
-    // Debug logging
-    useEffect(() => {
-        console.log('CustomClerkPricing state:', { mounted, hasError, isLoading, userTier, user: !!user })
+    // Debug logging (disabled to reduce console noise)
+    // useEffect(() => {
+    //     console.log('CustomClerkPricing state:', { mounted, hasError, isLoading, userTier, user: !!user })
 
-        // Check if Stripe is available
-        if (typeof window !== 'undefined') {
-            console.log('Stripe availability check:', {
-                stripeExists: typeof (window as any).Stripe !== 'undefined',
-                clerkExists: typeof (window as any).Clerk !== 'undefined'
-            })
-        }
-    }, [mounted, hasError, isLoading, userTier, user])
+    //     // Check if Stripe is available
+    //     if (typeof window !== 'undefined') {
+    //         console.log('Stripe availability check:', {
+    //             stripeExists: typeof (window as any).Stripe !== 'undefined',
+    //             clerkExists: typeof (window as any).Clerk !== 'undefined'
+    //         })
+    //     }
+    // }, [mounted, hasError, isLoading, userTier, user])
 
 
 

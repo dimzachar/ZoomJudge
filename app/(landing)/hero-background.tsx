@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useEffect, useRef } from "react"
+import React, { useEffect, useRef, useState } from "react"
+import { useIntersectionObserver } from "@/hooks/use-intersection-observer"
 
 // Lightweight, dependency-free WebGL background.
 // - Dark theme friendly, subtle animated gradient with flow-like highlights
@@ -11,10 +12,23 @@ import React, { useEffect, useRef } from "react"
 export default function HeroBackground() {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const [shouldRender, setShouldRender] = useState(false)
+  const { elementRef, isIntersecting } = useIntersectionObserver({
+    threshold: 0.1,
+    rootMargin: "50px",
+    triggerOnce: true,
+  })
+
+  // Only start WebGL rendering when component is visible
+  useEffect(() => {
+    if (isIntersecting) {
+      setShouldRender(true)
+    }
+  }, [isIntersecting])
 
   useEffect(() => {
     const container = containerRef.current
-    if (!container) return
+    if (!container || !shouldRender) return
 
     const canvas = document.createElement("canvas")
     canvas.setAttribute("aria-hidden", "true")
@@ -313,13 +327,20 @@ void main() {
       } catch {}
       canvas.remove()
     }
-  }, [])
+  }, [shouldRender])
 
   return (
     <div
-      ref={containerRef}
+      ref={(el) => {
+        containerRef.current = el
+        elementRef.current = el
+      }}
       className="absolute inset-0 -z-10 [mask-image:radial-gradient(75%_55%_at_50%_40%,#000_60%,transparent_100%)] opacity-30"
       aria-hidden
-    />
+    >
+      {!shouldRender && isIntersecting && (
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-indigo-900/20" />
+      )}
+    </div>
   )
 }

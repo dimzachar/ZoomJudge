@@ -1,19 +1,19 @@
 import { cn } from '@/lib/utils'
-import { SVGProps } from 'react';
-import Image from 'next/image';
 
 // ZoomJudge Logo Components
-export function ZoomJudgeIcon({ className, ...props }: SVGProps<SVGSVGElement>) {
+export function ZoomJudgeIcon({ className }: { className?: string }) {
   return (
-    <Image
-      src="/icon.svg"
-      alt="ZoomJudge"
-      width={32}
-      height={32}
-      priority
-      className={cn("w-8 h-8", className)}
+    <div
+      className={cn("w-8 h-8 bg-contain bg-no-repeat bg-center", className)}
+      style={{
+        backgroundImage: 'url(/icon.svg)',
+        width: '32px',
+        height: '32px'
+      }}
+      role="img"
+      aria-label="ZoomJudge"
     />
-  );
+  )
 }
 
 export function ZoomJudgeLogo({ className, variant = 'full', size = 'md' }: {

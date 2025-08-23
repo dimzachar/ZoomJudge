@@ -11,16 +11,22 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 
 // Setup console override to disable logging in production
 import "@/lib/console-override";
+import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
+import { PerformanceMonitor } from "@/components/performance-monitor";
 
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
+  preload: true,
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
+  preload: false, // Only preload primary font
 });
 
 export const metadata: Metadata = {
@@ -165,8 +171,10 @@ export default function RootLayout({
             <ConvexClientProvider>
               {children}
               <Toaster richColors position="top-right" />
-              <Analytics />
-              <SpeedInsights />
+              <Analytics debug={false} />
+              <SpeedInsights debug={false} />
+              <ServiceWorkerRegistration />
+              <PerformanceMonitor />
             </ConvexClientProvider>
           </ClerkProvider>
         </ConditionalThemeProvider>

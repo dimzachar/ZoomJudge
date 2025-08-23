@@ -19,11 +19,13 @@ const originalConsole = {
  * Check if logging should be enabled
  */
 function shouldEnableLogging(): boolean {
-  // Enable logging in development or when explicitly enabled
-  return (
-    process.env.NODE_ENV === 'development' || 
-    process.env.SIMPLE_LOGGER_ENABLED === 'true'
-  );
+  // If SIMPLE_LOGGER_ENABLED is explicitly set, respect that setting
+  if (process.env.SIMPLE_LOGGER_ENABLED !== undefined) {
+    return process.env.SIMPLE_LOGGER_ENABLED === 'true';
+  }
+
+  // Otherwise, enable logging only in development
+  return process.env.NODE_ENV === 'development';
 }
 
 /**

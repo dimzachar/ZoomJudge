@@ -53,12 +53,59 @@ const nextConfig: NextConfig = {
         source: '/(.*)',
         headers: securityHeaders,
       },
+      // Cache static assets
+      {
+        source: '/icon.svg',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/_next/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/api/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, max-age=0',
+          },
+        ],
+      },
     ];
   },
 
   // Enable experimental features for better performance
   experimental: {
-    optimizePackageImports: ['@radix-ui/react-icons'],
+    optimizePackageImports: [
+      '@radix-ui/react-icons',
+      '@tabler/icons-react',
+      'lucide-react',
+      '@radix-ui/react-avatar',
+      '@radix-ui/react-checkbox',
+      '@radix-ui/react-collapsible',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-label',
+      '@radix-ui/react-progress',
+      '@radix-ui/react-select',
+      '@radix-ui/react-separator',
+      '@radix-ui/react-slot',
+      '@radix-ui/react-switch',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-toggle',
+      '@radix-ui/react-toggle-group',
+      '@radix-ui/react-tooltip',
+    ],
   },
 
   // Security-related configurations
@@ -95,6 +142,39 @@ const nextConfig: NextConfig = {
     formats: ['image/webp', 'image/avif'],
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
+    unoptimized: false,
+    loader: 'default',
+    // Disable optimization for SVG files
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+  },
+
+  // Webpack configuration
+  webpack: (config: any, { dev }: { dev: boolean }) => {
+    // Reduce Watchpack errors on Windows by excluding system files
+    if (dev) {
+      config.watchOptions = {
+        ...config.watchOptions,
+        ignored: '**/node_modules/**',
+      }
+    }
+
+    // Bundle analyzer in development
+    if (process.env.ANALYZE === 'true') {
+      config.plugins.push(
+        new (require('@next/bundle-analyzer')({
+          enabled: true,
+        }))()
+      )
+    }
+
+    return config
+  },
+
+  // Performance optimizations
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
   },
 };
 

@@ -12,12 +12,12 @@ export default function ThreeAnimation() {
     // Scene setup
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x160016);
-    
+
     const containerWidth = containerRef.current.clientWidth;
     const containerHeight = containerRef.current.clientHeight;
     const camera = new THREE.PerspectiveCamera(60, containerWidth / containerHeight, 1, 1000);
     camera.position.set(0, 4, 21);
-    
+
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(containerWidth, containerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -213,8 +213,8 @@ export default function ThreeAnimation() {
   }, []);
 
   return (
-    <div 
-      ref={containerRef} 
+    <div
+      ref={containerRef}
       className="absolute inset-0 -z-10 overflow-hidden"
       style={{ pointerEvents: 'none' }}
     />

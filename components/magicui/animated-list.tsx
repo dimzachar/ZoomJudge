@@ -1,7 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { AnimatePresence, motion } from "motion/react";
+import { LazyAnimatePresence, LazyMotionDiv, OptimizedAnimation } from "@/components/optimized-animations";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import React, {
   ComponentPropsWithoutRef,
   useEffect,
@@ -10,17 +11,23 @@ import React, {
 } from "react";
 
 export function AnimatedListItem({ children }: { children: React.ReactNode }) {
+  const shouldReduceMotion = useReducedMotion();
+
   const animations = {
-    initial: { scale: 0, opacity: 0 },
-    animate: { scale: 1, opacity: 1, originY: 0 },
-    exit: { scale: 0, opacity: 0 },
-    transition: { type: "spring" as const, stiffness: 350, damping: 40 },
+    initial: shouldReduceMotion ? {} : { scale: 0, opacity: 0 },
+    animate: shouldReduceMotion ? {} : { scale: 1, opacity: 1, originY: 0 },
+    exit: shouldReduceMotion ? {} : { scale: 0, opacity: 0 },
+    transition: shouldReduceMotion ? {} : { type: "spring" as const, stiffness: 350, damping: 40 },
   };
 
+  if (shouldReduceMotion) {
+    return <div className="mx-auto w-full">{children}</div>;
+  }
+
   return (
-    <motion.div {...animations} layout className="mx-auto w-full">
+    <LazyMotionDiv {...animations} layout className="mx-auto w-full">
       {children}
-    </motion.div>
+    </LazyMotionDiv>
   );
 }
 
@@ -32,12 +39,19 @@ export interface AnimatedListProps extends ComponentPropsWithoutRef<"div"> {
 export const AnimatedList = React.memo(
   ({ children, className, delay = 1000, ...props }: AnimatedListProps) => {
     const [index, setIndex] = useState(0);
+    const shouldReduceMotion = useReducedMotion();
     const childrenArray = useMemo(
       () => React.Children.toArray(children),
       [children],
     );
 
     useEffect(() => {
+      if (shouldReduceMotion) {
+        // Show all items immediately if motion is reduced
+        setIndex(childrenArray.length - 1);
+        return;
+      }
+
       if (index < childrenArray.length - 1) {
         const timeout = setTimeout(() => {
           setIndex((prevIndex) => (prevIndex + 1) % childrenArray.length);
@@ -45,7 +59,7 @@ export const AnimatedList = React.memo(
 
         return () => clearTimeout(timeout);
       }
-    }, [index, delay, childrenArray.length]);
+    }, [index, delay, childrenArray.length, shouldReduceMotion]);
 
     const itemsToShow = useMemo(() => {
       const result = childrenArray.slice(0, index + 1).reverse();
@@ -53,18 +67,25 @@ export const AnimatedList = React.memo(
     }, [index, childrenArray]);
 
     return (
-      <div
+      <OptimizedAnimation
         className={cn(`flex flex-col items-center gap-4`, className)}
+        fallback={
+          <div className={cn(`flex flex-col items-center gap-4`, className)} {...props}>
+            {childrenArray.map((item, idx) => (
+              <div key={idx} className="mx-auto w-full">{item}</div>
+            ))}
+          </div>
+        }
         {...props}
       >
-        <AnimatePresence>
+        <LazyAnimatePresence>
           {itemsToShow.map((item) => (
             <AnimatedListItem key={(item as React.ReactElement).key}>
               {item}
             </AnimatedListItem>
           ))}
-        </AnimatePresence>
-      </div>
+        </LazyAnimatePresence>
+      </OptimizedAnimation>
     );
   },
 );

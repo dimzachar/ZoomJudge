@@ -3,13 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
+    "dev:turbo": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "check-criteria": "powershell -ExecutionPolicy Bypass -File scripts/check-hardcoded-criteria.ps1",
     "init-db": "node scripts/init-db.js",
-    "debug:file-selection": "bun tsx scripts/debug-file-selection.ts"
+    "debug:file-selection": "bun tsx scripts/debug-file-selection.ts",
+    "analyze": "node scripts/analyze-bundle.js",
+    "build:analyze": "ANALYZE=true bun run build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.59.0",
@@ -77,6 +80,7 @@
     "zod": "^4.0.17"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^15.5.0",
     "@tailwindcss/postcss": "^4",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20.19.10",
