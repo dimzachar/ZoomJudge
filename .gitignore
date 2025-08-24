@@ -195,3 +195,12 @@ temp/
 # !seo-optimization-plan.md
 
 *.zip
+
+*.csv
+
+# Migration artifacts (temporary files from dev-to-prod migration)
+fix-user-ids.js
+user-id-mapping.json
+migration-script/
+development-data-*.zip
+convex/migrations/*
