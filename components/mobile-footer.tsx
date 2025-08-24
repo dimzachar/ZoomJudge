@@ -38,7 +38,7 @@ const navigation = {
   company: [
     { title: 'About', href: '/about' },
     { title: 'Careers', href: '/careers' },
-    { title: 'Contact', href: 'mailto:hello@zoomjudge.ai' },
+    { title: 'Contact', href: 'mailto:support@zoomjudge.com' },
     { title: 'Newsletter', href: '#newsletter' },
   ],
 }
@@ -101,7 +101,7 @@ export function MobileFooter({ className, variant = 'compact' }: MobileFooterPro
             <Link href="/terms" className="text-muted-foreground hover:text-foreground touch-target">Terms</Link>
             <Link href="/privacy" className="text-muted-foreground hover:text-foreground touch-target">Privacy</Link>
             <Link href="/status" className="text-muted-foreground hover:text-foreground touch-target">Status</Link>
-            <Link href="mailto:hello@zoomjudge.ai" className="text-muted-foreground hover:text-foreground touch-target">Contact</Link>
+            <Link href="mailto:support@zoomjudge.com" className="text-muted-foreground hover:text-foreground touch-target">Contact</Link>
           </div>
 
           {/* Copyright */}
@@ -182,8 +182,8 @@ export function MobileFooter({ className, variant = 'compact' }: MobileFooterPro
         <div className="text-center">
           <div className="text-muted-foreground flex items-center justify-center gap-2 text-sm">
             <Mail className="size-4" />
-            <Link href="mailto:hello@zoomjudge.ai" className="hover:text-foreground underline-offset-4 hover:underline">
-              hello@zoomjudge.ai
+            <Link href="mailto:support@zoomjudge.com" className="hover:text-foreground underline-offset-4 hover:underline">
+              support@zoomjudge.com
             </Link>
           </div>
         </div>

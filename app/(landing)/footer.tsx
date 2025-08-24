@@ -35,7 +35,7 @@ const navigation = {
   company: [
     { title: 'About', href: '/about' },
     { title: 'Careers', href: '/careers' },
-    { title: 'Contact', href: 'mailto:hello@zoomjudge.ai' },
+    { title: 'Contact', href: 'mailto:support@zoomjudge.com' },
     { title: 'Newsletter', href: '#newsletter' },
   ],
 }
@@ -84,8 +84,8 @@ export default function FooterSection() {
           <div className="text-center sm:text-left">
             <div className="text-muted-foreground flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm">
               <Mail className="size-3 sm:size-4" />
-              <Link href="mailto:hello@zoomjudge.ai" className="hover:text-foreground underline-offset-4 hover:underline">
-                hello@zoomjudge.ai
+              <Link href="mailto:support@zoomjudge.com" className="hover:text-foreground underline-offset-4 hover:underline">
+                support@zoomjudge.com
               </Link>
             </div>
           </div>

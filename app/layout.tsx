@@ -167,7 +167,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased overscroll-none`}
       >
         <ConditionalThemeProvider>
-          <ClerkProvider>
+          <ClerkProvider
+            publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+            signInForceRedirectUrl="/dashboard"
+            signUpForceRedirectUrl="/dashboard"
+            signInFallbackRedirectUrl="/dashboard"
+            signUpFallbackRedirectUrl="/dashboard"
+          >
             <ConvexClientProvider>
               {children}
               <Toaster richColors position="top-right" />

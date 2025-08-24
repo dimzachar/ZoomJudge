@@ -59,7 +59,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Access-Control-Allow-Origin',
-            value: 'https://www.zoomjudge.com, https://zoomjudge.com, https://accounts.zoomjudge.com, https://clerk.zoomjudge.com, https://billing.clerk.com, https://*.billing.clerk.com',
+            value: '*',
           },
           {
             key: 'Access-Control-Allow-Methods',
