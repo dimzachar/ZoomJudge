@@ -9,6 +9,7 @@ const envSchema = z.object({
   // Public vars (available on client)
   NEXT_PUBLIC_CONVEX_URL: z.string().url('Invalid Convex URL'),
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().optional(),
+  NEXT_PUBLIC_CLERK_FRONTEND_API_URL: z.string().url('Invalid Clerk Frontend API URL').optional(),
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
   NEXT_PUBLIC_SITE_NAME: z.string().optional(),
   
@@ -66,6 +67,7 @@ export function validateRuntimeEnv(): ValidatedEnv {
     const clientSchema = envSchema.pick({
       NEXT_PUBLIC_CONVEX_URL: true,
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: true,
+      NEXT_PUBLIC_CLERK_FRONTEND_API_URL: true,
       NEXT_PUBLIC_SITE_URL: true,
       NEXT_PUBLIC_SITE_NAME: true,
       NODE_ENV: true,
@@ -106,6 +108,10 @@ export function checkRequiredEnvVars(): {
   // Optional but recommended
   if (!process.env.CLERK_SECRET_KEY) {
     warnings.push('CLERK_SECRET_KEY not set - authentication may not work');
+  }
+
+  if (!process.env.NEXT_PUBLIC_CLERK_FRONTEND_API_URL) {
+    warnings.push('NEXT_PUBLIC_CLERK_FRONTEND_API_URL not set - Convex authentication may not work');
   }
   
   if (!process.env.UPSTASH_REDIS_REST_URL) {

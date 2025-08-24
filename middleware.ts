@@ -181,8 +181,7 @@ export default clerkMiddleware(async (auth, req) => {
     'https://zoomjudge.com',
     'https://accounts.zoomjudge.com',
     'https://clerk.zoomjudge.com',
-    'https://billing.clerk.com',
-    'https://ample-satyr-59.clerk.accounts.dev'
+    'https://billing.clerk.com'
   ]
 
   const corsOrigin = origin && allowedOrigins.includes(origin) ? origin : 'https://www.zoomjudge.com'
