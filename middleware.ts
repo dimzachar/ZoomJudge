@@ -137,26 +137,14 @@ async function applyRateLimit(request: NextRequest): Promise<NextResponse | null
 }
 
 export default clerkMiddleware(async (auth, req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    const origin = req.headers.get('origin')
-    const allowedOrigins = [
-      'https://www.zoomjudge.com',
-      'https://zoomjudge.com',
-      'https://accounts.zoomjudge.com',
-      'https://clerk.zoomjudge.com',
-      'https://billing.clerk.com'
-    ]
-
-    const corsOrigin = origin && allowedOrigins.includes(origin) ? origin : 'https://www.zoomjudge.com'
-
+  // Handle CORS preflight requests for API routes
+  if (req.method === 'OPTIONS' && req.nextUrl.pathname.startsWith('/api/')) {
     return new NextResponse(null, {
       status: 200,
       headers: {
-        'Access-Control-Allow-Origin': corsOrigin,
+        'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin',
-        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Max-Age': '86400',
       },
     })
@@ -173,25 +161,8 @@ export default clerkMiddleware(async (auth, req) => {
     await auth.protect()
   }
 
-  // Add CORS headers to all responses
-  const response = NextResponse.next()
-  const origin = req.headers.get('origin')
-  const allowedOrigins = [
-    'https://www.zoomjudge.com',
-    'https://zoomjudge.com',
-    'https://accounts.zoomjudge.com',
-    'https://clerk.zoomjudge.com',
-    'https://billing.clerk.com'
-  ]
-
-  const corsOrigin = origin && allowedOrigins.includes(origin) ? origin : 'https://www.zoomjudge.com'
-
-  response.headers.set('Access-Control-Allow-Origin', corsOrigin)
-  response.headers.set('Access-Control-Allow-Credentials', 'true')
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin')
-
-  return response
+  // Continue with normal request processing
+  return NextResponse.next()
 })
 
 export const config = {

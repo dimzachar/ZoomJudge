@@ -34,7 +34,7 @@ const securityHeaders = [
   },
   {
     key: 'Permissions-Policy',
-    value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+    value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()',
   },
   {
     key: 'X-XSS-Protection',
@@ -67,15 +67,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Access-Control-Allow-Headers',
-            value: 'Content-Type, Authorization, X-Requested-With, Accept, Origin',
-          },
-          {
-            key: 'Access-Control-Allow-Credentials',
-            value: 'true',
-          },
-          {
-            key: 'Cache-Control',
-            value: 'no-store, max-age=0',
+            value: 'Content-Type, Authorization',
           },
         ],
       },
