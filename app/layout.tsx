@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://zoomjudge.vercel.app'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://zoomjudge.com'),
   alternates: {
     canonical: '/',
   },
@@ -100,31 +100,31 @@ export default function RootLayout({
     "@graph": [
       {
         "@type": "Organization",
-        "@id": "https://zoomjudge.vercel.app/#organization",
+        "@id": "https://zoomjudge.com/#organization",
         "name": "ZoomJudge",
-        "url": "https://zoomjudge.vercel.app",
+        "url": "https://zoomjudge.com",
         "logo": {
           "@type": "ImageObject",
-          "url": "https://zoomjudge.vercel.app/icon.svg"
+          "url": "https://zoomjudge.com/icon.svg"
         },
         "description": "AI-powered GitHub repository evaluation platform for Zoomcamp projects",
         "sameAs": []
       },
       {
         "@type": "WebSite",
-        "@id": "https://zoomjudge.vercel.app/#website",
-        "url": "https://zoomjudge.vercel.app",
+        "@id": "https://zoomjudge.com/#website",
+        "url": "https://zoomjudge.com",
         "name": "ZoomJudge",
         "description": "AI-Powered GitHub Repository Evaluation & Code Review",
         "publisher": {
-          "@id": "https://zoomjudge.vercel.app/#organization"
+          "@id": "https://zoomjudge.com/#organization"
         },
         "potentialAction": [
           {
             "@type": "SearchAction",
             "target": {
               "@type": "EntryPoint",
-              "urlTemplate": "https://zoomjudge.vercel.app/dashboard?q={search_term_string}"
+              "urlTemplate": "https://zoomjudge.com/dashboard?q={search_term_string}"
             },
             "query-input": "required name=search_term_string"
           }
@@ -134,7 +134,7 @@ export default function RootLayout({
         "@type": "SoftwareApplication",
         "name": "ZoomJudge",
         "description": "AI-powered repository evaluation platform that provides automated feedback and scoring for GitHub repositories across Data Engineering, ML, MLOps, LLM, and Stock Market courses.",
-        "url": "https://zoomjudge.vercel.app",
+        "url": "https://zoomjudge.com",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "Web Browser",
         "offers": {
