@@ -6,13 +6,13 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://js.clerk.dev https://*.clerk.accounts.dev https://*.accounts.dev https://*.clerk.dev https://clerk.zoomjudge.com https://accounts.zoomjudge.com https://js.stripe.com https://va.vercel-scripts.com https://vercel.live blob:",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://js.clerk.dev https://*.clerk.accounts.dev https://*.accounts.dev https://*.clerk.dev https://clerk.zoomjudge.com https://accounts.zoomjudge.com https://js.stripe.com https://va.vercel-scripts.com https://vercel.live https://js.hcaptcha.com https://hcaptcha.com https://*.hcaptcha.com https://www.google.com https://www.gstatic.com https://www.recaptcha.net https://recaptcha.net blob:",
       "worker-src 'self' blob:",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.clerk.accounts.dev https://*.accounts.dev https://clerk.zoomjudge.com https://accounts.zoomjudge.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.clerk.accounts.dev https://*.accounts.dev https://clerk.zoomjudge.com https://accounts.zoomjudge.com https://hcaptcha.com https://*.hcaptcha.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: https: blob: https://randomuser.me",
-      "connect-src 'self' https://api.convex.cloud https://*.convex.cloud wss://*.convex.cloud https://openrouter.ai https://clerk.dev https://*.clerk.accounts.dev https://*.accounts.dev https://api.clerk.dev https://clerk-telemetry.com https://clerk.zoomjudge.com https://accounts.zoomjudge.com https://api.stripe.com https://*.stripe.com https://vitals.vercel-insights.com https://vercel.live",
-      "frame-src 'self' https://js.clerk.dev https://*.clerk.accounts.dev https://*.accounts.dev https://clerk.zoomjudge.com https://accounts.zoomjudge.com https://js.stripe.com https://*.stripe.com",
+      "connect-src 'self' https://api.convex.cloud https://*.convex.cloud wss://*.convex.cloud https://openrouter.ai https://clerk.dev https://*.clerk.accounts.dev https://*.accounts.dev https://api.clerk.dev https://clerk-telemetry.com https://clerk.zoomjudge.com https://accounts.zoomjudge.com https://api.stripe.com https://*.stripe.com https://vitals.vercel-insights.com https://vercel.live https://hcaptcha.com https://*.hcaptcha.com https://api.hcaptcha.com https://www.google.com https://www.recaptcha.net https://recaptcha.net",
+      "frame-src 'self' https://js.clerk.dev https://*.clerk.accounts.dev https://*.accounts.dev https://clerk.zoomjudge.com https://accounts.zoomjudge.com https://js.stripe.com https://*.stripe.com https://hcaptcha.com https://*.hcaptcha.com https://www.google.com https://recaptcha.net https://www.recaptcha.net",
       "form-action 'self' https://*.accounts.dev https://*.clerk.accounts.dev https://clerk.zoomjudge.com https://accounts.zoomjudge.com",
       "object-src 'none'",
       "base-uri 'self'",
@@ -53,6 +53,32 @@ const nextConfig: NextConfig = {
         source: '/(.*)',
         headers: securityHeaders,
       },
+      // CORS headers for API routes
+      {
+        source: '/api/(.*)',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: 'https://www.zoomjudge.com, https://zoomjudge.com, https://accounts.zoomjudge.com, https://clerk.zoomjudge.com',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization, X-Requested-With, Accept, Origin',
+          },
+          {
+            key: 'Access-Control-Allow-Credentials',
+            value: 'true',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'no-store, max-age=0',
+          },
+        ],
+      },
       // Cache static assets
       {
         source: '/icon.svg',
@@ -69,15 +95,6 @@ const nextConfig: NextConfig = {
           {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      {
-        source: '/api/(.*)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-store, max-age=0',
           },
         ],
       },

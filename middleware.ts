@@ -137,6 +137,20 @@ async function applyRateLimit(request: NextRequest): Promise<NextResponse | null
 }
 
 export default clerkMiddleware(async (auth, req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new NextResponse(null, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': 'https://www.zoomjudge.com, https://zoomjudge.com, https://accounts.zoomjudge.com, https://clerk.zoomjudge.com',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin',
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Max-Age': '86400',
+      },
+    })
+  }
+
   // Apply rate limiting first
   const rateLimitResponse = await applyRateLimit(req)
   if (rateLimitResponse) {
