@@ -6,13 +6,13 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://js.clerk.dev https://*.clerk.accounts.dev https://*.accounts.dev https://*.clerk.dev https://clerk.zoomjudge.com https://accounts.zoomjudge.com https://js.stripe.com https://va.vercel-scripts.com https://vercel.live https://js.hcaptcha.com https://hcaptcha.com https://*.hcaptcha.com https://www.google.com https://www.gstatic.com https://www.recaptcha.net https://recaptcha.net blob:",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://js.clerk.dev https://*.clerk.accounts.dev https://*.accounts.dev https://*.clerk.dev https://clerk.zoomjudge.com https://accounts.zoomjudge.com https://billing.clerk.com https://*.billing.clerk.com https://js.stripe.com https://checkout.stripe.com https://*.stripe.com https://va.vercel-scripts.com https://vercel.live https://js.hcaptcha.com https://hcaptcha.com https://*.hcaptcha.com https://www.google.com https://www.gstatic.com https://www.recaptcha.net https://recaptcha.net blob:",
       "worker-src 'self' blob:",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.clerk.accounts.dev https://*.accounts.dev https://clerk.zoomjudge.com https://accounts.zoomjudge.com https://hcaptcha.com https://*.hcaptcha.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.clerk.accounts.dev https://*.accounts.dev https://clerk.zoomjudge.com https://accounts.zoomjudge.com https://billing.clerk.com https://*.billing.clerk.com https://*.stripe.com https://hcaptcha.com https://*.hcaptcha.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: https: blob: https://randomuser.me",
-      "connect-src 'self' https://api.convex.cloud https://*.convex.cloud wss://*.convex.cloud https://openrouter.ai https://clerk.dev https://*.clerk.accounts.dev https://*.accounts.dev https://api.clerk.dev https://clerk-telemetry.com https://clerk.zoomjudge.com https://accounts.zoomjudge.com https://api.stripe.com https://*.stripe.com https://vitals.vercel-insights.com https://vercel.live https://hcaptcha.com https://*.hcaptcha.com https://api.hcaptcha.com https://www.google.com https://www.recaptcha.net https://recaptcha.net",
-      "frame-src 'self' https://js.clerk.dev https://*.clerk.accounts.dev https://*.accounts.dev https://clerk.zoomjudge.com https://accounts.zoomjudge.com https://js.stripe.com https://*.stripe.com https://hcaptcha.com https://*.hcaptcha.com https://www.google.com https://recaptcha.net https://www.recaptcha.net",
+      "connect-src 'self' https://api.convex.cloud https://*.convex.cloud wss://*.convex.cloud https://openrouter.ai https://clerk.dev https://*.clerk.accounts.dev https://*.accounts.dev https://api.clerk.dev https://clerk-telemetry.com https://clerk.zoomjudge.com https://accounts.zoomjudge.com https://billing.clerk.com https://*.billing.clerk.com https://api.stripe.com https://*.stripe.com https://vitals.vercel-insights.com https://vercel.live https://hcaptcha.com https://*.hcaptcha.com https://api.hcaptcha.com https://www.google.com https://www.recaptcha.net https://recaptcha.net",
+      "frame-src 'self' https://js.clerk.dev https://*.clerk.accounts.dev https://*.accounts.dev https://clerk.zoomjudge.com https://accounts.zoomjudge.com https://billing.clerk.com https://*.billing.clerk.com https://js.stripe.com https://*.stripe.com https://hcaptcha.com https://*.hcaptcha.com https://www.google.com https://recaptcha.net https://www.recaptcha.net",
       "form-action 'self' https://*.accounts.dev https://*.clerk.accounts.dev https://clerk.zoomjudge.com https://accounts.zoomjudge.com",
       "object-src 'none'",
       "base-uri 'self'",
@@ -59,7 +59,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Access-Control-Allow-Origin',
-            value: 'https://www.zoomjudge.com, https://zoomjudge.com, https://accounts.zoomjudge.com, https://clerk.zoomjudge.com',
+            value: 'https://www.zoomjudge.com, https://zoomjudge.com, https://accounts.zoomjudge.com, https://clerk.zoomjudge.com, https://billing.clerk.com, https://*.billing.clerk.com',
           },
           {
             key: 'Access-Control-Allow-Methods',

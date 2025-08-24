@@ -84,13 +84,13 @@ export const getTierInfo = (tier: UserTier) => {
       name: 'Starter',
       price: '$12',
       color: 'blue',
-      description: '5 repo evals/month + detailed feedback'
+      description: '20 repo evals/month + detailed feedback'
     },
     pro: {
       name: 'Pro',
       price: '$20',
       color: 'purple',
-      description: '6 repo evals/month + team support'
+      description: '200 repo evals/month + team support'
     },
     enterprise: {
       name: 'Enterprise',
