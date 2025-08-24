@@ -190,9 +190,8 @@ jspm_packages/
 tmp/
 temp/
 
-# !seo.md
 !README.md
-# !seo-optimization-plan.md
+
 
 *.zip
 

@@ -8,8 +8,6 @@ import { FeedbackWidget } from "@/components/feedback/feedback-widget"
 import { FeedbackProvider } from "@/components/feedback/feedback-context"
 import { GlobalFeedbackModal } from "@/components/feedback/global-feedback-modal"
 import { useUser } from "@clerk/nextjs"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
 import { Loader2 } from "lucide-react"
 import {
   IconDashboard,
@@ -51,15 +49,8 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const { user, isLoaded } = useUser()
-  const router = useRouter()
   const bottomPadding = useBottomNavigationPadding()
 
-  useEffect(() => {
-    // Only redirect if Clerk has finished loading and user is not authenticated
-    if (isLoaded && !user) {
-      router.push("/")
-    }
-  }, [isLoaded, user, router])
 
   // Show loading while Clerk is loading
   if (!isLoaded) {
