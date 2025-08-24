@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ContextualFeedbackPrompt } from '@/components/feedback/contextual-feedback-prompt';
 import {
   Clock,
   CheckCircle,
@@ -269,12 +270,19 @@ function EvaluationCard({ evaluation }: { evaluation: any }) {
       )}
 
       {evaluation.status === 'failed' && evaluation.errorMessage && (
-        <Alert variant="destructive" className="mt-3">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {evaluation.errorMessage}
-          </AlertDescription>
-        </Alert>
+        <>
+          <Alert variant="destructive" className="mt-3">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {evaluation.errorMessage}
+            </AlertDescription>
+          </Alert>
+          <ContextualFeedbackPrompt
+            trigger="evaluation-failed"
+            evaluationId={evaluation._id}
+            delay={2000} // Show after 2 seconds for failed evaluations in list
+          />
+        </>
       )}
     </div>
   );

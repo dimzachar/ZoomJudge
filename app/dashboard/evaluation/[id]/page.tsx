@@ -1,9 +1,11 @@
 "use client"
 
-import React from "react"
+import React, { useEffect } from "react"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { EvaluationResultsDisplay } from "@/components/evaluation-results-display"
+import { ContextualFeedbackPrompt } from "@/components/feedback/contextual-feedback-prompt"
+import { useFeedback } from "@/components/feedback/feedback-context"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -26,6 +28,13 @@ export default function EvaluationDetailPage({ params }: EvaluationDetailPagePro
   const evaluation = useQuery(api.evaluations.getEvaluationById, {
     evaluationId: resolvedParams.id as any
   })
+  const { resetFeedbackInteraction } = useFeedback()
+
+  // Reset feedback interaction tracking when this evaluation page loads
+  useEffect(() => {
+    console.log('EvaluationDetailPage: Resetting feedback interaction for evaluation:', resolvedParams.id)
+    resetFeedbackInteraction()
+  }, [resolvedParams.id]) // Only depend on the evaluation ID, not the function
 
   const hasCelebratedRef = React.useRef(false)
   React.useEffect(() => {
@@ -119,13 +128,33 @@ export default function EvaluationDetailPage({ params }: EvaluationDetailPagePro
   }
 
   return (
-    <EvaluationResultsDisplay
-      results={evaluation.results}
-      repoUrl={evaluation.repoUrl}
-      courseType={evaluation.course}
-      evaluationId={evaluation._id}
-      onBack={() => router.back()}
-    />
+    <>
+      <EvaluationResultsDisplay
+        results={evaluation.results}
+        repoUrl={evaluation.repoUrl}
+        courseType={evaluation.course}
+        evaluationId={evaluation._id}
+        onBack={() => router.back()}
+      />
+
+      {/* Contextual feedback prompt for completed evaluations */}
+      {evaluation.status === 'completed' && (
+        <ContextualFeedbackPrompt
+          trigger="evaluation-completed"
+          evaluationId={evaluation._id}
+          delay={8000} // Show after 8 seconds to let user see results first
+        />
+      )}
+
+      {/* Contextual feedback prompt for failed evaluations */}
+      {evaluation.status === 'failed' && (
+        <ContextualFeedbackPrompt
+          trigger="evaluation-failed"
+          evaluationId={evaluation._id}
+          delay={3000} // Show sooner for failed evaluations
+        />
+      )}
+    </>
   )
 }
 

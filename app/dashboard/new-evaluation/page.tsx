@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { EvaluationForm } from "@/app/dashboard/evaluation-form"
 import { EvaluationResultsDisplay } from "@/components/evaluation-results-display"
+import { ContextualFeedbackPrompt } from "@/components/feedback/contextual-feedback-prompt"
+import { useFeedback } from "@/components/feedback/feedback-context"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { celebrate } from "@/lib/confetti"
@@ -15,6 +17,14 @@ export default function NewEvaluationPage() {
     courseType: string
   } | null>(null)
   const [cachedResults, setCachedResults] = useState<any>(null)
+  const [showTestPrompt, setShowTestPrompt] = useState(false)
+  const { resetFeedbackInteraction } = useFeedback()
+
+  // Reset feedback interaction tracking when starting a new evaluation
+  useEffect(() => {
+    console.log('NewEvaluationPage: Resetting feedback interaction on page load')
+    resetFeedbackInteraction()
+  }, []) // Only run once on mount
 
   // Fetch evaluation details when we have an ID (only if we don't have cached results)
   const evaluation = useQuery(
@@ -34,6 +44,10 @@ export default function NewEvaluationPage() {
         breakdownKeys: results.breakdown ? Object.keys(results.breakdown) : []
       })
     }
+
+    // Reset feedback interaction tracking for this new evaluation
+    console.log('NewEvaluationPage: Resetting feedback interaction for new evaluation:', evaluationId)
+    resetFeedbackInteraction()
 
     setCurrentEvaluationId(evaluationId)
     setEvaluationData(data)
@@ -98,13 +112,23 @@ export default function NewEvaluationPage() {
   // Show results if we have a completed evaluation (either cached or from query)
   if (shouldShowResults) {
     return (
-      <EvaluationResultsDisplay
-        results={resultsToUse}
-        repoUrl={evaluationData.repoUrl}
-        courseType={evaluationData.courseType}
-        evaluationId={currentEvaluationId}
-        onBack={handleBackToForm}
-      />
+      <>
+        <EvaluationResultsDisplay
+          results={resultsToUse}
+          repoUrl={evaluationData.repoUrl}
+          courseType={evaluationData.courseType}
+          evaluationId={currentEvaluationId}
+          onBack={handleBackToForm}
+        />
+
+        {/* Contextual feedback prompt for completed evaluations */}
+        {console.log('Rendering ContextualFeedbackPrompt for completed evaluation:', currentEvaluationId)}
+        <ContextualFeedbackPrompt
+          trigger="evaluation-completed"
+          evaluationId={currentEvaluationId}
+          delay={8000} // Show after 8 seconds to let user see results first
+        />
+      </>
     )
   }
 
@@ -153,7 +177,7 @@ export default function NewEvaluationPage() {
         </div>
       </div>
 
-      
+
     </div>
   )
 }

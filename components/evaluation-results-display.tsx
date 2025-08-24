@@ -12,6 +12,7 @@ import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { useUserTier } from '@/components/clerk-billing-gate'
 import { TierGatedContent } from '@/components/tier-gated-content'
+import { ContextualFeedbackPrompt } from '@/components/feedback/contextual-feedback-prompt'
 import { canAccessFeature } from '@/lib/tier-permissions'
 
 interface EvaluationResultsDisplayProps {
@@ -44,9 +45,16 @@ export function EvaluationResultsDisplay({
   if (!results || !results.breakdown || typeof results.breakdown !== 'object') {
     console.error('Invalid results structure - results object is malformed');
     return (
-      <div className="text-center py-8">
-        <p className="text-red-600">Error: Invalid evaluation results structure</p>
-      </div>
+      <>
+        <div className="text-center py-8">
+          <p className="text-red-600">Error: Invalid evaluation results structure</p>
+        </div>
+        <ContextualFeedbackPrompt
+          trigger="error-occurred"
+          evaluationId={evaluationId}
+          delay={1000}
+        />
+      </>
     );
   }
 

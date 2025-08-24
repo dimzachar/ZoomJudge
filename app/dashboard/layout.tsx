@@ -4,6 +4,9 @@ import { TopNavigation } from "@/app/dashboard/top-navigation"
 import { BreadcrumbNavigation } from "@/app/dashboard/breadcrumb-navigation"
 import { LoadingBar } from "@/app/dashboard/loading-bar"
 import { BottomNavigation, useBottomNavigationPadding } from "@/components/bottom-navigation"
+import { FeedbackWidget } from "@/components/feedback/feedback-widget"
+import { FeedbackProvider } from "@/components/feedback/feedback-context"
+import { GlobalFeedbackModal } from "@/components/feedback/global-feedback-modal"
 import { useUser } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
@@ -76,25 +79,33 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <LoadingBar />
-      <TopNavigation />
+    <FeedbackProvider>
+      <div className="min-h-screen bg-background">
+        <LoadingBar />
+        <TopNavigation />
 
-      <main className={cn(
-        "container mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6",
-        bottomPadding
-      )}>
-        <div className="mb-3 sm:mb-4 md:mb-6">
-          <BreadcrumbNavigation />
-        </div>
+        <main className={cn(
+          "container mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6",
+          bottomPadding
+        )}>
+          <div className="mb-3 sm:mb-4 md:mb-6">
+            <BreadcrumbNavigation />
+          </div>
 
-        <div className="@container/main">
-          {children}
-        </div>
-      </main>
+          <div className="@container/main">
+            {children}
+          </div>
+        </main>
 
-      {/* Bottom Navigation for Mobile/Tablet */}
-      <BottomNavigation items={bottomNavigationItems} />
-    </div>
+        {/* Bottom Navigation for Mobile/Tablet */}
+        <BottomNavigation items={bottomNavigationItems} />
+
+        {/* Feedback Widget */}
+        <FeedbackWidget />
+
+        {/* Global Feedback Modal */}
+        <GlobalFeedbackModal />
+      </div>
+    </FeedbackProvider>
   )
 }

@@ -18,6 +18,7 @@ import type * as adminUtils from "../adminUtils.js";
 import type * as courses from "../courses.js";
 import type * as evaluationWorkflow from "../evaluationWorkflow.js";
 import type * as evaluations from "../evaluations.js";
+import type * as feedback from "../feedback.js";
 import type * as http from "../http.js";
 import type * as hybridCache from "../hybridCache.js";
 import type * as migrations_removeWeightField from "../migrations/removeWeightField.js";
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   courses: typeof courses;
   evaluationWorkflow: typeof evaluationWorkflow;
   evaluations: typeof evaluations;
+  feedback: typeof feedback;
   http: typeof http;
   hybridCache: typeof hybridCache;
   "migrations/removeWeightField": typeof migrations_removeWeightField;

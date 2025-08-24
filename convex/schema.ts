@@ -204,4 +204,21 @@ export default defineSchema({
       .index("byUserId", ["userId"])
       .index("byTimestamp", ["timestamp"])
       .index("bySeverity", ["severity"]),
+
+    // Feedback collection for user feedback and bug reports
+    feedback: defineTable({
+      userId: v.string(), // Clerk user ID
+      type: v.union(v.literal("bug"), v.literal("feature"), v.literal("general")),
+      title: v.string(),
+      description: v.string(),
+      context: v.optional(v.object({
+        page: v.string(),
+        userAgent: v.string(),
+        evaluationId: v.optional(v.string())
+      })),
+      createdAt: v.number(),
+    })
+      .index("byUserId", ["userId"])
+      .index("byCreatedAt", ["createdAt"])
+      .index("byType", ["type"]),
   });
