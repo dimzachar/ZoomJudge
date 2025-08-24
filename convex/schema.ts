@@ -217,8 +217,12 @@ export default defineSchema({
         evaluationId: v.optional(v.string())
       })),
       createdAt: v.number(),
+      // User context information for better analytics
+      userName: v.optional(v.string()), // User's display name at time of feedback
+      userPlanType: v.optional(v.string()), // User's subscription tier at time of feedback
     })
       .index("byUserId", ["userId"])
       .index("byCreatedAt", ["createdAt"])
-      .index("byType", ["type"]),
+      .index("byType", ["type"])
+      .index("byUserPlanType", ["userPlanType"]), // For analyzing feedback by subscription tier
   });
