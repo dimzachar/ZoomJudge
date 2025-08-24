@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://zoomjudge.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.zoomjudge.com'),
   alternates: {
     canonical: '/',
   },
@@ -100,31 +100,31 @@ export default function RootLayout({
     "@graph": [
       {
         "@type": "Organization",
-        "@id": "https://zoomjudge.com/#organization",
+        "@id": "https://www.zoomjudge.com/#organization",
         "name": "ZoomJudge",
-        "url": "https://zoomjudge.com",
+        "url": "https://www.zoomjudge.com",
         "logo": {
           "@type": "ImageObject",
-          "url": "https://zoomjudge.com/icon.svg"
+          "url": "https://www.zoomjudge.com/icon.svg"
         },
         "description": "AI-powered GitHub repository evaluation platform for Zoomcamp projects",
         "sameAs": []
       },
       {
         "@type": "WebSite",
-        "@id": "https://zoomjudge.com/#website",
-        "url": "https://zoomjudge.com",
+        "@id": "https://www.zoomjudge.com/#website",
+        "url": "https://www.zoomjudge.com",
         "name": "ZoomJudge",
         "description": "AI-Powered GitHub Repository Evaluation & Code Review",
         "publisher": {
-          "@id": "https://zoomjudge.com/#organization"
+          "@id": "https://www.zoomjudge.com/#organization"
         },
         "potentialAction": [
           {
             "@type": "SearchAction",
             "target": {
               "@type": "EntryPoint",
-              "urlTemplate": "https://zoomjudge.com/dashboard?q={search_term_string}"
+              "urlTemplate": "https://www.zoomjudge.com/dashboard?q={search_term_string}"
             },
             "query-input": "required name=search_term_string"
           }
@@ -134,7 +134,7 @@ export default function RootLayout({
         "@type": "SoftwareApplication",
         "name": "ZoomJudge",
         "description": "AI-powered repository evaluation platform that provides automated feedback and scoring for GitHub repositories across Data Engineering, ML, MLOps, LLM, and Stock Market courses.",
-        "url": "https://zoomjudge.com",
+        "url": "https://www.zoomjudge.com",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "Web Browser",
         "offers": {

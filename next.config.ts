@@ -133,7 +133,7 @@ const nextConfig: NextConfig = {
               value: 'http',
             },
           ],
-          destination: 'https://zoomjudge.com/:path*',
+          destination: 'https://www.zoomjudge.com/:path*',
           permanent: true,
         },
       ];
