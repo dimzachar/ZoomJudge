@@ -137,12 +137,16 @@ async function applyRateLimit(request: NextRequest): Promise<NextResponse | null
 }
 
 export default clerkMiddleware(async (auth, req) => {
-  // Handle CORS preflight requests for API routes
-  if (req.method === 'OPTIONS' && req.nextUrl.pathname.startsWith('/api/')) {
+  // Handle CORS preflight requests for API routes only (not auth routes)
+  if (req.method === 'OPTIONS' &&
+      req.nextUrl.pathname.startsWith('/api/') &&
+      !req.nextUrl.pathname.startsWith('/api/auth/')) {
     return new NextResponse(null, {
       status: 200,
       headers: {
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': process.env.NODE_ENV === 'production'
+          ? 'https://www.zoomjudge.com'
+          : '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Max-Age': '86400',
@@ -175,11 +179,17 @@ export default clerkMiddleware(async (auth, req) => {
         'wss://*.convex.cloud',
         'https://vitals.vercel-analytics.com',
         'https://vitals.vercel-insights.com',
+        'https://clerk.dev',
+        'https://*.clerk.dev',
+        'https://api.clerk.com',
+        'https://*.clerk.com',
       ],
       // Add custom image sources
       'img-src': [
         'https://img.clerk.com',
         'https://images.clerk.dev',
+        'https://clerk.dev',
+        'https://*.clerk.dev',
         'data:',
         'blob:',
         'https:',
@@ -187,14 +197,30 @@ export default clerkMiddleware(async (auth, req) => {
       // Add custom frame sources for authentication
       'frame-src': [
         'https://accounts.zoomjudge.com',
+        'https://js.stripe.com',
+        'https://hooks.stripe.com',
+        'https://clerk.dev',
+        'https://*.clerk.dev',
+        'https://challenges.cloudflare.com',
       ],
       // Allow workers for Clerk
       'worker-src': [
         'blob:',
       ],
-      // Add Vercel Analytics scripts
+      // Add Vercel Analytics and Clerk scripts
       'script-src': [
         'https://va.vercel-scripts.com',
+        'https://js.stripe.com',
+        'https://challenges.cloudflare.com',
+        'https://clerk.dev',
+        'https://*.clerk.dev',
+      ],
+      // Frame ancestors for embedding
+      'frame-ancestors': [
+        "'self'",
+        'https://accounts.zoomjudge.com',
+        'https://clerk.dev',
+        'https://*.clerk.dev',
       ],
     }
   }

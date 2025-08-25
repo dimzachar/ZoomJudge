@@ -1,11 +1,7 @@
 import type { NextConfig } from "next";
 
-// Security headers configuration (CSP now handled by Clerk middleware)
+// Security headers configuration (CSP and frame options now handled by Clerk middleware)
 const securityHeaders = [
-  {
-    key: 'X-Frame-Options',
-    value: 'SAMEORIGIN',
-  },
   {
     key: 'X-Content-Type-Options',
     value: 'nosniff',
