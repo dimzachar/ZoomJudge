@@ -46,11 +46,11 @@ export default function PublicDemoPage() {
 
               <Authenticated>
                 <div className="flex items-center gap-2">
-                  <Link href="/dashboard">
-                    <Button variant="outline" size="sm" className="hidden sm:inline-flex">
+                  <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
+                    <Link href="/dashboard">
                       Dashboard
-                    </Button>
-                  </Link>
+                    </Link>
+                  </Button>
                   <UserButton afterSignOutUrl="/" />
                 </div>
               </Authenticated>

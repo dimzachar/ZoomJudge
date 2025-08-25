@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
+import { SignUpButton } from '@clerk/nextjs'
 import PixelCard from '@/components/react-bits/pixel-card'
 
 export default function CallToAction() {
@@ -38,11 +39,11 @@ export default function CallToAction() {
                                 </div>
 
                                 <div className="flex flex-col sm:flex-row justify-center gap-3 max-w-md mx-auto">
-                                    <Button asChild size="lg" className="w-full sm:flex-1 min-h-[44px]">
-                                        <Link href="/dashboard">
+                                    <SignUpButton mode="modal">
+                                        <Button size="lg" className="w-full sm:flex-1 min-h-[44px]">
                                             Start Evaluating
-                                        </Link>
-                                    </Button>
+                                        </Button>
+                                    </SignUpButton>
                                     <Button asChild size="lg" variant="outline" className="w-full sm:flex-1 min-h-[44px] border-white text-white hover:bg-white hover:text-black">
                                         <Link href="#features">
                                             Learn More

@@ -7,6 +7,7 @@ import { HeroHeader } from "./header"
 import HeroBackground from './hero-background'
 import ThreeAnimation from './three-animation'
 import { useIntersectionObserver } from "@/hooks/use-intersection-observer"
+import { SignUpButton } from "@clerk/nextjs"
 
 // Lazy load GSAP only when needed
 const loadGSAP = () => import('gsap')
@@ -115,11 +116,11 @@ export default function HeroSection() {
                             </p>
 
                             <div ref={ctaContainerRef} className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-                                <Button asChild size="lg" className="w-full sm:w-auto h-12 md:h-14 px-6 sm:px-7 md:px-8 text-base md:text-lg hero-glow-button min-h-[44px]">
-                                    <Link href="/dashboard">
+                                <SignUpButton mode="modal">
+                                    <Button size="lg" className="w-full sm:w-auto h-12 md:h-14 px-6 sm:px-7 md:px-8 text-base md:text-lg hero-glow-button min-h-[44px]">
                                         <span>Evaluate For Free</span>
-                                    </Link>
-                                </Button>
+                                    </Button>
+                                </SignUpButton>
                                 <Button variant="outline" asChild className="w-full sm:w-auto h-12 md:h-14 px-6 sm:px-7 md:px-8 text-base md:text-lg border-white/20 bg-white/5 text-white/90 hover:bg-white/10 hover:border-white/30 hover:text-white backdrop-blur-sm transition-all duration-300 min-h-[44px]">
                                     <Link href="/demo">See it in action</Link>
                                 </Button>
