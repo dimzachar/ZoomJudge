@@ -164,9 +164,39 @@ export default clerkMiddleware(async (auth, req) => {
   // Continue with normal request processing
   return NextResponse.next()
 }, {
-  // Let Clerk handle CSP automatically for billing and authentication
+  // Let Clerk handle CSP and extend it with our specific needs
   contentSecurityPolicy: {
-    // Use default Clerk CSP configuration
+    directives: {
+      // Add Convex WebSocket and API connections
+      'connect-src': [
+        'https://accounts.zoomjudge.com',
+        'https://clerk.zoomjudge.com',
+        'https://*.convex.cloud',
+        'wss://*.convex.cloud',
+        'https://vitals.vercel-analytics.com',
+        'https://vitals.vercel-insights.com',
+      ],
+      // Add custom image sources
+      'img-src': [
+        'https://img.clerk.com',
+        'https://images.clerk.dev',
+        'data:',
+        'blob:',
+        'https:',
+      ],
+      // Add custom frame sources for authentication
+      'frame-src': [
+        'https://accounts.zoomjudge.com',
+      ],
+      // Allow workers for Clerk
+      'worker-src': [
+        'blob:',
+      ],
+      // Add Vercel Analytics scripts
+      'script-src': [
+        'https://va.vercel-scripts.com',
+      ],
+    }
   }
 })
 
