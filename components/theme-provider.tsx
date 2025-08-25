@@ -17,8 +17,27 @@ export function ConditionalThemeProvider({
 }: {
   children: React.ReactNode
 }) {
+  const [mounted, setMounted] = React.useState(false)
   const pathname = usePathname()
   const isLandingPage = pathname === "/"
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // During SSR, default to system theme to prevent hydration mismatch
+  if (!mounted) {
+    return (
+      <NextThemesProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+      >
+        {children}
+      </NextThemesProvider>
+    )
+  }
 
   if (isLandingPage) {
     return (

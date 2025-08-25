@@ -183,6 +183,8 @@ export default clerkMiddleware(async (auth, req) => {
         'https://*.clerk.dev',
         'https://api.clerk.com',
         'https://*.clerk.com',
+        'https://clerk-telemetry.com',
+        'https://*.clerk-telemetry.com',
       ],
       // Add custom image sources
       'img-src': [

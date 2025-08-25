@@ -41,6 +41,8 @@ export const HeroHeader = () => {
     }, [])
 
     React.useEffect(() => {
+        if (typeof window === 'undefined') return
+
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 50)
         }
@@ -50,6 +52,8 @@ export const HeroHeader = () => {
 
     // Add interactive glow effect for sign up buttons
     React.useEffect(() => {
+        if (typeof window === 'undefined') return
+
         const setupButtonInteraction = (containerRef: React.RefObject<HTMLDivElement | null>) => {
             const container = containerRef.current
             if (!container) return

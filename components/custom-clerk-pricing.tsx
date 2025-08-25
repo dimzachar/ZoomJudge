@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { IconAlertTriangle, IconRefresh } from "@tabler/icons-react"
 
 export default function CustomClerkPricing() {
+    // ALL HOOKS MUST BE CALLED FIRST - NO CONDITIONAL CALLS
     const { user } = useUser()
     const { theme } = useTheme()
     const pathname = usePathname()
@@ -20,10 +21,19 @@ export default function CustomClerkPricing() {
     const [hasError, setHasError] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
 
-    // Ensure component is mounted before accessing theme to prevent hydration mismatch
+    // HOOK 1: Mount detection and timeout
     useEffect(() => {
         setMounted(true)
-        // Set a timeout to detect if pricing table fails to load
+
+        // For logged-out users, show public pricing immediately (no loading needed)
+        if (!user) {
+            setIsLoading(false)
+            return
+        }
+
+        // Only set timeout if we're in the browser and user is authenticated
+        if (typeof window === 'undefined') return
+
         const timer = setTimeout(() => {
             if (isLoading) {
                 console.error('Clerk PricingTable failed to load within 10 seconds')
@@ -31,33 +41,19 @@ export default function CustomClerkPricing() {
                 setIsLoading(false)
                 toast.error('Pricing table failed to load. This may be due to CSP restrictions or billing configuration.')
             }
-        }, 10000) // 10 second timeout (increased from 5 seconds)
+        }, 10000)
 
         return () => clearTimeout(timer)
-    }, [isLoading])
+    }, [isLoading, user])
 
-    // Prevent hydration mismatch by not rendering until mounted
-    if (!mounted) {
-        return (
-            <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-        )
-    }
-
-    // Force dark theme for landing page, otherwise use system theme (only after mounted)
-    const isLandingPage = pathname === "/"
-    const effectiveTheme = isLandingPage ? "dark" : theme
-
-    // Check for successful pricing table load by observing DOM changes
+    // HOOK 2: DOM observation for pricing table (only for authenticated users)
     useEffect(() => {
-        if (!mounted || hasError) return
+        // Early return conditions but hook is always called
+        if (!mounted || hasError || typeof window === 'undefined' || !user) return
 
         const checkForPricingTable = () => {
-            // Look for Clerk pricing table elements in the DOM
             const pricingElements = document.querySelectorAll('[data-clerk-element="pricing-table"], .cl-pricing-table, [class*="pricing"]')
             if (pricingElements.length > 0) {
-                // console.log('Clerk PricingTable elements detected in DOM') // Disabled to reduce console noise
                 setIsLoading(false)
                 setHasError(false)
                 return true
@@ -65,10 +61,8 @@ export default function CustomClerkPricing() {
             return false
         }
 
-        // Check immediately
         if (checkForPricingTable()) return
 
-        // Set up a MutationObserver to watch for DOM changes
         const observer = new MutationObserver(() => {
             checkForPricingTable()
         })
@@ -79,7 +73,19 @@ export default function CustomClerkPricing() {
         })
 
         return () => observer.disconnect()
-    }, [mounted, hasError])
+    }, [mounted, hasError, user])
+
+    // ALL HOOKS CALLED - NOW SAFE TO DO CONDITIONAL RENDERING
+    const isLandingPage = pathname === "/"
+    const effectiveTheme = isLandingPage ? "dark" : theme
+
+    if (!mounted) {
+        return (
+            <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+        )
+    }
 
     // Debug logging (disabled to reduce console noise)
     // useEffect(() => {
@@ -250,7 +256,7 @@ export default function CustomClerkPricing() {
                                 <li>• Community support</li>
                             </ul>
                             <Button className="w-full mt-4" asChild>
-                                <a href="/dashboard">Get Started Free</a>
+                                <a href="/sign-up">Get Started Free</a>
                             </Button>
                         </CardContent>
                     </Card>
@@ -270,7 +276,7 @@ export default function CustomClerkPricing() {
                                 <li>• Email support</li>
                             </ul>
                             <Button className="w-full mt-4" asChild>
-                                <a href="/dashboard">Start Free Trial</a>
+                                <a href="/sign-up">Start Free Trial</a>
                             </Button>
                         </CardContent>
                     </Card>
@@ -290,7 +296,7 @@ export default function CustomClerkPricing() {
                                 <li>• Team support</li>
                             </ul>
                             <Button className="w-full mt-4" asChild>
-                                <a href="/dashboard">Start Free Trial</a>
+                                <a href="/sign-up">Start Free Trial</a>
                             </Button>
                         </CardContent>
                     </Card>

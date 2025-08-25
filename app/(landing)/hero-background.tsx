@@ -28,7 +28,7 @@ export default function HeroBackground() {
 
   useEffect(() => {
     const container = containerRef.current
-    if (!container || !shouldRender) return
+    if (!container || !shouldRender || typeof window === 'undefined') return
 
     const canvas = document.createElement("canvas")
     canvas.setAttribute("aria-hidden", "true")

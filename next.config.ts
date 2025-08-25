@@ -71,29 +71,29 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // Enable experimental features for better performance
-  experimental: {
-    optimizePackageImports: [
-      '@radix-ui/react-icons',
-      '@tabler/icons-react',
-      'lucide-react',
-      '@radix-ui/react-avatar',
-      '@radix-ui/react-checkbox',
-      '@radix-ui/react-collapsible',
-      '@radix-ui/react-dialog',
-      '@radix-ui/react-dropdown-menu',
-      '@radix-ui/react-label',
-      '@radix-ui/react-progress',
-      '@radix-ui/react-select',
-      '@radix-ui/react-separator',
-      '@radix-ui/react-slot',
-      '@radix-ui/react-switch',
-      '@radix-ui/react-tabs',
-      '@radix-ui/react-toggle',
-      '@radix-ui/react-toggle-group',
-      '@radix-ui/react-tooltip',
-    ],
-  },
+  // Temporarily disable experimental features to fix React 19 hook issues in production
+  // experimental: {
+  //   optimizePackageImports: [
+  //     '@radix-ui/react-icons',
+  //     '@tabler/icons-react',
+  //     'lucide-react',
+  //     '@radix-ui/react-avatar',
+  //     '@radix-ui/react-checkbox',
+  //     '@radix-ui/react-collapsible',
+  //     '@radix-ui/react-dialog',
+  //     '@radix-ui/react-dropdown-menu',
+  //     '@radix-ui/react-label',
+  //     '@radix-ui/react-progress',
+  //     '@radix-ui/react-select',
+  //     '@radix-ui/react-separator',
+  //     '@radix-ui/react-slot',
+  //     '@radix-ui/react-switch',
+  //     '@radix-ui/react-tabs',
+  //     '@radix-ui/react-toggle',
+  //     '@radix-ui/react-toggle-group',
+  //     '@radix-ui/react-tooltip',
+  //   ],
+  // },
 
   // Security-related configurations
   poweredByHeader: false,
@@ -157,9 +157,9 @@ const nextConfig: NextConfig = {
     return config
   },
 
-  // Performance optimizations
+  // Performance optimizations - temporarily disable console removal for debugging
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
+    removeConsole: false, // Temporarily disabled to help debug React 19 issues
   },
 };
 

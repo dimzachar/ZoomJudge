@@ -177,8 +177,9 @@ export default function RootLayout({
             <ConvexClientProvider>
               {children}
               <Toaster richColors position="top-right" />
-              <Analytics debug={false} />
-              <SpeedInsights debug={false} />
+              {/* Only load Vercel Analytics in production */}
+              {process.env.NODE_ENV === 'production' && <Analytics debug={false} />}
+              {process.env.NODE_ENV === 'production' && <SpeedInsights debug={false} />}
               <ServiceWorkerRegistration />
               <PerformanceMonitor />
             </ConvexClientProvider>

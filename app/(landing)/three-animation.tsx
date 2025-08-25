@@ -7,7 +7,7 @@ export default function ThreeAnimation() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || typeof window === 'undefined') return;
 
     // Scene setup
     const scene = new THREE.Scene();

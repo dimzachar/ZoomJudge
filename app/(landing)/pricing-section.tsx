@@ -20,7 +20,7 @@ export default function PricingSection() {
           <p className="text-base sm:text-lg text-muted-foreground">Choose the perfect plan for your evaluation needs. From individual projects to enterprise-scale repository analysis, we have you covered.</p>
         </div>
         <div suppressHydrationWarning>
-          <CustomClerkPricing />
+          <CustomClerkPricing key="clerk-pricing-component" />
         </div>
       </div>
     </section>
