@@ -20,6 +20,16 @@ export default function CustomClerkPricing() {
     const [hasError, setHasError] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
 
+    // Debug logging to help troubleshoot
+    console.log('CustomClerkPricing Debug:', {
+        user: !!user,
+        userId: user?.id,
+        pathname,
+        mounted,
+        hasError,
+        isLoading
+    })
+
     // Force dark theme for landing page, otherwise use system theme
     const isLandingPage = pathname === "/"
     const effectiveTheme = isLandingPage ? "dark" : theme
@@ -189,6 +199,100 @@ export default function CustomClerkPricing() {
                             </ul>
                             <Button className="w-full mt-4" onClick={handleContactSupport}>
                                 Contact Sales
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        )
+    }
+
+    // Only show Clerk PricingTable for authenticated users to avoid CORS issues
+    if (!user) {
+        return (
+            <div className="w-full space-y-8">
+                {/* Feature Comparison Note */}
+                <div className="text-center text-sm text-muted-foreground">
+                    <p>All plans include core evaluation features. Higher tiers unlock advanced capabilities and increased limits.</p>
+                </div>
+
+                {/* Static pricing display for unauthenticated users - using correct pricing from tier-permissions.ts */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+                    <Card className="relative">
+                        <CardHeader>
+                            <CardTitle className="text-lg">Free</CardTitle>
+                            <CardDescription>4 repo evals/month only score</CardDescription>
+                            <div className="text-3xl font-bold">$0<span className="text-sm font-normal text-muted-foreground">/month</span></div>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className="space-y-2 text-sm">
+                                <li>• 4 evaluations/month</li>
+                                <li>• Basic scoring (no analysis or feedback)</li>
+                                <li>• One evaluation engine (no model options)</li>
+                                <li>• Community support</li>
+                            </ul>
+                            <Button className="w-full mt-4" asChild>
+                                <a href="/dashboard">Get Started Free</a>
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="relative border-primary">
+                        <CardHeader>
+                            <CardTitle className="text-lg">Starter</CardTitle>
+                            <CardDescription>20 repo evals/month + detailed feedback</CardDescription>
+                            <div className="text-3xl font-bold">$12<span className="text-sm font-normal text-muted-foreground">/month</span></div>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className="space-y-2 text-sm">
+                                <li>• 20 evaluations/month</li>
+                                <li>• Full scoring + LLM feedback</li>
+                                <li>• Detailed analysis & recommendations</li>
+                                <li>• PDF export</li>
+                                <li>• Email support</li>
+                            </ul>
+                            <Button className="w-full mt-4" asChild>
+                                <a href="/dashboard">Start Free Trial</a>
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="relative">
+                        <CardHeader>
+                            <CardTitle className="text-lg">Pro</CardTitle>
+                            <CardDescription>200 repo evals/month + team support</CardDescription>
+                            <div className="text-3xl font-bold">$20<span className="text-sm font-normal text-muted-foreground">/month</span></div>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className="space-y-2 text-sm">
+                                <li>• 200 evaluations/month</li>
+                                <li>• Advanced analytics & comparison tools</li>
+                                <li>• Priority processing</li>
+                                <li>• API access</li>
+                                <li>• Team support</li>
+                            </ul>
+                            <Button className="w-full mt-4" asChild>
+                                <a href="/dashboard">Start Free Trial</a>
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="relative">
+                        <CardHeader>
+                            <CardTitle className="text-lg">Enterprise</CardTitle>
+                            <CardDescription>Custom solution for organizations</CardDescription>
+                            <div className="text-3xl font-bold">Custom</div>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className="space-y-2 text-sm">
+                                <li>• Unlimited evaluations</li>
+                                <li>• Team collaboration features</li>
+                                <li>• Custom criteria & bulk processing</li>
+                                <li>• Dedicated support</li>
+                                <li>• Custom integrations</li>
+                            </ul>
+                            <Button className="w-full mt-4" asChild>
+                                <a href="mailto:support@zoomjudge.com?subject=Enterprise%20Plan%20Inquiry">Contact Sales</a>
                             </Button>
                         </CardContent>
                     </Card>
