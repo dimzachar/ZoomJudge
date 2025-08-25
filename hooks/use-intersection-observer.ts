@@ -18,16 +18,26 @@ export function useIntersectionObserver<T extends HTMLElement = HTMLElement>(
 
   useEffect(() => {
     const element = elementRef.current
-    if (!element) return
+    if (!element || typeof window === 'undefined') return
 
     // If triggerOnce and already triggered, don't observe
     if (triggerOnce && hasTriggered) return
+
+    // Check if IntersectionObserver is available
+    if (!('IntersectionObserver' in window)) {
+      // Fallback: assume element is always visible
+      setIsIntersecting(true)
+      if (triggerOnce) {
+        setHasTriggered(true)
+      }
+      return
+    }
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         const isVisible = entry.isIntersecting
         setIsIntersecting(isVisible)
-        
+
         if (isVisible && triggerOnce) {
           setHasTriggered(true)
         }

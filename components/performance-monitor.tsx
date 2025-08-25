@@ -8,7 +8,7 @@ import { useEffect } from 'react'
  */
 export function PerformanceMonitor() {
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'development') {
+    if (process.env.NODE_ENV !== 'development' || typeof window === 'undefined') {
       return
     }
 
@@ -66,7 +66,7 @@ export function PerformanceMonitor() {
 
   // Monitor memory usage
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'development') {
+    if (process.env.NODE_ENV !== 'development' || typeof window === 'undefined') {
       return
     }
 

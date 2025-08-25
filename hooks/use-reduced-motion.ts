@@ -7,8 +7,15 @@ import { useEffect, useState } from 'react'
 export function useReducedMotion() {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
+    // Mark that we're on the client side
+    setIsClient(true)
+
+    // Only run browser-specific code after hydration
+    if (typeof window === 'undefined') return
+
     // Check for reduced motion preference
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
     setPrefersReducedMotion(mediaQuery.matches)
@@ -40,5 +47,6 @@ export function useReducedMotion() {
   }, [])
 
   // Return true if either reduced motion is preferred OR device is mobile
-  return prefersReducedMotion || isMobile
+  // During SSR/hydration, default to reduced motion for safety
+  return !isClient || prefersReducedMotion || isMobile
 }

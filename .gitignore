@@ -200,6 +200,6 @@ temp/
 # Migration artifacts (temporary files from dev-to-prod migration)
 fix-user-ids.js
 user-id-mapping.json
-migration-script/
+*migration-script/
 development-data-*.zip
 convex/migrations/*
