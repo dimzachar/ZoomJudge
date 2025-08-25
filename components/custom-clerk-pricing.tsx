@@ -1,5 +1,5 @@
 'use client'
-import { PricingTable } from "@clerk/nextjs";
+import { PricingTable, SignUpButton } from "@clerk/nextjs";
 import { useUser } from "@clerk/nextjs";
 import { dark } from '@clerk/themes'
 import { useTheme } from "next-themes"
@@ -255,9 +255,11 @@ export default function CustomClerkPricing() {
                                 <li>• One evaluation engine (no model options)</li>
                                 <li>• Community support</li>
                             </ul>
-                            <Button className="w-full mt-4" asChild>
-                                <a href="/sign-up">Get Started Free</a>
-                            </Button>
+                            <SignUpButton mode="modal">
+                                <Button className="w-full mt-4">
+                                    Get Started Free
+                                </Button>
+                            </SignUpButton>
                         </CardContent>
                     </Card>
 
@@ -275,9 +277,11 @@ export default function CustomClerkPricing() {
                                 <li>• PDF export</li>
                                 <li>• Email support</li>
                             </ul>
-                            <Button className="w-full mt-4" asChild>
-                                <a href="/sign-up">Start Free Trial</a>
-                            </Button>
+                            <SignUpButton mode="modal">
+                                <Button className="w-full mt-4">
+                                    Start Free Trial
+                                </Button>
+                            </SignUpButton>
                         </CardContent>
                     </Card>
 
@@ -295,9 +299,11 @@ export default function CustomClerkPricing() {
                                 <li>• API access</li>
                                 <li>• Team support</li>
                             </ul>
-                            <Button className="w-full mt-4" asChild>
-                                <a href="/sign-up">Start Free Trial</a>
-                            </Button>
+                            <SignUpButton mode="modal">
+                                <Button className="w-full mt-4">
+                                    Start Free Trial
+                                </Button>
+                            </SignUpButton>
                         </CardContent>
                     </Card>
 

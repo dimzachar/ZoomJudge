@@ -170,36 +170,27 @@ export const HeroHeader = () => {
                                 <Unauthenticated>
                                     <SignInButton mode="modal">
                                         <Button
-                                            asChild
                                             variant="outline"
                                             size="sm"
                                             className={cn(isScrolled && 'lg:hidden')}>
-                                            <Link href="#">
-                                                <span>Login</span>
-                                            </Link>
+                                            <span>Login</span>
                                         </Button>
                                     </SignInButton>
                                     <SignUpButton mode="modal">
                                         <div ref={signUpButtonRef}>
                                             <Button
-                                                asChild
                                                 size="sm"
                                                 className={cn('hero-glow-button', isScrolled && 'lg:hidden')}>
-                                                <Link href="#">
-                                                    <span>Sign Up</span>
-                                                </Link>
+                                                <span>Sign Up</span>
                                             </Button>
                                         </div>
                                     </SignUpButton>
                                     <SignUpButton mode="modal">
                                         <div ref={getStartedButtonRef}>
                                             <Button
-                                                asChild
                                                 size="sm"
                                                 className={cn('hero-glow-button', isScrolled ? 'lg:inline-flex' : 'hidden')}>
-                                                <Link href="#">
-                                                    <span>Get Started</span>
-                                                </Link>
+                                                <span>Get Started</span>
                                             </Button>
                                         </div>
                                     </SignUpButton>
