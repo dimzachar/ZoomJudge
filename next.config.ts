@@ -1,25 +1,7 @@
 import type { NextConfig } from "next";
 
-// Security headers configuration
+// Security headers configuration (CSP now handled by Clerk middleware)
 const securityHeaders = [
-  {
-    key: 'Content-Security-Policy',
-    value: [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://js.clerk.dev https://*.clerk.accounts.dev https://*.accounts.dev https://*.clerk.dev https://clerk.zoomjudge.com https://accounts.zoomjudge.com https://billing.clerk.com https://*.billing.clerk.com https://js.stripe.com https://checkout.stripe.com https://*.stripe.com https://va.vercel-scripts.com https://vercel.live https://js.hcaptcha.com https://hcaptcha.com https://*.hcaptcha.com https://www.google.com https://www.gstatic.com https://www.recaptcha.net https://recaptcha.net blob:",
-      "worker-src 'self' blob:",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.clerk.accounts.dev https://*.accounts.dev https://clerk.zoomjudge.com https://accounts.zoomjudge.com https://billing.clerk.com https://*.billing.clerk.com https://*.stripe.com https://hcaptcha.com https://*.hcaptcha.com",
-      "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data: https: blob: https://randomuser.me",
-      "connect-src 'self' https://api.convex.cloud https://*.convex.cloud wss://*.convex.cloud https://openrouter.ai https://clerk.dev https://*.clerk.accounts.dev https://*.accounts.dev https://api.clerk.dev https://clerk-telemetry.com https://clerk.zoomjudge.com https://accounts.zoomjudge.com https://billing.clerk.com https://*.billing.clerk.com https://api.stripe.com https://*.stripe.com https://vitals.vercel-insights.com https://vercel.live https://hcaptcha.com https://*.hcaptcha.com https://api.hcaptcha.com https://www.google.com https://www.recaptcha.net https://recaptcha.net",
-      "frame-src 'self' https://js.clerk.dev https://*.clerk.accounts.dev https://*.accounts.dev https://clerk.zoomjudge.com https://accounts.zoomjudge.com https://billing.clerk.com https://*.billing.clerk.com https://js.stripe.com https://*.stripe.com https://hcaptcha.com https://*.hcaptcha.com https://www.google.com https://recaptcha.net https://www.recaptcha.net",
-      "form-action 'self' https://*.accounts.dev https://*.clerk.accounts.dev https://clerk.zoomjudge.com https://accounts.zoomjudge.com",
-      "object-src 'none'",
-      "base-uri 'self'",
-      "frame-ancestors 'none'",
-      "upgrade-insecure-requests",
-    ].join('; '),
-  },
   {
     key: 'X-Frame-Options',
     value: 'SAMEORIGIN',
@@ -150,11 +132,9 @@ const nextConfig: NextConfig = {
   images: {
     formats: ['image/webp', 'image/avif'],
     dangerouslyAllowSVG: true,
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
     unoptimized: false,
     loader: 'default',
-    // Disable optimization for SVG files
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },

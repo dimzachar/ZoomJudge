@@ -20,21 +20,7 @@ export default function CustomClerkPricing() {
     const [hasError, setHasError] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
 
-    // Debug logging to help troubleshoot
-    console.log('CustomClerkPricing Debug:', {
-        user: !!user,
-        userId: user?.id,
-        pathname,
-        mounted,
-        hasError,
-        isLoading
-    })
-
-    // Force dark theme for landing page, otherwise use system theme
-    const isLandingPage = pathname === "/"
-    const effectiveTheme = isLandingPage ? "dark" : theme
-
-    // Ensure component is mounted before accessing theme
+    // Ensure component is mounted before accessing theme to prevent hydration mismatch
     useEffect(() => {
         setMounted(true)
         // Set a timeout to detect if pricing table fails to load
@@ -49,6 +35,19 @@ export default function CustomClerkPricing() {
 
         return () => clearTimeout(timer)
     }, [isLoading])
+
+    // Prevent hydration mismatch by not rendering until mounted
+    if (!mounted) {
+        return (
+            <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+        )
+    }
+
+    // Force dark theme for landing page, otherwise use system theme (only after mounted)
+    const isLandingPage = pathname === "/"
+    const effectiveTheme = isLandingPage ? "dark" : theme
 
     // Check for successful pricing table load by observing DOM changes
     useEffect(() => {
@@ -109,13 +108,7 @@ export default function CustomClerkPricing() {
         window.open('mailto:support@zoomjudge.com?subject=Billing Issue - Unable to Load Pricing', '_blank')
     }
 
-    if (!mounted) {
-        return (
-            <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-        )
-    }
+
 
     // Show error state if pricing table fails to load
     if (hasError) {
@@ -147,19 +140,20 @@ export default function CustomClerkPricing() {
                     </CardContent>
                 </Card>
 
-                {/* Fallback pricing display */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                {/* Fallback pricing display - using consistent pricing */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
                     <Card className="relative">
                         <CardHeader>
-                            <CardTitle className="text-lg">Starter</CardTitle>
-                            <CardDescription>Perfect for individual projects</CardDescription>
-                            <div className="text-3xl font-bold">$20<span className="text-sm font-normal text-muted-foreground">/month</span></div>
+                            <CardTitle className="text-lg">Free</CardTitle>
+                            <CardDescription>4 repo evals/month only score</CardDescription>
+                            <div className="text-3xl font-bold">$0<span className="text-sm font-normal text-muted-foreground">/month</span></div>
                         </CardHeader>
                         <CardContent>
                             <ul className="space-y-2 text-sm">
-                                <li>• 100 evaluations/month</li>
-                                <li>• All evaluation features</li>
-                                <li>• Email support</li>
+                                <li>• 4 evaluations/month</li>
+                                <li>• Basic scoring (no analysis or feedback)</li>
+                                <li>• One evaluation engine (no model options)</li>
+                                <li>• Community support</li>
                             </ul>
                             <Button className="w-full mt-4" onClick={handleContactSupport}>
                                 Contact Support to Upgrade
@@ -169,15 +163,37 @@ export default function CustomClerkPricing() {
 
                     <Card className="relative border-primary">
                         <CardHeader>
-                            <CardTitle className="text-lg">Pro</CardTitle>
-                            <CardDescription>For professional developers</CardDescription>
-                            <div className="text-3xl font-bold">$50<span className="text-sm font-normal text-muted-foreground">/month</span></div>
+                            <CardTitle className="text-lg">Starter</CardTitle>
+                            <CardDescription>20 repo evals/month + detailed feedback</CardDescription>
+                            <div className="text-3xl font-bold">$12<span className="text-sm font-normal text-muted-foreground">/month</span></div>
                         </CardHeader>
                         <CardContent>
                             <ul className="space-y-2 text-sm">
-                                <li>• 500 evaluations/month</li>
-                                <li>• Priority support</li>
-                                <li>• Advanced analytics</li>
+                                <li>• 20 evaluations/month</li>
+                                <li>• Full scoring + LLM feedback</li>
+                                <li>• Detailed analysis & recommendations</li>
+                                <li>• PDF export</li>
+                                <li>• Email support</li>
+                            </ul>
+                            <Button className="w-full mt-4" onClick={handleContactSupport}>
+                                Contact Support to Upgrade
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="relative">
+                        <CardHeader>
+                            <CardTitle className="text-lg">Pro</CardTitle>
+                            <CardDescription>200 repo evals/month + team support</CardDescription>
+                            <div className="text-3xl font-bold">$20<span className="text-sm font-normal text-muted-foreground">/month</span></div>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className="space-y-2 text-sm">
+                                <li>• 200 evaluations/month</li>
+                                <li>• Advanced analytics & comparison tools</li>
+                                <li>• Priority processing</li>
+                                <li>• API access</li>
+                                <li>• Team support</li>
                             </ul>
                             <Button className="w-full mt-4" onClick={handleContactSupport}>
                                 Contact Support to Upgrade
@@ -188,12 +204,14 @@ export default function CustomClerkPricing() {
                     <Card className="relative">
                         <CardHeader>
                             <CardTitle className="text-lg">Enterprise</CardTitle>
-                            <CardDescription>For teams and organizations</CardDescription>
+                            <CardDescription>Custom solution for organizations</CardDescription>
                             <div className="text-3xl font-bold">Custom</div>
                         </CardHeader>
                         <CardContent>
                             <ul className="space-y-2 text-sm">
                                 <li>• Unlimited evaluations</li>
+                                <li>• Team collaboration features</li>
+                                <li>• Custom criteria & bulk processing</li>
                                 <li>• Dedicated support</li>
                                 <li>• Custom integrations</li>
                             </ul>

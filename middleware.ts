@@ -163,6 +163,11 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Continue with normal request processing
   return NextResponse.next()
+}, {
+  // Let Clerk handle CSP automatically for billing and authentication
+  contentSecurityPolicy: {
+    // Use default Clerk CSP configuration
+  }
 })
 
 export const config = {

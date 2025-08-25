@@ -19,7 +19,9 @@ export default function PricingSection() {
           <h1 className="text-center text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold">Pricing that Scales with You</h1>
           <p className="text-base sm:text-lg text-muted-foreground">Choose the perfect plan for your evaluation needs. From individual projects to enterprise-scale repository analysis, we have you covered.</p>
         </div>
-        <CustomClerkPricing />
+        <div suppressHydrationWarning>
+          <CustomClerkPricing />
+        </div>
       </div>
     </section>
   );
