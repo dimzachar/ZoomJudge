@@ -9,6 +9,7 @@ import { feedbackSchema, type FeedbackFormData } from "@/lib/validation/feedback
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -96,6 +97,9 @@ export function FeedbackModal({ isOpen, onClose, defaultType = "general", evalua
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Send Feedback</DialogTitle>
+          <DialogDescription>
+            Help us improve ZoomJudge by sharing your thoughts, reporting bugs, or suggesting new features.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
