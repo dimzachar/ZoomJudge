@@ -243,44 +243,7 @@ export default function PublicDemoPage() {
           </div>
         </div>
 
-        {/* Tier-Gated Content Demo */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">Advanced Features</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <TierGatedContent
-              feature="performance-charts"
-              userTier={userTier}
-              onUpgrade={handleUpgrade}
-            >
-              <Card>
-                <CardHeader>
-                  <CardTitle>Performance Charts</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">
-                    Advanced performance analytics and trend visualization would appear here.
-                  </p>
-                </CardContent>
-              </Card>
-            </TierGatedContent>
-
-            <ClerkBillingGate
-              feature="comparison-tools"
-              userTier={userTier}
-            >
-              <Card>
-                <CardHeader>
-                  <CardTitle>Repository Comparison (Clerk Protected)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">
-                    This content is protected by Clerk billing integration.
-                  </p>
-                </CardContent>
-              </Card>
-            </ClerkBillingGate>
-          </div>
-        </div>
+        
 
         {/* Clerk Billing Integration Demo */}
         <div className="space-y-4">
