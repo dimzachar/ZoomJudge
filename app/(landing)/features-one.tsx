@@ -1,7 +1,23 @@
+"use client"
+
 import { Card } from '@/components/ui/card'
-import { Table } from './table'
-import { CpuArchitecture } from './cpu-architecture'
-import { AnimatedListCustom } from './animated-list-custom'
+import dynamic from 'next/dynamic'
+
+// Lazy load heavy components
+const Table = dynamic(() => import('./table').then(mod => mod.Table), {
+    loading: () => <div className="h-64 bg-muted/50 rounded-lg animate-pulse" />,
+    ssr: false
+})
+
+const CpuArchitecture = dynamic(() => import('./cpu-architecture').then(mod => mod.CpuArchitecture), {
+    loading: () => <div className="h-48 bg-muted/50 rounded-lg animate-pulse" />,
+    ssr: false
+})
+
+const AnimatedListCustom = dynamic(() => import('./animated-list-custom').then(mod => mod.AnimatedListCustom), {
+    loading: () => <div className="h-64 bg-muted/50 rounded-lg animate-pulse" />,
+    ssr: false
+})
   
 
 export default function FeaturesOne() {

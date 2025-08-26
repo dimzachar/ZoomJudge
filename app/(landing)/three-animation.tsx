@@ -1,13 +1,32 @@
 "use client";
 
-import * as THREE from "three";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useIntersectionObserver } from "@/hooks/use-intersection-observer";
+
+// Lazy load Three.js only when needed
+const loadThree = () => import("three");
 
 export default function ThreeAnimation() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [threeLoaded, setThreeLoaded] = useState(false);
+  const [THREE, setTHREE] = useState<any>(null);
+  const { elementRef, isIntersecting } = useIntersectionObserver({
+    threshold: 0.1,
+    triggerOnce: true,
+  });
+
+  // Load Three.js only when component is visible
+  useEffect(() => {
+    if (isIntersecting && !threeLoaded) {
+      loadThree().then((threeModule) => {
+        setTHREE(threeModule);
+        setThreeLoaded(true);
+      });
+    }
+  }, [isIntersecting, threeLoaded]);
 
   useEffect(() => {
-    if (!containerRef.current || typeof window === 'undefined') return;
+    if (!THREE || !threeLoaded || !containerRef.current || typeof window === 'undefined') return;
 
     // Scene setup
     const scene = new THREE.Scene();
@@ -100,7 +119,7 @@ export default function ThreeAnimation() {
       );
     };
 
-    const pts: THREE.Vector3[] = [];
+    const pts: any[] = [];
     for (let i = 0; i < 50000; i++) {
       sizes.push(Math.random() * 1.5 + 0.5);
       pushShift();
@@ -204,19 +223,26 @@ export default function ThreeAnimation() {
       material.dispose();
       points.geometry.dispose();
       if (Array.isArray(points.material)) {
-        points.material.forEach(material => material.dispose());
+        points.material.forEach((material: any) => material.dispose());
       } else {
         points.material.dispose();
       }
       renderer.dispose();
     };
-  }, []);
+  }, [THREE, threeLoaded]);
 
   return (
     <div
-      ref={containerRef}
+      ref={(node) => {
+        containerRef.current = node;
+        elementRef.current = node;
+      }}
       className="absolute inset-0 -z-10 overflow-hidden"
       style={{ pointerEvents: 'none' }}
-    />
+    >
+      {!threeLoaded && (
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-blue-900/20 animate-pulse" />
+      )}
+    </div>
   );
 }

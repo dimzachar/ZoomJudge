@@ -44,7 +44,7 @@ export default function CallToAction() {
                                             Start Evaluating
                                         </Button>
                                     </SignUpButton>
-                                    <Button asChild size="lg" variant="outline" className="w-full sm:flex-1 min-h-[44px] border-white text-white hover:bg-white hover:text-black">
+                                    <Button asChild size="lg" variant="outline" className="w-full sm:flex-1 min-h-[44px] border-white/30 bg-white/5 text-white hover:bg-blue-500 hover:border-blue-400 hover:text-white backdrop-blur-sm transition-all duration-300">
                                         <Link href="#features">
                                             Learn More
                                         </Link>

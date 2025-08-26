@@ -76,14 +76,14 @@ export const Table = ({ className }: { className?: string }) => {
                             <td>{customer.id}</td>
                             <td>{customer.date}</td>
                             <td>
-                                <span className={cn('rounded-full px-2 py-1 text-xs', customer.statusVariant == 'success' && 'bg-lime-500/15 text-lime-800', customer.statusVariant == 'danger' && 'bg-red-500/15 text-red-800', customer.statusVariant == 'warning' && 'bg-yellow-500/15 text-yellow-800')}>{customer.status}</span>
+                                <span className={cn('rounded-full px-2 py-1 text-xs', customer.statusVariant == 'success' && 'bg-green-100 text-green-900 dark:bg-green-900 dark:text-green-100', customer.statusVariant == 'danger' && 'bg-red-100 text-red-900 dark:bg-red-900 dark:text-red-100', customer.statusVariant == 'warning' && 'bg-yellow-100 text-yellow-900 dark:bg-yellow-900 dark:text-yellow-100')}>{customer.status}</span>
                             </td>
                             <td>
                                 <div className="text-title flex items-center gap-2">
                                     <div className="size-6 overflow-hidden rounded-full">
                                         <img
                                             src={customer.avatar}
-                                            alt={customer.name}
+                                            alt=""
                                             width="120"
                                             height="120"
                                             loading="lazy"

@@ -102,6 +102,7 @@ export const HeroHeader = () => {
     return (
         <header>
             <nav
+                aria-label="Primary navigation"
                 data-state={menuState && 'active'}
                 className="fixed z-20 w-full px-2">
                 <div className={cn('mx-auto mt-2 max-w-6xl px-6 transition-all duration-300 lg:px-12', isScrolled && 'bg-background/50 max-w-4xl rounded-2xl border backdrop-blur-lg lg:px-5')}>

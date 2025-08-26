@@ -190,7 +190,7 @@ export function MobileFooter({ className, variant = 'compact' }: MobileFooterPro
 
         {/* Legal links and copyright */}
         <div className="space-y-3 text-center">
-          <nav className="flex flex-wrap items-center justify-center gap-4 text-xs">
+          <nav aria-label="Footer navigation" className="flex flex-wrap items-center justify-center gap-4 text-xs">
             <Link href="/terms" className="text-muted-foreground hover:text-foreground touch-target">Terms</Link>
             <Link href="/privacy" className="text-muted-foreground hover:text-foreground touch-target">Privacy</Link>
             <Link href="/changelog" className="text-muted-foreground hover:text-foreground touch-target">Changelog</Link>

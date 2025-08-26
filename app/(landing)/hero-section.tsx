@@ -3,8 +3,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { HeroHeader } from "./header"
-import HeroBackground from './hero-background'
 import ThreeAnimation from './three-animation'
 import { useIntersectionObserver } from "@/hooks/use-intersection-observer"
 import { SignUpButton } from "@clerk/nextjs"
@@ -85,50 +83,45 @@ export default function HeroSection() {
     }, [gsap, gsapLoaded])
 
     return (
-        <>
-            <HeroHeader />
-            <main>
-                <section
-                    ref={elementRef}
-                    className="relative min-h-[100vh]"
-                >
-                    <HeroBackground />
-                    <ThreeAnimation />
+        <section
+            ref={elementRef}
+            className="relative min-h-[100vh]"
+        >
+            {/* Three.js Ring Animation */}
+            <ThreeAnimation />
 
-                    <div className="mx-auto max-w-6xl px-4 sm:px-6 md:px-12 min-h-[100vh] flex items-center">
-                        <div className="relative pb-16 sm:pb-20 md:pb-24 max-w-[56ch] mt-12 sm:mt-16 md:mt-20">
-                            <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-70 [mask-image:radial-gradient(65%_55%_at_45%_50%,#000_70%,transparent)]" />
+            <div className="mx-auto max-w-6xl px-4 sm:px-6 md:px-12 min-h-[100vh] flex items-center">
+                <div className="relative pb-16 sm:pb-20 md:pb-24 max-w-[56ch] mt-12 sm:mt-16 md:mt-20">
+                    <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-70 [mask-image:radial-gradient(65%_55%_at_45%_50%,#000_70%,transparent)]" />
 
-                            <h1 className="text-left text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[0.95] text-balance" aria-label={HEADLINE}>
-                                <div ref={headlineRef} className="flex flex-wrap gap-x-2 sm:gap-x-3 gap-y-1 sm:gap-y-2">
-                                    {words.map((word, wi) => (
-                                        <div key={wi} className="overflow-hidden">
-                                            {Array.from(word).map((ch, ci) => (
-                                                <span key={`${wi}-${ci}`} className="headline-char inline-block">{ch}</span>
-                                            ))}
-                                        </div>
+                    <h1 className="text-left text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[0.95] text-balance" aria-label={HEADLINE}>
+                        <div ref={headlineRef} className="flex flex-wrap gap-x-2 sm:gap-x-3 gap-y-1 sm:gap-y-2">
+                            {words.map((word, wi) => (
+                                <div key={wi} className="overflow-hidden">
+                                    {Array.from(word).map((ch, ci) => (
+                                        <span key={`${wi}-${ci}`} className="headline-char inline-block">{ch}</span>
                                     ))}
                                 </div>
-                            </h1>
-
-                            <p className="mt-6 sm:mt-8 text-base sm:text-lg md:text-xl text-white/70 max-w-prose">
-                                Instant, AI‑powered codebase evaluations with clear, prioritized insights.
-                            </p>
-
-                            <div ref={ctaContainerRef} className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-                                <SignUpButton mode="modal">
-                                    <Button size="lg" className="w-full sm:w-auto h-12 md:h-14 px-6 sm:px-7 md:px-8 text-base md:text-lg hero-glow-button min-h-[44px]">
-                                        <span>Evaluate For Free</span>
-                                    </Button>
-                                </SignUpButton>
-                                <Button variant="outline" asChild className="w-full sm:w-auto h-12 md:h-14 px-6 sm:px-7 md:px-8 text-base md:text-lg border-white/20 bg-white/5 text-white/90 hover:bg-white/10 hover:border-white/30 hover:text-white backdrop-blur-sm transition-all duration-300 min-h-[44px]">
-                                    <Link href="/demo">See it in action</Link>
-                                </Button>
-                            </div>
+                            ))}
                         </div>
+                    </h1>
+
+                    <p className="mt-6 sm:mt-8 text-base sm:text-lg md:text-xl text-white/70 max-w-prose">
+                        Instant, AI‑powered codebase evaluations with clear, prioritized insights.
+                    </p>
+
+                    <div ref={ctaContainerRef} className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+                        <SignUpButton mode="modal">
+                            <Button size="lg" className="w-full sm:w-auto h-12 md:h-14 px-6 sm:px-7 md:px-8 text-base md:text-lg hero-glow-button min-h-[44px]">
+                                <span>Evaluate For Free</span>
+                            </Button>
+                        </SignUpButton>
+                        <Button variant="outline" asChild className="w-full sm:w-auto h-12 md:h-14 px-6 sm:px-7 md:px-8 text-base md:text-lg border-white/20 bg-white/5 text-white/90 hover:bg-white/10 hover:border-white/30 hover:text-white backdrop-blur-sm transition-all duration-300 min-h-[44px]">
+                            <Link href="/demo">See it in action</Link>
+                        </Button>
                     </div>
-                </section>
-            </main>
-        </>
+                </div>
+            </div>
+        </section>
     )
 }

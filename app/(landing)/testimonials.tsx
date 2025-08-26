@@ -1,9 +1,17 @@
 "use client"
 
 import { Card, CardContent } from '@/components/ui/card'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
+import { useIntersectionObserver } from "@/hooks/use-intersection-observer"
+
+// Lazy load GSAP only when needed
+const loadGSAP = () => import('gsap').then(gsap => {
+    return import('gsap/ScrollTrigger').then(ScrollTrigger => {
+        gsap.default.registerPlugin(ScrollTrigger.ScrollTrigger)
+        return gsap.default
+    })
+})
 
 type Testimonial = {
     name: string
@@ -13,26 +21,26 @@ type Testimonial = {
 }
 
 const allTestimonials: Testimonial[] = [
-    { name: 'Marta Nowak', company: 'DeepVisor', image: 'https://randomuser.me/api/portraits/women/1.jpg', quote: 'The repo score and suggestions made my capstone much stronger.' },
-    { name: 'Arman Patel', company: 'DataForge', image: 'https://randomuser.me/api/portraits/men/6.jpg', quote: 'Specific feedback tied to files. Huge time saver.' },
-    { name: 'Lina Kovacs', company: 'ModelOps', image: 'https://randomuser.me/api/portraits/women/7.jpg', quote: 'Rubric-based scoring gave me confidence at review.' },
-    { name: 'Diego Ramirez', company: 'Promptly', image: 'https://randomuser.me/api/portraits/men/4.jpg', quote: 'Caught prompt leakage and logging gaps instantly.' },
-    { name: 'Yuki Tanaka', company: 'Nebula', image: 'https://randomuser.me/api/portraits/women/2.jpg', quote: 'My pre‑submission checklist. Clear and fair.' },
-    { name: 'Omar Siddiqui', company: 'Atlas ML', image: 'https://randomuser.me/api/portraits/men/8.jpg', quote: 'Feels like a senior engineer reviewed my PRs. Clear and actionable.' },
-    { name: 'Sofia Rossi', company: 'Cloudloop', image: 'https://randomuser.me/api/portraits/women/8.jpg', quote: 'Loved the clarity of the comments and score breakdown.' },
-    { name: 'Nikolai Petrov', company: 'StackPilot', image: 'https://randomuser.me/api/portraits/men/12.jpg', quote: 'Helped me ship a cleaner repo before peer review.' },
-    { name: 'Amelia Clark', company: 'VectorBay', image: 'https://randomuser.me/api/portraits/women/12.jpg', quote: 'Fast checks, fair scoring, simple fixes. Perfect.' },
-    { name: 'Hassan Ali', company: 'Pipeline AI', image: 'https://randomuser.me/api/portraits/men/13.jpg', quote: 'Flagged config and logging issues I had missed.' },
-    { name: 'Zoë Martin', company: 'DeltaForge', image: 'https://randomuser.me/api/portraits/women/15.jpg', quote: 'Made my project review-ready in a single day.' },
-    { name: 'Rafael Souza', company: 'Metrika', image: 'https://randomuser.me/api/portraits/men/15.jpg', quote: 'The rubric aligns with course expectations. Super helpful.' },
-    { name: 'Priya Sharma', company: 'SynthWorks', image: 'https://randomuser.me/api/portraits/women/16.jpg', quote: 'Loved the inline suggestions tied to files.' },
-    { name: 'Jasper Lee', company: 'ByteLab', image: 'https://randomuser.me/api/portraits/men/16.jpg', quote: 'Made my refactors obvious and easy to prioritize.' },
-    { name: 'Noor Al‑Hassan', company: 'Jetstream', image: 'https://randomuser.me/api/portraits/women/17.jpg', quote: 'Exactly what I needed to pass peer review with confidence.' },
-    { name: 'Ethan Walker', company: 'ApexScale', image: 'https://randomuser.me/api/portraits/men/17.jpg', quote: 'Great developer experience. Clear, fast, reliable.' },
-    { name: 'Valentina Ruiz', company: 'LambdaHub', image: 'https://randomuser.me/api/portraits/women/18.jpg', quote: 'It caught problems my classmates missed.' },
-    { name: 'Jonas Müller', company: 'QuantLeap', image: 'https://randomuser.me/api/portraits/men/18.jpg', quote: 'Scored my repo fairly and suggested concrete fixes.' },
-    { name: 'Leila Farahani', company: 'ModelMint', image: 'https://randomuser.me/api/portraits/women/19.jpg', quote: 'The feedback quality is outstanding.' },
-    { name: 'Marc Dubois', company: 'TrainSet', image: 'https://randomuser.me/api/portraits/men/19.jpg', quote: 'I trust it before submitting any project now.' },
+    { name: 'Marta Nowak', company: 'DeepVisor', image: 'https://randomuser.me/api/portraits/thumb/women/1.jpg', quote: 'The repo score and suggestions made my capstone much stronger.' },
+    { name: 'Arman Patel', company: 'DataForge', image: 'https://randomuser.me/api/portraits/thumb/men/6.jpg', quote: 'Specific feedback tied to files. Huge time saver.' },
+    { name: 'Lina Kovacs', company: 'ModelOps', image: 'https://randomuser.me/api/portraits/thumb/women/7.jpg', quote: 'Rubric-based scoring gave me confidence at review.' },
+    { name: 'Diego Ramirez', company: 'Promptly', image: 'https://randomuser.me/api/portraits/thumb/men/4.jpg', quote: 'Caught prompt leakage and logging gaps instantly.' },
+    { name: 'Yuki Tanaka', company: 'Nebula', image: 'https://randomuser.me/api/portraits/thumb/women/2.jpg', quote: 'My pre‑submission checklist. Clear and fair.' },
+    { name: 'Omar Siddiqui', company: 'Atlas ML', image: 'https://randomuser.me/api/portraits/thumb/men/8.jpg', quote: 'Feels like a senior engineer reviewed my PRs. Clear and actionable.' },
+    { name: 'Sofia Rossi', company: 'Cloudloop', image: 'https://randomuser.me/api/portraits/thumb/women/8.jpg', quote: 'Loved the clarity of the comments and score breakdown.' },
+    { name: 'Nikolai Petrov', company: 'StackPilot', image: 'https://randomuser.me/api/portraits/thumb/men/12.jpg', quote: 'Helped me ship a cleaner repo before peer review.' },
+    { name: 'Amelia Clark', company: 'VectorBay', image: 'https://randomuser.me/api/portraits/thumb/women/12.jpg', quote: 'Fast checks, fair scoring, simple fixes. Perfect.' },
+    { name: 'Hassan Ali', company: 'Pipeline AI', image: 'https://randomuser.me/api/portraits/thumb/men/13.jpg', quote: 'Flagged config and logging issues I had missed.' },
+    { name: 'Zoë Martin', company: 'DeltaForge', image: 'https://randomuser.me/api/portraits/thumb/women/15.jpg', quote: 'Made my project review-ready in a single day.' },
+    { name: 'Rafael Souza', company: 'Metrika', image: 'https://randomuser.me/api/portraits/thumb/men/15.jpg', quote: 'The rubric aligns with course expectations. Super helpful.' },
+    { name: 'Priya Sharma', company: 'SynthWorks', image: 'https://randomuser.me/api/portraits/thumb/women/16.jpg', quote: 'Loved the inline suggestions tied to files.' },
+    { name: 'Jasper Lee', company: 'ByteLab', image: 'https://randomuser.me/api/portraits/thumb/men/16.jpg', quote: 'Made my refactors obvious and easy to prioritize.' },
+    { name: 'Noor Al‑Hassan', company: 'Jetstream', image: 'https://randomuser.me/api/portraits/thumb/women/17.jpg', quote: 'Exactly what I needed to pass peer review with confidence.' },
+    { name: 'Ethan Walker', company: 'ApexScale', image: 'https://randomuser.me/api/portraits/thumb/men/17.jpg', quote: 'Great developer experience. Clear, fast, reliable.' },
+    { name: 'Valentina Ruiz', company: 'LambdaHub', image: 'https://randomuser.me/api/portraits/thumb/women/18.jpg', quote: 'It caught problems my classmates missed.' },
+    { name: 'Jonas Müller', company: 'QuantLeap', image: 'https://randomuser.me/api/portraits/thumb/men/18.jpg', quote: 'Scored my repo fairly and suggested concrete fixes.' },
+    { name: 'Leila Farahani', company: 'ModelMint', image: 'https://randomuser.me/api/portraits/thumb/women/19.jpg', quote: 'The feedback quality is outstanding.' },
+    { name: 'Marc Dubois', company: 'TrainSet', image: 'https://randomuser.me/api/portraits/thumb/men/19.jpg', quote: 'I trust it before submitting any project now.' },
 ]
 
 const topRow = allTestimonials.slice(0, 10)
@@ -44,10 +52,25 @@ export default function WallOfLoveSection() {
     const containerRef = useRef<HTMLDivElement | null>(null)
     const topRowRef = useRef<HTMLDivElement | null>(null)
     const bottomRowRef = useRef<HTMLDivElement | null>(null)
+    const [gsapLoaded, setGsapLoaded] = useState(false)
+    const [gsap, setGsap] = useState<any>(null)
+    const { elementRef, isIntersecting } = useIntersectionObserver({
+        threshold: 0.1,
+        triggerOnce: true,
+    })
+
+    // Load GSAP only when component is visible
+    useEffect(() => {
+        if (isIntersecting && !gsapLoaded) {
+            loadGSAP().then((gsapModule) => {
+                setGsap(gsapModule)
+                setGsapLoaded(true)
+            })
+        }
+    }, [isIntersecting, gsapLoaded])
 
     useEffect(() => {
-        gsap.registerPlugin(ScrollTrigger)
-        if (!containerRef.current || !topRowRef.current || !bottomRowRef.current) return
+        if (!gsap || !gsapLoaded || !containerRef.current || !topRowRef.current || !bottomRowRef.current) return
 
         // marquee base motion (infinite)
         const t1 = gsap.to(topRowRef.current, {
@@ -82,10 +105,10 @@ export default function WallOfLoveSection() {
             t1.kill()
             t2.kill()
         }
-    }, [])
+    }, [gsap, gsapLoaded])
 
     return (
-        <section id="testimonials" className="py-12 sm:py-16 md:py-20 lg:py-24 testimonials-section">
+        <section ref={elementRef} id="testimonials" className="py-12 sm:py-16 md:py-20 lg:py-24 testimonials-section">
             <div className="mx-auto max-w-7xl px-4 sm:px-6">
                 <div className="text-center max-w-3xl mx-auto">
                     <h2 className="text-foreground text-2xl sm:text-3xl md:text-4xl font-semibold">What Developers Are Saying</h2>
@@ -98,10 +121,14 @@ export default function WallOfLoveSection() {
                                 <Card key={`top-${i}`} className="testimonial-card min-w-[280px] sm:min-w-[320px] md:min-w-[380px] lg:min-w-[420px]">
                                     <CardContent className="pt-4 sm:pt-5 md:pt-6">
                                         <div className="flex items-center gap-2 sm:gap-3">
-                                            <img
+                                            <Image
                                                 src={t.image}
-                                                alt={t.name}
+                                                alt=""
+                                                width={36}
+                                                height={36}
                                                 className="size-8 sm:size-9 rounded-full object-cover"
+                                                loading="lazy"
+                                                quality={75}
                                             />
                                             <div className="min-w-0 flex-1">
                                                 <h3 className="text-sm sm:text-base font-medium leading-none truncate">{t.name}</h3>
@@ -121,10 +148,14 @@ export default function WallOfLoveSection() {
                                 <Card key={`bottom-${i}`} className="testimonial-card min-w-[280px] sm:min-w-[320px] md:min-w-[380px] lg:min-w-[420px]">
                                     <CardContent className="pt-4 sm:pt-5 md:pt-6">
                                         <div className="flex items-center gap-2 sm:gap-3">
-                                            <img
+                                            <Image
                                                 src={t.image}
-                                                alt={t.name}
+                                                alt=""
+                                                width={36}
+                                                height={36}
                                                 className="size-8 sm:size-9 rounded-full object-cover"
+                                                loading="lazy"
+                                                quality={75}
                                             />
                                             <div className="min-w-0 flex-1">
                                                 <h3 className="text-sm sm:text-base font-medium leading-none truncate">{t.name}</h3>

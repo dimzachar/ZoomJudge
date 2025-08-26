@@ -172,7 +172,7 @@ export default function SettingsPage() {
           {/* Profile Picture */}
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-4">
             <Avatar className="h-16 w-16 sm:h-20 sm:w-20 flex-shrink-0">
-              <AvatarImage src={user?.imageUrl} alt={user?.fullName || ""} />
+              <AvatarImage src={user?.imageUrl} alt="" />
               <AvatarFallback className="text-base sm:text-lg">
                 {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
               </AvatarFallback>
