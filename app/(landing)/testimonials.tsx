@@ -121,14 +121,14 @@ export default function WallOfLoveSection() {
                                 <Card key={`top-${i}`} className="testimonial-card min-w-[280px] sm:min-w-[320px] md:min-w-[380px] lg:min-w-[420px]">
                                     <CardContent className="pt-4 sm:pt-5 md:pt-6">
                                         <div className="flex items-center gap-2 sm:gap-3">
-                                            <Image
+                                            <img
                                                 src={t.image}
-                                                alt=""
-                                                width={36}
-                                                height={36}
-                                                className="size-8 sm:size-9 rounded-full object-cover"
+                                                alt={t.name}
+                                                width="36"
+                                                height="36"
                                                 loading="lazy"
-                                                quality={75}
+                                                decoding="async"
+                                                className="size-8 sm:size-9 rounded-full object-cover"
                                             />
                                             <div className="min-w-0 flex-1">
                                                 <h3 className="text-sm sm:text-base font-medium leading-none truncate">{t.name}</h3>
@@ -148,14 +148,14 @@ export default function WallOfLoveSection() {
                                 <Card key={`bottom-${i}`} className="testimonial-card min-w-[280px] sm:min-w-[320px] md:min-w-[380px] lg:min-w-[420px]">
                                     <CardContent className="pt-4 sm:pt-5 md:pt-6">
                                         <div className="flex items-center gap-2 sm:gap-3">
-                                            <Image
+                                            <img
                                                 src={t.image}
-                                                alt=""
-                                                width={36}
-                                                height={36}
-                                                className="size-8 sm:size-9 rounded-full object-cover"
+                                                alt={t.name}
+                                                width="36"
+                                                height="36"
                                                 loading="lazy"
-                                                quality={75}
+                                                decoding="async"
+                                                className="size-8 sm:size-9 rounded-full object-cover"
                                             />
                                             <div className="min-w-0 flex-1">
                                                 <h3 className="text-sm sm:text-base font-medium leading-none truncate">{t.name}</h3>
