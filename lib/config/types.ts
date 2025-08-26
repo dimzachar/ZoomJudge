@@ -40,11 +40,21 @@ export interface SiteConfiguration {
   simpleLoggerEnabled: boolean;
 }
 
+export interface EmailConfiguration {
+  resend: {
+    apiKey: string;
+    fromDomain: string;
+    fromEmail: string;
+    enabled: boolean;
+  };
+}
+
 export interface AppConfiguration {
   api: APIConfiguration;
   database: DatabaseConfiguration;
   auth: AuthConfiguration;
   site: SiteConfiguration;
+  email: EmailConfiguration;
   environment: 'development' | 'production' | 'test';
 }
 

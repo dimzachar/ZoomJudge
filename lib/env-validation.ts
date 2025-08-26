@@ -18,6 +18,11 @@ const envSchema = z.object({
   CLERK_SECRET_KEY: z.string().optional(),
   CLERK_WEBHOOK_SECRET: z.string().min(16, 'Webhook secret too weak').optional(),
   CONVEX_DEPLOYMENT: z.string().optional(),
+
+  // Resend Email Configuration
+  RESEND_API_KEY: z.string().min(10, 'Resend API key too short').optional(),
+  RESEND_FROM_DOMAIN: z.string().min(3, 'Resend domain too short').optional(),
+  RESEND_FROM_EMAIL: z.string().email('Invalid Resend from email').optional(),
   
   // Optional with defaults
   MAX_FILE_SIZE: z.coerce.number().min(1).max(50).default(10), // MB
@@ -117,7 +122,19 @@ export function checkRequiredEnvVars(): {
   if (!process.env.UPSTASH_REDIS_REST_URL) {
     warnings.push('UPSTASH_REDIS_REST_URL not set - rate limiting will use memory');
   }
-  
+
+  if (!process.env.RESEND_API_KEY) {
+    warnings.push('RESEND_API_KEY not set - email functionality will be disabled');
+  }
+
+  if (!process.env.RESEND_FROM_DOMAIN) {
+    warnings.push('RESEND_FROM_DOMAIN not set - email sending may fail');
+  }
+
+  if (!process.env.RESEND_FROM_EMAIL) {
+    warnings.push('RESEND_FROM_EMAIL not set - email sending may fail');
+  }
+
   return {
     isValid: missing.length === 0,
     missing,
@@ -137,6 +154,7 @@ export function getEnvConfig() {
     isTest: env.NODE_ENV === 'test',
     hasRedis: !!(env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN),
     hasAuth: !!(env.CLERK_SECRET_KEY && env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY),
+    hasEmail: !!(env.RESEND_API_KEY && env.RESEND_FROM_DOMAIN && env.RESEND_FROM_EMAIL),
     maxFileSize: env.MAX_FILE_SIZE,
     requestTimeout: env.REQUEST_TIMEOUT,
   };

@@ -1,6 +1,6 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { internal, api } from "./_generated/api";
 import type { WebhookEvent } from "@clerk/backend";
 import { Webhook } from "svix";
 import { transformWebhookData } from "./paymentAttemptTypes";
@@ -16,7 +16,34 @@ http.route({
       return new Response("Error occured", { status: 400 });
     }
     switch ((event as any).type) {
-      case "user.created": // intentional fallthrough
+      case "user.created": {
+        const userData = event.data as any;
+
+        // Create/update user in database
+        await ctx.runMutation(internal.users.upsertFromClerk, {
+          data: userData,
+        });
+
+        // User preferences will be initialized when first accessed
+
+        // Send welcome email for new users
+        if (userData.email_addresses && userData.email_addresses.length > 0) {
+          const primaryEmail = userData.email_addresses.find((email: any) => email.id === userData.primary_email_address_id);
+          const userEmail = primaryEmail?.email_address || userData.email_addresses[0]?.email_address;
+          const userName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'there';
+
+          if (userEmail) {
+            // Schedule welcome email to be sent
+            await ctx.runAction(api.emails.sendWelcomeEmail, {
+              userId: userData.id,
+              userEmail: userEmail,
+              userName: userName,
+            });
+          }
+        }
+        break;
+      }
+
       case "user.updated":
         await ctx.runMutation(internal.users.upsertFromClerk, {
           data: event.data as any,

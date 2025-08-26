@@ -225,4 +225,109 @@ export default defineSchema({
       .index("byCreatedAt", ["createdAt"])
       .index("byType", ["type"])
       .index("byUserPlanType", ["userPlanType"]), // For analyzing feedback by subscription tier
+
+    // Email templates for different types of emails
+    emailTemplates: defineTable({
+      templateId: v.string(), // Unique identifier (welcome, feedback-request, product-update, etc.)
+      name: v.string(), // Display name
+      description: v.string(),
+      subject: v.string(),
+      htmlContent: v.string(),
+      textContent: v.optional(v.string()),
+      variables: v.array(v.string()), // List of template variables like {{userName}}, {{appUrl}}
+      isActive: v.boolean(),
+      version: v.number(), // Template version for A/B testing
+      createdAt: v.number(),
+      updatedAt: v.number(),
+      createdBy: v.optional(v.string()), // Admin user who created the template
+    })
+      .index("byTemplateId", ["templateId"])
+      .index("byIsActive", ["isActive"])
+      .index("byCreatedAt", ["createdAt"]),
+
+    // Email send logs for tracking and debugging
+    emailLogs: defineTable({
+      userId: v.optional(v.string()), // Recipient user ID (if applicable)
+      recipientEmail: v.string(),
+      templateId: v.string(),
+      subject: v.string(),
+      status: v.union(
+        v.literal("pending"),
+        v.literal("sent"),
+        v.literal("delivered"),
+        v.literal("bounced"),
+        v.literal("failed"),
+        v.literal("complained")
+      ),
+      resendId: v.optional(v.string()), // Resend email ID for tracking
+      errorMessage: v.optional(v.string()),
+      metadata: v.optional(v.object({
+        templateVersion: v.number(),
+        variables: v.any(), // Template variables used
+        userAgent: v.optional(v.string()),
+        ipAddress: v.optional(v.string()),
+      })),
+      sentAt: v.number(),
+      deliveredAt: v.optional(v.number()),
+      openedAt: v.optional(v.number()),
+      clickedAt: v.optional(v.number()),
+    })
+      .index("byUserId", ["userId"])
+      .index("byRecipientEmail", ["recipientEmail"])
+      .index("byTemplateId", ["templateId"])
+      .index("byStatus", ["status"])
+      .index("bySentAt", ["sentAt"])
+      .index("byResendId", ["resendId"]),
+
+    // Email preferences and unsubscribe tracking
+    emailPreferences: defineTable({
+      userId: v.optional(v.string()), // User ID if registered user
+      email: v.string(),
+      welcomeEmails: v.boolean(),
+      productUpdates: v.boolean(),
+      feedbackRequests: v.boolean(),
+      marketingEmails: v.boolean(),
+      securityAlerts: v.boolean(),
+      weeklyReports: v.boolean(),
+      unsubscribedAt: v.optional(v.number()),
+      unsubscribeReason: v.optional(v.string()),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    })
+      .index("byUserId", ["userId"])
+      .index("byEmail", ["email"])
+      .index("byUnsubscribedAt", ["unsubscribedAt"]),
+
+    // Email campaigns for bulk sending
+    emailCampaigns: defineTable({
+      campaignId: v.string(),
+      name: v.string(),
+      description: v.string(),
+      templateId: v.string(),
+      targetAudience: v.object({
+        userSegment: v.string(), // "all", "free", "paid", "inactive", etc.
+        filters: v.any(), // Additional filtering criteria
+      }),
+      status: v.union(
+        v.literal("draft"),
+        v.literal("scheduled"),
+        v.literal("sending"),
+        v.literal("sent"),
+        v.literal("cancelled")
+      ),
+      scheduledAt: v.optional(v.number()),
+      sentAt: v.optional(v.number()),
+      totalRecipients: v.optional(v.number()),
+      sentCount: v.optional(v.number()),
+      deliveredCount: v.optional(v.number()),
+      openedCount: v.optional(v.number()),
+      clickedCount: v.optional(v.number()),
+      bouncedCount: v.optional(v.number()),
+      createdAt: v.number(),
+      createdBy: v.string(), // Admin user who created the campaign
+    })
+      .index("byCampaignId", ["campaignId"])
+      .index("byStatus", ["status"])
+      .index("byScheduledAt", ["scheduledAt"])
+      .index("byCreatedAt", ["createdAt"]),
   });

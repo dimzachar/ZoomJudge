@@ -96,6 +96,14 @@ export class ConfigurationService {
         name: process.env.NEXT_PUBLIC_SITE_NAME || 'ZoomJudge',
         simpleLoggerEnabled: process.env.SIMPLE_LOGGER_ENABLED === 'true',
       },
+      email: {
+        resend: {
+          apiKey: process.env.RESEND_API_KEY || '',
+          fromDomain: process.env.RESEND_FROM_DOMAIN || 'zoomjudge.com',
+          fromEmail: process.env.RESEND_FROM_EMAIL || 'noreply@zoomjudge.com',
+          enabled: !!(process.env.RESEND_API_KEY && process.env.RESEND_FROM_DOMAIN && process.env.RESEND_FROM_EMAIL),
+        },
+      },
       environment: (process.env.NODE_ENV as 'development' | 'production' | 'test') || 'development',
     };
 

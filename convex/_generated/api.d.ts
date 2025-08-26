@@ -16,6 +16,7 @@ import type {
 import type * as adminAPI from "../adminAPI.js";
 import type * as adminUtils from "../adminUtils.js";
 import type * as courses from "../courses.js";
+import type * as emails from "../emails.js";
 import type * as evaluationWorkflow from "../evaluationWorkflow.js";
 import type * as evaluations from "../evaluations.js";
 import type * as feedback from "../feedback.js";
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   adminAPI: typeof adminAPI;
   adminUtils: typeof adminUtils;
   courses: typeof courses;
+  emails: typeof emails;
   evaluationWorkflow: typeof evaluationWorkflow;
   evaluations: typeof evaluations;
   feedback: typeof feedback;
