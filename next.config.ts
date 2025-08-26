@@ -25,8 +25,17 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Server external packages for email functionality
+  serverExternalPackages: ['resend', '@react-email/render'],
+
+  // Page extensions
+  pageExtensions: ['js', 'jsx', 'ts', 'tsx'],
+
+  // Output configuration for deployment
+  output: 'standalone',
+
   async headers() {
-    return [
+    const headers = [
       {
         source: '/(.*)',
         headers: securityHeaders,
@@ -69,6 +78,29 @@ const nextConfig: NextConfig = {
         ],
       },
     ];
+
+    // Add no-cache headers in development to prevent stale code issues
+    if (process.env.NODE_ENV === 'development') {
+      headers.push({
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache',
+          },
+          {
+            key: 'Expires',
+            value: '0',
+          },
+        ],
+      });
+    }
+
+    return headers;
   },
 
   // Temporarily disable experimental features to fix React 19 hook issues in production
@@ -133,6 +165,7 @@ const nextConfig: NextConfig = {
     loader: 'default',
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    domains: ['images.unsplash.com', 'avatars.githubusercontent.com'],
     remotePatterns: [
       {
         protocol: 'https',
@@ -144,7 +177,16 @@ const nextConfig: NextConfig = {
   },
 
   // Webpack configuration
-  webpack: (config: any, { dev }: { dev: boolean }) => {
+  webpack: (config: any, { dev, isServer }: { dev: boolean; isServer: boolean }) => {
+    // Handle server-side bundling for email packages
+    if (isServer) {
+      config.externals = config.externals || [];
+      config.externals.push({
+        'resend': 'commonjs resend',
+        '@react-email/render': 'commonjs @react-email/render',
+      });
+    }
+
     // Reduce Watchpack errors on Windows by excluding system files
     if (dev) {
       config.watchOptions = {
