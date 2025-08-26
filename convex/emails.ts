@@ -6,6 +6,7 @@ import { mutation, query, action, internalMutation, internalAction, internalQuer
 import { v } from "convex/values";
 import { getAuthenticatedUserId, getCurrentUser } from "./users";
 import { internal, api } from "./_generated/api";
+import { EMAIL_TEMPLATES } from "../lib/email-templates";
 
 // Email service configuration based on Resend best practices
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -537,27 +538,44 @@ export const sendWelcomeEmail = action({
       const { Resend } = await import("resend");
       const resend = new Resend(RESEND_API_KEY);
 
+      // Get the real production welcome template
+      const welcomeTemplate = EMAIL_TEMPLATES.welcome;
+
+      // Process template variables
+      const processTemplate = (template: string, variables: Record<string, string>) => {
+        let processed = template;
+        Object.entries(variables).forEach(([key, value]) => {
+          const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+          processed = processed.replace(regex, value);
+        });
+        return processed;
+      };
+
+      const templateVariables = {
+        userName: args.userName,
+        appUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com",
+        currentYear: new Date().getFullYear().toString(),
+        recipientEmail: args.userEmail,
+      };
+
+      const processedSubject = processTemplate(welcomeTemplate.subject, templateVariables);
+      const processedHtml = processTemplate(welcomeTemplate.htmlContent, templateVariables);
+      const processedText = processTemplate(welcomeTemplate.textContent || "", templateVariables);
+
+      // Add unsubscribe headers
+      const unsubscribeUrl = `${templateVariables.appUrl}/unsubscribe?email=${encodeURIComponent(args.userEmail)}`;
+
       // Send the welcome email
       const emailResult = await resend.emails.send({
         from: `${FROM_NAME} <${FROM_EMAIL}>`,
         to: args.userEmail,
-        subject: `Welcome to ZoomJudge! 🎉 Your AI Code Evaluation Journey Begins`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #2563eb;">Welcome to ZoomJudge, ${args.userName}! 🎉</h1>
-            <p>We're excited to have you join our community of developers using AI-powered code evaluation.</p>
-            <p>Here's what you can do with ZoomJudge:</p>
-            <ul>
-              <li>📝 Submit your code for AI evaluation</li>
-              <li>📊 Get detailed feedback and scoring</li>
-              <li>🎯 Track your progress over time</li>
-              <li>🏆 Improve your coding skills</li>
-            </ul>
-            <p>Ready to get started? <a href="${process.env.NEXT_PUBLIC_SITE_URL}/dashboard" style="color: #2563eb;">Visit your dashboard</a></p>
-            <p>Happy coding!</p>
-            <p>The ZoomJudge Team</p>
-          </div>
-        `,
+        subject: processedSubject,
+        html: processedHtml,
+        text: processedText,
+        headers: {
+          'List-Unsubscribe': `<${unsubscribeUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+        },
       });
 
       const result = {
@@ -905,14 +923,26 @@ export const sendTestEmail = action({
 
       const recipientName = args.recipientName || "there";
 
+      // Determine environment for email context
+      const environment = process.env.NODE_ENV || 'development';
+      const isProduction = environment === 'production';
+      const envLabel = isProduction ? 'Production' : 'Development';
+      const envColor = isProduction ? '#059669' : '#d97706';
+
       // Send the test email
       const emailResult = await resend.emails.send({
         from: `${FROM_NAME} <${FROM_EMAIL}>`,
         to: args.recipientEmail,
-        subject: `🧪 Test Email from ZoomJudge`,
+        subject: `🧪 Test Email from ZoomJudge [${envLabel}]`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h1 style="color: #2563eb;">🧪 Test Email Successful!</h1>
+            <div style="background: ${isProduction ? '#f0fdf4' : '#fef3c7'}; border: 1px solid ${isProduction ? '#bbf7d0' : '#fde68a'}; padding: 15px; border-radius: 8px; margin: 15px 0;">
+              <p style="margin: 0; color: ${envColor}; font-weight: bold;">
+                📍 Environment: ${envLabel}
+                ${!isProduction ? ' (Using production email credentials)' : ''}
+              </p>
+            </div>
             <p>Hi ${recipientName},</p>
             <p>This is a test email from your ZoomJudge application to verify that the email system is working correctly.</p>
             <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -920,6 +950,7 @@ export const sendTestEmail = action({
               <ul style="margin: 0; padding-left: 20px;">
                 <li>Resend integration: Working</li>
                 <li>Email delivery: Successful</li>
+                <li>Environment: ${envLabel}</li>
                 <li>Template rendering: Functional</li>
               </ul>
             </div>
@@ -991,33 +1022,43 @@ export const sendTestWelcomeEmail = action({
       const resend = new Resend(RESEND_API_KEY);
       const recipientName = args.recipientName || "there";
 
+      // Get the real production welcome template
+      const welcomeTemplate = EMAIL_TEMPLATES.welcome;
+
+      // Process template variables
+      const processTemplate = (template: string, variables: Record<string, string>) => {
+        let processed = template;
+        Object.entries(variables).forEach(([key, value]) => {
+          const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+          processed = processed.replace(regex, value);
+        });
+        return processed;
+      };
+
+      const templateVariables = {
+        userName: recipientName,
+        appUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com",
+        currentYear: new Date().getFullYear().toString(),
+        recipientEmail: args.recipientEmail,
+      };
+
+      const processedSubject = processTemplate(welcomeTemplate.subject, templateVariables);
+      const processedHtml = processTemplate(welcomeTemplate.htmlContent, templateVariables);
+      const processedText = processTemplate(welcomeTemplate.textContent || "", templateVariables);
+
+      // Add unsubscribe headers
+      const unsubscribeUrl = `${templateVariables.appUrl}/unsubscribe?email=${encodeURIComponent(args.recipientEmail)}`;
+
       const emailResult = await resend.emails.send({
         from: `${FROM_NAME} <${FROM_EMAIL}>`,
         to: args.recipientEmail,
-        subject: `Welcome to ZoomJudge! 🎉 Your AI Code Evaluation Journey Begins`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #2563eb;">Welcome to ZoomJudge, ${recipientName}! 🎉</h1>
-            <p>We're excited to have you join our community of developers using AI-powered code evaluation.</p>
-            <p>Here's what you can do with ZoomJudge:</p>
-            <ul>
-              <li>📝 Submit your code for AI evaluation</li>
-              <li>📊 Get detailed feedback and scoring</li>
-              <li>🎯 Track your progress over time</li>
-              <li>🏆 Improve your coding skills</li>
-            </ul>
-            <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #0369a1; margin: 0 0 10px 0;">🚀 Getting Started</h3>
-              <p style="margin: 0;">Ready to evaluate your first project? <a href="${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/new-evaluation" style="color: #2563eb; font-weight: bold;">Start your first evaluation</a></p>
-            </div>
-            <p>Happy coding!</p>
-            <p>The ZoomJudge Team</p>
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
-            <p style="font-size: 12px; color: #6b7280;">
-              This is a test of the welcome email template. In production, this would be sent automatically when users sign up.
-            </p>
-          </div>
-        `,
+        subject: processedSubject,
+        html: processedHtml,
+        text: processedText,
+        headers: {
+          'List-Unsubscribe': `<${unsubscribeUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+        },
       });
 
       const result = {
@@ -1067,64 +1108,44 @@ export const sendTestFeedbackEmail = action({
       const resend = new Resend(RESEND_API_KEY);
       const recipientName = args.recipientName || "there";
 
+      // Get the real production feedback template
+      const feedbackTemplate = EMAIL_TEMPLATES['feedback-request'];
+
+      // Process template variables
+      const processTemplate = (template: string, variables: Record<string, string>) => {
+        let processed = template;
+        Object.entries(variables).forEach(([key, value]) => {
+          const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+          processed = processed.replace(regex, value);
+        });
+        return processed;
+      };
+
+      const templateVariables = {
+        userName: recipientName,
+        appUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com",
+        currentYear: new Date().getFullYear().toString(),
+        recipientEmail: args.recipientEmail,
+        feedbackUrl: `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com"}/feedback`,
+      };
+
+      const processedSubject = processTemplate(feedbackTemplate.subject, templateVariables);
+      const processedHtml = processTemplate(feedbackTemplate.htmlContent, templateVariables);
+      const processedText = processTemplate(feedbackTemplate.textContent || "", templateVariables);
+
+      // Add unsubscribe headers
+      const unsubscribeUrl = `${templateVariables.appUrl}/unsubscribe?email=${encodeURIComponent(args.recipientEmail)}`;
+
       const emailResult = await resend.emails.send({
         from: `${FROM_NAME} <${FROM_EMAIL}>`,
         to: args.recipientEmail,
-        subject: `How is your Zoomcamp journey going? 🚀 Help us improve ZoomJudge`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #2563eb;">How's your Zoomcamp experience, ${recipientName}? 🚀</h1>
-            <p>You've been using ZoomJudge to evaluate your Zoomcamp projects, and we'd love to hear how it's helping your learning journey!</p>
-
-            <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2563eb;">
-              <h3 style="color: #1e40af; margin: 0 0 15px 0;">🤖 Your AI Code Evaluation Experience</h3>
-              <p style="margin: 0 0 10px 0; color: #1e40af;">Help us understand how ZoomJudge is supporting your Zoomcamp learning:</p>
-              <ul style="margin: 0; padding-left: 20px; color: #1e40af;">
-                <li>How helpful are the AI-generated code reviews?</li>
-                <li>Are the evaluation criteria clear for your course?</li>
-                <li>How accurate are the automated scores vs manual review?</li>
-                <li>What specific feedback helps you improve most?</li>
-              </ul>
-            </div>
-
-            <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #92400e; margin: 0 0 15px 0;">📊 Course-Specific Feedback</h3>
-              <ul style="margin: 0; padding-left: 20px; color: #92400e;">
-                <li>Which Zoomcamp course are you taking?</li>
-                <li>How can we better support your specific course requirements?</li>
-              </ul>
-            </div>
-
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="https://www.zoomjudge.com/dashboard?feedback=open"
-                 style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-                💬 Share Feedback on ZoomJudge.com
-              </a>
-            </div>
-
-            <div style="background: #f0f9ff; padding: 15px; border-radius: 6px; margin: 20px 0;">
-              <p style="margin: 0; font-size: 14px; color: #1e40af;">
-                <strong>🌟 New Domain:</strong> We've moved to <a href="https://www.zoomjudge.com" style="color: #2563eb; font-weight: bold;">www.zoomjudge.com</a> for a better experience! Use our in-app feedback widget to share your thoughts directly.
-              </p>
-            </div>
-
-            <p>Your feedback directly influences how we improve ZoomJudge for the entire Zoomcamp community. Every insight helps us build better AI evaluation tools for data science and ML education.</p>
-
-            <div style="background: #f0fdf4; padding: 15px; border-radius: 6px; margin: 20px 0;">
-              <p style="margin: 0; font-size: 14px; color: #166534;">
-                <strong>🎯 Recent improvements based on student feedback:</strong> Enhanced Python code analysis, better Jupyter notebook support, and improved ML model evaluation criteria.
-              </p>
-            </div>
-
-            <p>Keep building amazing projects!</p>
-            <p>The ZoomJudge Team<br><em>Supporting your Zoomcamp journey with AI-powered code evaluation</em></p>
-
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
-            <p style="font-size: 12px; color: #6b7280;">
-              This is a test of the feedback request email template. In production, this would be sent periodically to active Zoomcamp students.
-            </p>
-          </div>
-        `,
+        subject: processedSubject,
+        html: processedHtml,
+        text: processedText,
+        headers: {
+          'List-Unsubscribe': `<${unsubscribeUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+        },
       });
 
       const result = {
@@ -1174,80 +1195,54 @@ export const sendTestProductUpdateEmail = action({
       const resend = new Resend(RESEND_API_KEY);
       const recipientName = args.recipientName || "there";
 
+      // Get the real production product update template
+      const productUpdateTemplate = EMAIL_TEMPLATES['product-update'];
+
+      // Sample product update data for testing
+      const sampleUpdateData = {
+        updateTitle: "Enhanced AI Evaluation for Zoomcamp Projects",
+        updateDescription: "Our AI now better understands Jupyter notebooks, ML models, and deployment patterns specific to Zoomcamp courses. Get more accurate feedback on your data science projects.",
+        changelogUrl: `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com"}/changelog`,
+        totalEvaluations: "10,000+",
+        activeUsers: "2,500+",
+        avgScore: "78.5"
+      };
+
+      // Process template variables
+      const processTemplate = (template: string, variables: Record<string, string>) => {
+        let processed = template;
+        Object.entries(variables).forEach(([key, value]) => {
+          const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+          processed = processed.replace(regex, value);
+        });
+        return processed;
+      };
+
+      const templateVariables = {
+        userName: recipientName,
+        appUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com",
+        currentYear: new Date().getFullYear().toString(),
+        recipientEmail: args.recipientEmail,
+        ...sampleUpdateData
+      };
+
+      const processedSubject = processTemplate(productUpdateTemplate.subject, templateVariables);
+      const processedHtml = processTemplate(productUpdateTemplate.htmlContent, templateVariables);
+      const processedText = processTemplate(productUpdateTemplate.textContent || "", templateVariables);
+
+      // Add unsubscribe headers
+      const unsubscribeUrl = `${templateVariables.appUrl}/unsubscribe?email=${encodeURIComponent(args.recipientEmail)}`;
+
       const emailResult = await resend.emails.send({
         from: `${FROM_NAME} <${FROM_EMAIL}>`,
         to: args.recipientEmail,
-        subject: `🎉 New ZoomJudge Features: Better Zoomcamp Project Evaluation`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #2563eb;">🎉 Exciting Updates for Zoomcamp Students!</h1>
-            <p>Hi ${recipientName},</p>
-            <p>We've been working hard to improve ZoomJudge based on feedback from the Zoomcamp community. Here's what's new for your project evaluations:</p>
-
-            <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #0369a1; margin: 0 0 15px 0;">🤖 Smarter AI for Data Science Projects</h3>
-              <p style="margin: 0 0 10px 0;">Our AI evaluation engine now better understands Zoomcamp projects:</p>
-              <ul style="margin: 0; padding-left: 20px;">
-                <li><strong>Enhanced Jupyter Notebook Analysis:</strong> Better evaluation of data exploration and visualization</li>
-                <li><strong>ML Model Assessment:</strong> Improved scoring for model performance and validation techniques</li>
-                <li><strong>Python Best Practices:</strong> More accurate detection of pandas, scikit-learn, and TensorFlow patterns</li>
-                <li><strong>Docker & Deployment:</strong> Better evaluation of containerization and cloud deployment</li>
-              </ul>
-            </div>
-
-            <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #166534; margin: 0 0 15px 0;">📊 Course-Specific Evaluation Criteria</h3>
-              <p style="margin: 0 0 10px 0;">Tailored evaluation rubrics for each Zoomcamp course:</p>
-              <ul style="margin: 0; padding-left: 20px;">
-                <li><strong>ML Zoomcamp:</strong> Focus on model training, validation, and deployment</li>
-                <li><strong>Data Engineering:</strong> Emphasis on pipeline design, data quality, and scalability</li>
-                <li><strong>MLOps:</strong> Evaluation of monitoring, CI/CD, and model versioning</li>
-                <li><strong>Analytics Engineering:</strong> Assessment of dbt models and data transformation</li>
-              </ul>
-            </div>
-
-            <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #92400e; margin: 0 0 15px 0;">⚡ Faster GitHub Integration</h3>
-              <p style="margin: 0 0 10px 0;">Streamlined workflow for Zoomcamp project submissions:</p>
-              <ul style="margin: 0; padding-left: 20px;">
-                <li>One-click evaluation from GitHub repository URLs</li>
-                <li>Automatic detection of project structure and requirements</li>
-                <li>Support for both individual and capstone projects</li>
-              </ul>
-            </div>
-
-            <div style="background: #fdf2f8; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #be185d; margin: 0 0 15px 0;">📈 Progress Tracking Dashboard</h3>
-              <p style="margin: 0;">New analytics to track your Zoomcamp journey:</p>
-              <ul style="margin: 0; padding-left: 20px;">
-                <li>Course completion progress visualization</li>
-                <li>Skill development metrics across projects</li>
-                <li>Comparison with cohort performance (anonymized)</li>
-              </ul>
-            </div>
-
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/new-evaluation"
-                 style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; margin-right: 10px;">
-                🚀 Evaluate Your Next Project
-              </a>
-              <a href="${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/analytics"
-                 style="background: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-                📊 View Your Progress
-              </a>
-            </div>
-
-            <p>These improvements are designed specifically for Zoomcamp students to get more accurate, helpful feedback on your data science and ML projects.</p>
-
-            <p>Keep building amazing projects and advancing your data career!</p>
-            <p>The ZoomJudge Team<br><em>Empowering Zoomcamp students with AI-powered project evaluation</em></p>
-
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
-            <p style="font-size: 12px; color: #6b7280;">
-              This is a test of the product update email template. In production, this would be sent when we release new features for Zoomcamp students.
-            </p>
-          </div>
-        `,
+        subject: processedSubject,
+        html: processedHtml,
+        text: processedText,
+        headers: {
+          'List-Unsubscribe': `<${unsubscribeUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+        },
       });
 
       const result = {
@@ -1299,112 +1294,67 @@ export const sendTestEvaluationCompleteEmail = action({
       const recipientName = args.recipientName || "there";
       const userTier = args.userTier || "free"; // Default to free for testing
 
+      // Get the real production evaluation complete template
+      const evaluationTemplate = EMAIL_TEMPLATES['evaluation-complete'];
+
       // Sample evaluation data for testing - Zoomcamp specific
       const sampleData = {
         repositoryName: "ml-zoomcamp-midterm-project",
         courseName: "ML Zoomcamp 2024",
         score: 87,
         maxScore: 100,
-        summaryFeedback: "Excellent work on your ML project! Your model training pipeline is well-structured and you've implemented proper cross-validation. The Docker deployment setup is solid. Consider adding more comprehensive feature engineering and model monitoring for production readiness."
+        scorePercentage: "87",
+        scoreGrade: "B+",
+        summaryFeedback: "Excellent work on your ML project! Your model training pipeline is well-structured and you've implemented proper cross-validation. The Docker deployment setup is solid. Consider adding more comprehensive feature engineering and model monitoring for production readiness.",
+        topStrengths: "Well-structured pipeline, proper validation, solid Docker setup",
+        improvementAreas: "Feature engineering, model monitoring, documentation",
+        evaluationUrl: `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com"}/dashboard/evaluation/sample-123`
       };
 
-      const isPaidUser = userTier === "paid";
+      // Process template variables
+      const processTemplate = (template: string, variables: Record<string, string>) => {
+        let processed = template;
+        Object.entries(variables).forEach(([key, value]) => {
+          const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+          processed = processed.replace(regex, value);
+        });
+        return processed;
+      };
+
+      const templateVariables = {
+        userName: recipientName,
+        appUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com",
+        currentYear: new Date().getFullYear().toString(),
+        recipientEmail: args.recipientEmail,
+        repositoryName: sampleData.repositoryName,
+        courseName: sampleData.courseName,
+        score: sampleData.score.toString(),
+        maxScore: sampleData.maxScore.toString(),
+        scorePercentage: sampleData.scorePercentage,
+        scoreGrade: sampleData.scoreGrade,
+        summaryFeedback: sampleData.summaryFeedback,
+        topStrengths: sampleData.topStrengths,
+        improvementAreas: sampleData.improvementAreas,
+        evaluationUrl: sampleData.evaluationUrl
+      };
+
+      const processedSubject = processTemplate(evaluationTemplate.subject, templateVariables);
+      const processedHtml = processTemplate(evaluationTemplate.htmlContent, templateVariables);
+      const processedText = processTemplate(evaluationTemplate.textContent || "", templateVariables);
+
+      // Add unsubscribe headers
+      const unsubscribeUrl = `${templateVariables.appUrl}/unsubscribe?email=${encodeURIComponent(args.recipientEmail)}`;
 
       const emailResult = await resend.emails.send({
         from: `${FROM_NAME} <${FROM_EMAIL}>`,
         to: args.recipientEmail,
-        subject: `🎯 Your ${sampleData.courseName} project evaluation is complete - Score: ${sampleData.score}/${sampleData.maxScore}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #2563eb;">🎯 Your Zoomcamp Project Evaluation is Ready!</h1>
-            <p>Hi ${recipientName},</p>
-            <p>Great news! Your AI-powered evaluation for <strong>${sampleData.repositoryName}</strong> in <strong>${sampleData.courseName}</strong> is complete.</p>
-
-            <div style="background: #f0f9ff; padding: 25px; border-radius: 8px; margin: 25px 0; text-align: center;">
-              <h2 style="color: #0369a1; margin: 0 0 15px 0;">🤖 AI Evaluation Score</h2>
-              <div style="font-size: 48px; font-weight: bold; color: ${sampleData.score >= 80 ? '#059669' : sampleData.score >= 60 ? '#d97706' : '#dc2626'}; margin: 10px 0;">
-                ${sampleData.score}/${sampleData.maxScore}
-              </div>
-              <div style="background: ${sampleData.score >= 80 ? '#d1fae5' : sampleData.score >= 60 ? '#fef3c7' : '#fee2e2'};
-                          color: ${sampleData.score >= 80 ? '#065f46' : sampleData.score >= 60 ? '#92400e' : '#991b1b'};
-                          padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: bold;">
-                ${sampleData.score >= 80 ? '🎉 Outstanding Work!' : sampleData.score >= 60 ? '👍 Solid Progress!' : '💪 Keep Building!'}
-              </div>
-            </div>
-
-            <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #374151; margin: 0 0 15px 0;">🤖 AI Feedback Summary</h3>
-              <p style="margin: 0; line-height: 1.6; color: #4b5563;">${sampleData.summaryFeedback}</p>
-            </div>
-
-            <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #166534; margin: 0 0 15px 0;">📊 Zoomcamp Evaluation Criteria</h3>
-              <ul style="margin: 0; padding-left: 20px; color: #166534;">
-                <li><strong>Problem Understanding:</strong> How well you addressed the project requirements</li>
-                <li><strong>Data Science Methodology:</strong> EDA, feature engineering, model selection</li>
-                <li><strong>Code Quality:</strong> Structure, readability, and best practices</li>
-                <li><strong>ML Implementation:</strong> Model training, validation, and evaluation</li>
-                <li><strong>Deployment & Reproducibility:</strong> Docker, dependencies, documentation</li>
-                <li><strong>Business Impact:</strong> Practical applicability and insights</li>
-              </ul>
-            </div>
-
-            <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #92400e; margin: 0 0 15px 0;">🎯 Next Steps for Your Zoomcamp Journey</h3>
-              <ul style="margin: 0; padding-left: 20px; color: #92400e;">
-                <li>Review the detailed feedback to improve your next project</li>
-                <li>Compare your approach with course best practices</li>
-                <li>Apply the suggestions to your capstone project</li>
-                <li>Share your project with the Zoomcamp community</li>
-              </ul>
-            </div>
-
-            ${isPaidUser ? `
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="https://www.zoomjudge.com/dashboard/history"
-                 style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; margin-right: 10px;">
-                📊 View Detailed Report
-              </a>
-              <a href="https://www.zoomjudge.com/dashboard/new-evaluation"
-                 style="background: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-                🚀 Evaluate Next Project
-              </a>
-            </div>
-            ` : `
-            <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
-              <h3 style="color: #92400e; margin: 0 0 15px 0;">🔓 Unlock Detailed Feedback</h3>
-              <p style="margin: 0 0 10px 0; color: #92400e;">Want to see the full AI analysis, line-by-line feedback, and improvement suggestions?</p>
-              <div style="text-align: center; margin: 15px 0;">
-                <a href="https://www.zoomjudge.com/dashboard/billing"
-                   style="background: #f59e0b; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-                  ⭐ Upgrade to Pro
-                </a>
-              </div>
-            </div>
-
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="https://www.zoomjudge.com/dashboard/new-evaluation"
-                 style="background: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-                🚀 Evaluate Next Project
-              </a>
-            </div>
-            `}
-
-            <div style="background: #fdf2f8; padding: 15px; border-radius: 6px; margin: 20px 0;">
-              <p style="margin: 0; font-size: 14px; color: #be185d;">
-                <strong>💡 Pro tip:</strong> Use this feedback to refine your approach for the next module. Each project builds on the previous one in your Zoomcamp journey!
-              </p>
-            </div>
-
-            <p>Keep up the excellent work on your data science journey! Every project evaluation brings you closer to mastering ML engineering.</p>
-            <p>The ZoomJudge Team<br><em>Supporting your success in ${sampleData.courseName}</em></p>
-
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
-            <p style="font-size: 12px; color: #6b7280;">
-              This is a test of the evaluation complete email template. In production, this would be sent automatically when Zoomcamp project evaluations finish.
-            </p>
-          </div>
-        `,
+        subject: processedSubject,
+        html: processedHtml,
+        text: processedText,
+        headers: {
+          'List-Unsubscribe': `<${unsubscribeUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+        },
       });
 
       const result = {

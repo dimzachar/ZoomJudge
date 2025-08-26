@@ -10,6 +10,7 @@
 import { Resend } from 'resend';
 import { ConfigurationService } from '../config/ConfigurationService';
 import { sanitizeEmail } from '../sanitization';
+import { EMAIL_TEMPLATES } from '../email-templates';
 
 export interface EmailTemplate {
   templateId: string;
@@ -369,7 +370,19 @@ The {{appName}} Team`,
       },
     };
 
-    return templates[templateId] || null;
+    // Use the real production templates from lib/email-templates
+    const template = EMAIL_TEMPLATES[templateId];
+    if (!template) {
+      return null;
+    }
+
+    return {
+      templateId: template.templateId,
+      subject: template.subject,
+      htmlContent: template.htmlContent,
+      textContent: template.textContent,
+      variables: template.variables,
+    };
   }
 
   /**

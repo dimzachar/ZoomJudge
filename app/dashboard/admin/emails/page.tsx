@@ -447,6 +447,11 @@ export default function AdminEmailsPage() {
               <CardTitle>Send Test Email</CardTitle>
               <CardDescription>
                 Send a test email to verify your email configuration is working
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
+                    ⚠️ <strong>Development Mode:</strong> This will send real emails using production credentials
+                  </div>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent>
