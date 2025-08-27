@@ -384,7 +384,8 @@ export default function AdminEmailsPage() {
     try {
       const result = await sendFeedbackCampaign({})
       if (result.success) {
-        toast.success(`Feedback campaign sent! ${result.sent} emails sent, ${result.failed} failed.`)
+        const skippedText = result.skipped ? `, ${result.skipped} skipped (unsubscribed)` : '';
+        toast.success(`Feedback campaign sent! ${result.sent} emails sent, ${result.failed} failed${skippedText}.`)
       } else {
         toast.error(`Failed to send feedback campaign: ${result.error}`)
       }

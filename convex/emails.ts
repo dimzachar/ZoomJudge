@@ -649,6 +649,20 @@ export const sendWelcomeEmail = action({
         return { success: false, error: "Email service not configured" };
       }
 
+      // Check if user should receive welcome emails
+      const shouldReceive = await ctx.runQuery(internal.emails.shouldReceiveEmail, {
+        email: args.userEmail,
+        emailType: "welcomeEmails",
+      });
+
+      if (!shouldReceive) {
+        return {
+          success: false,
+          error: "User has unsubscribed from welcome emails",
+          skipped: true
+        };
+      }
+
       // Initialize Resend
       const { Resend } = await import("resend");
       const resend = new Resend(RESEND_API_KEY);
@@ -744,6 +758,20 @@ export const sendFeedbackRequestEmail = action({
         return { success: false, error: "Email service not configured" };
       }
 
+      // Check if user should receive feedback emails
+      const shouldReceive = await ctx.runQuery(internal.emails.shouldReceiveEmail, {
+        email: args.userEmail,
+        emailType: "feedbackRequests",
+      });
+
+      if (!shouldReceive) {
+        return {
+          success: false,
+          error: "User has unsubscribed from feedback emails",
+          skipped: true
+        };
+      }
+
       const { Resend } = await import("resend");
       const resend = new Resend(RESEND_API_KEY);
 
@@ -836,6 +864,20 @@ export const sendProductUpdateEmail = action({
     try {
       if (!RESEND_API_KEY) {
         return { success: false, error: "Email service not configured" };
+      }
+
+      // Check if user should receive product update emails
+      const shouldReceive = await ctx.runQuery(internal.emails.shouldReceiveEmail, {
+        email: args.userEmail,
+        emailType: "productUpdates",
+      });
+
+      if (!shouldReceive) {
+        return {
+          success: false,
+          error: "User has unsubscribed from product update emails",
+          skipped: true
+        };
       }
 
       const { Resend } = await import("resend");
@@ -1043,6 +1085,7 @@ export const scheduleFeedbackRequestEmails = action({
 
       let successCount = 0;
       let failureCount = 0;
+      let skippedCount = 0;
 
       for (const user of users) {
         try {
@@ -1054,6 +1097,9 @@ export const scheduleFeedbackRequestEmails = action({
 
           if (result.success) {
             successCount++;
+          } else if ((result as any).skipped) {
+            skippedCount++;
+            console.log(`Skipped feedback email for ${user.email}: ${result.error}`);
           } else {
             failureCount++;
           }
@@ -1066,8 +1112,8 @@ export const scheduleFeedbackRequestEmails = action({
         }
       }
 
-      console.log(`Feedback email campaign completed: ${successCount} sent, ${failureCount} failed`);
-      return { success: true, sent: successCount, failed: failureCount };
+      console.log(`Feedback email campaign completed: ${successCount} sent, ${failureCount} failed, ${skippedCount} skipped (unsubscribed)`);
+      return { success: true, sent: successCount, failed: failureCount, skipped: skippedCount };
     } catch (error) {
       console.error("Failed to run feedback email campaign:", error);
       return {
@@ -1629,17 +1675,31 @@ export const getUsersForFeedbackRequest = internalQuery({
     registeredBefore: v.number(),
   },
   handler: async (ctx, args) => {
-    // This is a simplified implementation
-    // In a real app, you'd query users based on registration date and email preferences
+    // Get all users
     const users = await ctx.db
       .query("users")
       .collect();
 
-    // Filter users and add mock email addresses (in real implementation, get from Clerk)
-    return users.slice(0, 10).map(user => ({
+    // Filter users and add mock email addresses, then check email preferences
+    const usersWithEmails = users.slice(0, 10).map(user => ({
       ...user,
       email: `${user.name.toLowerCase().replace(' ', '.')}@example.com`, // Mock email
     }));
+
+    // Filter users who should receive feedback emails
+    const eligibleUsers = [];
+    for (const user of usersWithEmails) {
+      const shouldReceive = await ctx.runQuery(internal.emails.shouldReceiveEmail, {
+        email: user.email,
+        emailType: "feedbackRequests",
+      });
+
+      if (shouldReceive) {
+        eligibleUsers.push(user);
+      }
+    }
+
+    return eligibleUsers;
   },
 });
 
@@ -1657,5 +1717,48 @@ export const getAllUsers = query({
       name: user.name,
       createdAt: user._creationTime,
     }));
+  },
+});
+
+// Helper function to check if user should receive a specific type of email
+export const shouldReceiveEmail = internalQuery({
+  args: {
+    email: v.string(),
+    emailType: v.union(
+      v.literal("welcomeEmails"),
+      v.literal("productUpdates"),
+      v.literal("feedbackRequests"),
+      v.literal("marketingEmails"),
+      v.literal("securityAlerts"),
+      v.literal("weeklyReports")
+    ),
+  },
+  handler: async (ctx, args) => {
+    const preferences = await ctx.db
+      .query("emailPreferences")
+      .withIndex("byEmail", (q) => q.eq("email", args.email))
+      .first();
+
+    // If no preferences exist, use defaults (most are true except marketing)
+    if (!preferences) {
+      const defaults = {
+        welcomeEmails: true,
+        productUpdates: true,
+        feedbackRequests: true,
+        marketingEmails: false,
+        securityAlerts: true,
+        weeklyReports: true,
+      };
+      return defaults[args.emailType];
+    }
+
+    // Check if user has unsubscribed from all emails
+    if (preferences.unsubscribedAt) {
+      // Only allow security alerts for fully unsubscribed users
+      return args.emailType === "securityAlerts" && preferences.securityAlerts;
+    }
+
+    // Return the specific preference
+    return preferences[args.emailType];
   },
 });

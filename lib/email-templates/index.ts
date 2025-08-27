@@ -334,12 +334,6 @@ Unsubscribe: {{appUrl}}/unsubscribe?email={{recipientEmail}}`,
         </a>
       </div>
       
-      <div class="stats-box">
-        <h3 style="margin-top: 0; color: ${BRAND_COLORS.dark};">🎁 Thank You Bonus</h3>
-        <p style="margin-bottom: 0;">
-          Complete our feedback survey and get <strong>3 bonus evaluations</strong> added to your account!
-        </p>
-      </div>
       
       <p style="margin-top: 30px;">
         Your insights help us build a better platform for the entire developer community. 
@@ -363,7 +357,6 @@ We'd love to know:
 
 Share your feedback (2 minutes): {{feedbackUrl}}
 
-Thank You Bonus: Complete our feedback survey and get 3 bonus evaluations added to your account!
 
 Your insights help us build a better platform for the entire developer community. Every piece of feedback is read by our team and considered in our product roadmap.
 
