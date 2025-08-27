@@ -133,31 +133,25 @@ export class EmailService {
   }
 
   /**
-   * Process template variables
+   * Process template variables with optimized single-pass approach
+   * Replaces O(n²) complexity with O(n) for better performance
    */
   private processTemplate(template: string, variables: Record<string, string> = {}): string {
-    let processed = template;
-    
-    // Replace template variables like {{variableName}}
-    Object.entries(variables).forEach(([key, value]) => {
-      const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-      processed = processed.replace(regex, value);
-    });
-
     // Add default variables
-    const defaultVariables = {
+    const defaultVariables: Record<string, string> = {
       appName: process.env.NEXT_PUBLIC_SITE_NAME || 'ZoomJudge',
       appUrl: (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, ''),
       supportEmail: process.env.RESEND_FROM_EMAIL || 'noreply@zoomjudge.com',
       currentYear: new Date().getFullYear().toString(),
     };
 
-    Object.entries(defaultVariables).forEach(([key, value]) => {
-      const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-      processed = processed.replace(regex, value);
-    });
+    // Merge user variables with defaults (user variables take precedence)
+    const allVariables: Record<string, string> = { ...defaultVariables, ...variables };
 
-    return processed;
+    // Single-pass replacement using a single regex that captures all variable patterns
+    return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, key: string) => {
+      return allVariables[key] ?? match; // Return original if variable not found
+    });
   }
 
   /**

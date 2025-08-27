@@ -200,17 +200,17 @@ function EmailPreferencesContent() {
                 </div>
               </div>
               
-              <div className="flex items-start space-x-3 p-4 border rounded-lg bg-blue-50">
+              <div className="flex items-start space-x-3 p-4 border rounded-lg">
                 <Checkbox
                   id="securityAlerts"
                   checked={selectedPreferences.securityAlerts}
                   onCheckedChange={(checked) => handlePreferenceChange("securityAlerts", checked as boolean)}
                 />
                 <div className="flex-1">
-                  <Label htmlFor="securityAlerts" className="text-sm font-medium">
+                  <Label htmlFor="securityAlerts" className="text-sm font-medium text-blue-900">
                     Security alerts (recommended)
                   </Label>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-blue-800 mt-1">
                     Important security and account notifications
                   </p>
                 </div>

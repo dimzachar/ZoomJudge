@@ -8,6 +8,121 @@ import { getAuthenticatedUserId, getCurrentUser } from "./users";
 import { internal, api } from "./_generated/api";
 import { EMAIL_TEMPLATES } from "../lib/email-templates";
 
+// Optimized template processing utility (single-pass, O(n) complexity)
+const processTemplate = (template: string, variables: Record<string, string> = {}): string => {
+  return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, key) =>
+    variables[key] ?? match
+  );
+};
+
+// Standardized email result interface
+interface EmailResult {
+  success: boolean;
+  resendId?: string;
+  error?: string;
+}
+
+// Enhanced error handling utility with proper context logging
+const handleEmailError = (
+  operation: string,
+  error: unknown,
+  context: {
+    userId?: string;
+    recipientEmail?: string;
+    templateId?: string;
+    functionName?: string;
+  } = {}
+): EmailResult => {
+  const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+  // Enhanced error logging with context
+  console.error(`Email operation failed: ${operation}`, {
+    error: errorMessage,
+    context,
+    timestamp: new Date().toISOString(),
+    stack: error instanceof Error ? error.stack : undefined,
+  });
+
+  return {
+    success: false,
+    error: errorMessage,
+  };
+};
+
+// Input validation utilities for security
+const validateEmailInput = (input: {
+  email?: string;
+  name?: string;
+  subject?: string;
+  content?: string;
+}): { isValid: boolean; error?: string } => {
+  // Email validation
+  if (input.email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(input.email)) {
+      return { isValid: false, error: "Invalid email format" };
+    }
+
+    // Check for potential injection patterns
+    const suspiciousPatterns = [
+      /[<>]/,  // HTML tags
+      /javascript:/i,  // JavaScript protocol
+      /data:/i,  // Data protocol
+      /vbscript:/i,  // VBScript protocol
+    ];
+
+    if (suspiciousPatterns.some(pattern => pattern.test(input.email!))) {
+      return { isValid: false, error: "Email contains suspicious content" };
+    }
+  }
+
+  // Name validation (prevent XSS)
+  if (input.name) {
+    if (input.name.length > 100) {
+      return { isValid: false, error: "Name too long" };
+    }
+
+    const htmlPattern = /<[^>]*>/;
+    if (htmlPattern.test(input.name)) {
+      return { isValid: false, error: "Name contains HTML tags" };
+    }
+  }
+
+  // Subject validation
+  if (input.subject && input.subject.length > 200) {
+    return { isValid: false, error: "Subject too long" };
+  }
+
+  // Content validation
+  if (input.content && input.content.length > 50000) {
+    return { isValid: false, error: "Content too long" };
+  }
+
+  return { isValid: true };
+};
+
+// Simple rate limiting utility (in production, use Redis or similar)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+const checkRateLimit = (identifier: string, maxRequests: number = 10, windowMs: number = 60000): boolean => {
+  const now = Date.now();
+  const key = identifier;
+
+  const current = rateLimitMap.get(key);
+
+  if (!current || now > current.resetTime) {
+    rateLimitMap.set(key, { count: 1, resetTime: now + windowMs });
+    return true;
+  }
+
+  if (current.count >= maxRequests) {
+    return false;
+  }
+
+  current.count++;
+  return true;
+};
+
 // Email service configuration based on Resend best practices
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@zoomjudge.com";
@@ -541,16 +656,6 @@ export const sendWelcomeEmail = action({
       // Get the real production welcome template
       const welcomeTemplate = EMAIL_TEMPLATES.welcome;
 
-      // Process template variables
-      const processTemplate = (template: string, variables: Record<string, string>) => {
-        let processed = template;
-        Object.entries(variables).forEach(([key, value]) => {
-          const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-          processed = processed.replace(regex, value);
-        });
-        return processed;
-      };
-
       const templateVariables = {
         userName: args.userName,
         appUrl: (process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com").replace(/\/$/, ''),
@@ -601,7 +706,12 @@ export const sendWelcomeEmail = action({
 
       return result;
     } catch (error) {
-      console.error("Failed to send welcome email:", error);
+      const result = handleEmailError("sendWelcomeEmail", error, {
+        userId: args.userId,
+        recipientEmail: args.userEmail,
+        templateId: "welcome",
+        functionName: "sendWelcomeEmail",
+      });
 
       // Log the failed attempt
       await ctx.runMutation(internal.emails.logEmailSent, {
@@ -610,17 +720,14 @@ export const sendWelcomeEmail = action({
         templateId: "welcome",
         subject: `Welcome to ZoomJudge! 🎉 Your AI Code Evaluation Journey Begins`,
         status: "failed",
-        errorMessage: error instanceof Error ? error.message : "Unknown error",
+        errorMessage: result.error,
         metadata: {
           templateVersion: 1,
           variables: { userName: args.userName },
         },
       });
 
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error"
-      };
+      return result;
     }
   },
 });
@@ -633,21 +740,55 @@ export const sendFeedbackRequestEmail = action({
   },
   handler: async (ctx, args) => {
     try {
-      const { getEmailService } = await import("../lib/services/EmailService");
-      const emailService = getEmailService();
-
-      if (!emailService.isAvailable()) {
-        console.warn("Email service not available - skipping feedback request email");
+      if (!RESEND_API_KEY) {
         return { success: false, error: "Email service not configured" };
       }
 
-      const result = await emailService.sendFeedbackRequestEmail(args.userEmail, args.userName);
+      const { Resend } = await import("resend");
+      const resend = new Resend(RESEND_API_KEY);
 
+      // Get the feedback request template
+      const feedbackTemplate = EMAIL_TEMPLATES['feedback-request'];
+
+      const templateVariables = {
+        userName: args.userName,
+        appUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com",
+        currentYear: new Date().getFullYear().toString(),
+        feedbackUrl: `mailto:support@zoomjudge.com?subject=Feedback%20for%20ZoomJudge`,
+      };
+
+      const processedSubject = processTemplate(feedbackTemplate.subject, templateVariables);
+      const processedHtml = processTemplate(feedbackTemplate.htmlContent, templateVariables);
+      const processedText = processTemplate(feedbackTemplate.textContent || "", templateVariables);
+
+      // Add unsubscribe headers
+      const unsubscribeUrl = `${templateVariables.appUrl}/unsubscribe?email=${encodeURIComponent(args.userEmail)}`;
+
+      // Send the feedback request email
+      const emailResult = await resend.emails.send({
+        from: `${FROM_NAME} <${FROM_EMAIL}>`,
+        to: args.userEmail,
+        subject: processedSubject,
+        html: processedHtml,
+        text: processedText,
+        headers: {
+          'List-Unsubscribe': `<${unsubscribeUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+        },
+      });
+
+      const result = {
+        success: !emailResult.error,
+        resendId: emailResult.data?.id,
+        error: emailResult.error?.message,
+      };
+
+      // Log the email send attempt
       await ctx.runMutation(internal.emails.logEmailSent, {
         userId: args.userId,
         recipientEmail: args.userEmail,
         templateId: "feedback-request",
-        subject: `How is ZoomJudge working for you? 🤔 Your feedback shapes our future`,
+        subject: processedSubject,
         status: result.success ? "sent" : "failed",
         resendId: result.resendId,
         errorMessage: result.error,
@@ -661,6 +802,7 @@ export const sendFeedbackRequestEmail = action({
     } catch (error) {
       console.error("Failed to send feedback request email:", error);
 
+      // Log the failed attempt
       await ctx.runMutation(internal.emails.logEmailSent, {
         userId: args.userId,
         recipientEmail: args.userEmail,
@@ -692,26 +834,57 @@ export const sendProductUpdateEmail = action({
   },
   handler: async (ctx, args) => {
     try {
-      const { getEmailService } = await import("../lib/services/EmailService");
-      const emailService = getEmailService();
-
-      if (!emailService.isAvailable()) {
-        console.warn("Email service not available - skipping product update email");
+      if (!RESEND_API_KEY) {
         return { success: false, error: "Email service not configured" };
       }
 
-      const result = await emailService.sendProductUpdateEmail(
-        args.userEmail,
-        args.userName,
-        args.updateTitle,
-        args.updateDescription
-      );
+      const { Resend } = await import("resend");
+      const resend = new Resend(RESEND_API_KEY);
 
+      // Get the product update template
+      const productUpdateTemplate = EMAIL_TEMPLATES['product-update'];
+
+      const templateVariables = {
+        userName: args.userName,
+        updateTitle: args.updateTitle,
+        updateDescription: args.updateDescription,
+        appUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com",
+        currentYear: new Date().getFullYear().toString(),
+        changelogUrl: `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com"}/changelog`,
+      };
+
+      const processedSubject = processTemplate(productUpdateTemplate.subject, templateVariables);
+      const processedHtml = processTemplate(productUpdateTemplate.htmlContent, templateVariables);
+      const processedText = processTemplate(productUpdateTemplate.textContent || "", templateVariables);
+
+      // Add unsubscribe headers
+      const unsubscribeUrl = `${templateVariables.appUrl}/unsubscribe?email=${encodeURIComponent(args.userEmail)}`;
+
+      // Send the product update email
+      const emailResult = await resend.emails.send({
+        from: `${FROM_NAME} <${FROM_EMAIL}>`,
+        to: args.userEmail,
+        subject: processedSubject,
+        html: processedHtml,
+        text: processedText,
+        headers: {
+          'List-Unsubscribe': `<${unsubscribeUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+        },
+      });
+
+      const result = {
+        success: !emailResult.error,
+        resendId: emailResult.data?.id,
+        error: emailResult.error?.message,
+      };
+
+      // Log the email send attempt
       await ctx.runMutation(internal.emails.logEmailSent, {
         userId: args.userId,
         recipientEmail: args.userEmail,
         templateId: "product-update",
-        subject: `What's New in ZoomJudge ✨ ${args.updateTitle}`,
+        subject: processedSubject,
         status: result.success ? "sent" : "failed",
         resendId: result.resendId,
         errorMessage: result.error,
@@ -729,6 +902,7 @@ export const sendProductUpdateEmail = action({
     } catch (error) {
       console.error("Failed to send product update email:", error);
 
+      // Log the failed attempt
       await ctx.runMutation(internal.emails.logEmailSent, {
         userId: args.userId,
         recipientEmail: args.userEmail,
@@ -912,6 +1086,21 @@ export const sendTestEmail = action({
   },
   handler: async (ctx, args) => {
     try {
+      // Input validation
+      const validation = validateEmailInput({
+        email: args.recipientEmail,
+        name: args.recipientName,
+      });
+
+      if (!validation.isValid) {
+        return { success: false, error: validation.error };
+      }
+
+      // Rate limiting (5 test emails per minute per email)
+      if (!checkRateLimit(`test-email:${args.recipientEmail}`, 5, 60000)) {
+        return { success: false, error: "Rate limit exceeded. Please wait before sending another test email." };
+      }
+
       if (!RESEND_API_KEY) {
         console.warn("RESEND_API_KEY not configured - skipping test email");
         return { success: false, error: "Email service not configured" };
@@ -997,11 +1186,11 @@ export const sendTestEmail = action({
 
       return result;
     } catch (error) {
-      console.error("Failed to send test email:", error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error"
-      };
+      return handleEmailError("sendTestEmail", error, {
+        recipientEmail: args.recipientEmail,
+        templateId: "test-email",
+        functionName: "sendTestEmail",
+      });
     }
   },
 });
@@ -1024,16 +1213,6 @@ export const sendTestWelcomeEmail = action({
 
       // Get the real production welcome template
       const welcomeTemplate = EMAIL_TEMPLATES.welcome;
-
-      // Process template variables
-      const processTemplate = (template: string, variables: Record<string, string>) => {
-        let processed = template;
-        Object.entries(variables).forEach(([key, value]) => {
-          const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-          processed = processed.replace(regex, value);
-        });
-        return processed;
-      };
 
       const templateVariables = {
         userName: recipientName,
@@ -1111,23 +1290,13 @@ export const sendTestFeedbackEmail = action({
       // Get the real production feedback template
       const feedbackTemplate = EMAIL_TEMPLATES['feedback-request'];
 
-      // Process template variables
-      const processTemplate = (template: string, variables: Record<string, string>) => {
-        let processed = template;
-        Object.entries(variables).forEach(([key, value]) => {
-          const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-          processed = processed.replace(regex, value);
-        });
-        return processed;
-      };
-
       const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com").replace(/\/$/, '');
       const templateVariables = {
         userName: recipientName,
         appUrl: baseUrl,
         currentYear: new Date().getFullYear().toString(),
         recipientEmail: args.recipientEmail,
-        feedbackUrl: `${baseUrl}/feedback`,
+        feedbackUrl: `mailto:support@zoomjudge.com?subject=Feedback%20for%20ZoomJudge`,
       };
 
       const processedSubject = processTemplate(feedbackTemplate.subject, templateVariables);
@@ -1204,20 +1373,9 @@ export const sendTestProductUpdateEmail = action({
         updateTitle: "Enhanced AI Evaluation for Zoomcamp Projects",
         updateDescription: "Our AI now better understands Jupyter notebooks, ML models, and deployment patterns specific to Zoomcamp courses. Get more accurate feedback on your data science projects.",
         changelogUrl: `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com"}/changelog`,
-        totalEvaluations: "10,000+",
-        activeUsers: "2,500+",
-        avgScore: "78.5"
       };
 
-      // Process template variables
-      const processTemplate = (template: string, variables: Record<string, string>) => {
-        let processed = template;
-        Object.entries(variables).forEach(([key, value]) => {
-          const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-          processed = processed.replace(regex, value);
-        });
-        return processed;
-      };
+
 
       const templateVariables = {
         userName: recipientName,
@@ -1312,15 +1470,7 @@ export const sendTestEvaluationCompleteEmail = action({
         evaluationUrl: `${(process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com").replace(/\/$/, '')}/dashboard/evaluation/sample-123`
       };
 
-      // Process template variables
-      const processTemplate = (template: string, variables: Record<string, string>) => {
-        let processed = template;
-        Object.entries(variables).forEach(([key, value]) => {
-          const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-          processed = processed.replace(regex, value);
-        });
-        return processed;
-      };
+
 
       const templateVariables = {
         userName: recipientName,

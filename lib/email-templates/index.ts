@@ -80,24 +80,36 @@ const EMAIL_STYLES = `
       display: inline-block;
       padding: 14px 28px;
       background: ${BRAND_COLORS.primary};
-      color: ${BRAND_COLORS.white};
+      color: ${BRAND_COLORS.white} !important;
       text-decoration: none;
       border-radius: 6px;
       font-weight: 600;
       margin: 20px 0;
       transition: background-color 0.3s ease;
+      text-align: center;
     }
     
     .button:hover {
-      background: #0056b3;
+      background: #0056b3 !important;
+      color: ${BRAND_COLORS.white} !important;
     }
-    
+
     .button-secondary {
       background: ${BRAND_COLORS.secondary};
     }
-    
+
+    .button-secondary:hover {
+      background: #5a6268;
+    }
+
     .button-success {
       background: ${BRAND_COLORS.success};
+      color: white;
+    }
+
+    .button-success:hover {
+      background: #218838;
+      color: white;
     }
     
     .feature-box {
@@ -177,10 +189,10 @@ const createBaseTemplate = (content: string): string => `
       </p>
       
       <div class="social-links">
-        <a href="{{appUrl}}/about">About</a>
-        <a href="{{appUrl}}/contact">Contact</a>
-        <a href="{{appUrl}}/help">Help</a>
-        <a href="{{appUrl}}/blog">Blog</a>
+        <a href="{{appUrl}}/dashboard">Dashboard</a>
+        <a href="{{appUrl}}/changelog">Changelog</a>
+        <a href="{{appUrl}}/privacy">Privacy</a>
+        <a href="{{appUrl}}/terms">Terms</a>
       </div>
       
       <div class="unsubscribe">
@@ -246,8 +258,8 @@ export const EMAIL_TEMPLATES: Record<string, EmailTemplate> = {
       </div>
       
       <p style="margin-top: 30px;">
-        Need help getting started? Our support team is here to assist you. 
-        Simply reply to this email or visit our <a href="{{appUrl}}/help" style="color: ${BRAND_COLORS.primary};">Help Center</a>.
+        Need help getting started? Our support team is here to assist you.
+        Visit your <a href="{{appUrl}}/dashboard" style="color: ${BRAND_COLORS.primary};">Dashboard</a>.
       </p>
       
       <div style="margin: 30px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef; text-align: center;">
@@ -281,7 +293,7 @@ What You'll Get:
 - Detailed Feedback Reports  
 - Improvement Suggestions
 
-Need help getting started? Our support team is here to assist you. Simply reply to this email or visit our Help Center: {{appUrl}}/help
+Need help getting started? Our support team is here to assist you. Visit your Dashboard: {{appUrl}}/dashboard
 
 Happy coding!
 The ZoomJudge Team
@@ -391,28 +403,10 @@ Unsubscribe: {{appUrl}}/unsubscribe?email={{recipientEmail}}`,
         </a>
       </div>
 
-      <div class="stats-box">
-        <h3 style="margin-top: 0; color: ${BRAND_COLORS.dark};">📈 Recent Platform Stats</h3>
-        <div style="display: flex; justify-content: space-around; flex-wrap: wrap;">
-          <div style="margin: 10px;">
-            <strong style="font-size: 20px; color: ${BRAND_COLORS.primary};">{{totalEvaluations}}</strong><br>
-            <span style="color: ${BRAND_COLORS.secondary};">Total Evaluations</span>
-          </div>
-          <div style="margin: 10px;">
-            <strong style="font-size: 20px; color: ${BRAND_COLORS.success};">{{activeUsers}}</strong><br>
-            <span style="color: ${BRAND_COLORS.secondary};">Active Users</span>
-          </div>
-          <div style="margin: 10px;">
-            <strong style="font-size: 20px; color: ${BRAND_COLORS.warning};">{{avgScore}}</strong><br>
-            <span style="color: ${BRAND_COLORS.secondary};">Avg Score</span>
-          </div>
-        </div>
-      </div>
+
 
       <p style="margin-top: 30px;">
         Have ideas for future improvements? We'd love to hear them!
-        <a href="{{appUrl}}/feedback" style="color: ${BRAND_COLORS.primary};">Share your suggestions</a>
-        and help shape the future of ZoomJudge.
       </p>
 
       <p style="margin-bottom: 0;">
@@ -430,19 +424,14 @@ Hi {{userName}}, we've been busy building new features based on your feedback an
 Try it now: {{appUrl}}/dashboard
 View full changelog: {{changelogUrl}}
 
-Recent Platform Stats:
-- Total Evaluations: {{totalEvaluations}}
-- Active Users: {{activeUsers}}
-- Average Score: {{avgScore}}
-
-Have ideas for future improvements? We'd love to hear them! Share your suggestions: {{appUrl}}/feedback
+Have ideas for future improvements? We'd love to hear them!
 
 Keep coding and improving!
 The ZoomJudge Team
 
 © {{currentYear}} ZoomJudge. All rights reserved.
 Unsubscribe: {{appUrl}}/unsubscribe?email={{recipientEmail}}`,
-    variables: ['userName', 'updateTitle', 'updateDescription', 'changelogUrl', 'totalEvaluations', 'activeUsers', 'avgScore', 'appUrl', 'currentYear', 'recipientEmail'],
+    variables: ['userName', 'updateTitle', 'updateDescription', 'changelogUrl', 'appUrl', 'currentYear', 'recipientEmail'],
   },
 
   'evaluation-complete': {
@@ -491,8 +480,8 @@ Unsubscribe: {{appUrl}}/unsubscribe?email={{recipientEmail}}`,
       </div>
 
       <p style="margin-top: 30px;">
-        Want to improve your score? Check out our
-        <a href="{{appUrl}}/resources" style="color: ${BRAND_COLORS.primary};">learning resources</a>
+        Want to improve your score? Review the detailed feedback in your
+        <a href="{{appUrl}}/dashboard" style="color: ${BRAND_COLORS.primary};">dashboard</a>
         or submit an updated version of your repository.
       </p>
 
@@ -527,7 +516,7 @@ Key Highlights:
 View detailed report: {{evaluationUrl}}
 Back to dashboard: {{appUrl}}/dashboard
 
-Want to improve your score? Check out our learning resources: {{appUrl}}/resources
+Want to improve your score? Review the detailed feedback in your dashboard: {{appUrl}}/dashboard
 
 Keep up the great work!
 The ZoomJudge Team
