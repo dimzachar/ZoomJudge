@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useUser } from "@clerk/nextjs"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
+import { Doc } from "@/convex/_generated/dataModel"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -86,7 +87,7 @@ export function BillingHistory({ showTitle = true, className, compact = false }:
   }, [mounted, user])
 
   // Convert payment attempts to invoice format
-  const invoices: Invoice[] = paymentAttempts?.map(attempt => ({
+  const invoices: Invoice[] = paymentAttempts?.map((attempt: Doc<"paymentAttempts">) => ({
     id: attempt.payment_id,
     date: new Date(attempt.billing_date).toISOString().split('T')[0],
     amount: attempt.totals.grand_total.amount,

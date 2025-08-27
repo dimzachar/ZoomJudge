@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useUser } from "@clerk/nextjs"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
+import { Doc } from "@/convex/_generated/dataModel"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
@@ -55,7 +56,7 @@ export function UsageMetrics({ showTitle = true, className, compact = false }: U
     monthlyLimit: TIER_LIMITS[userTier].evaluationsPerMonth,
     resetDate: new Date(currentUsage.resetAt || Date.now()).toISOString(),
     dailyUsage: [2, 1, 0, 3, 1, 2, 0], // TODO: Calculate from real data
-    weeklyUsage: usageHistory?.slice(0, 4).map(h => h.evaluationsCount) || [0, 0, 0, 0]
+    weeklyUsage: usageHistory?.slice(0, 4).map((h: Doc<"userUsage">) => h.evaluationsCount) || [0, 0, 0, 0]
   } : mounted ? {
     // Default data when user is authenticated but no usage data exists
     currentUsage: 0,

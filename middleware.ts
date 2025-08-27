@@ -160,9 +160,17 @@ export default clerkMiddleware(async (auth, req) => {
     return rateLimitResponse
   }
 
-  // Then apply Clerk authentication
+  // Handle protected routes properly
   if (isProtectedRoute(req)) {
-    await auth.protect()
+    const { userId } = await auth()
+
+    if (!userId) {
+      // For crawlers and unauthenticated users, redirect to sign-in
+      // This returns 302 instead of 404, which is correct for protected content
+      const signInUrl = new URL('/sign-in', req.url)
+      signInUrl.searchParams.set('redirect_url', req.url)
+      return NextResponse.redirect(signInUrl)
+    }
   }
 
   // Continue with normal request processing

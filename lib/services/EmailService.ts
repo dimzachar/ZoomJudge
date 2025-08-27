@@ -147,7 +147,7 @@ export class EmailService {
     // Add default variables
     const defaultVariables = {
       appName: process.env.NEXT_PUBLIC_SITE_NAME || 'ZoomJudge',
-      appUrl: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+      appUrl: (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, ''),
       supportEmail: process.env.RESEND_FROM_EMAIL || 'noreply@zoomjudge.com',
       currentYear: new Date().getFullYear().toString(),
     };
@@ -220,7 +220,7 @@ export class EmailService {
 
       // Add unsubscribe URLs for the first recipient (for single emails)
       const firstRecipient = Array.isArray(options.to) ? options.to[0] : options.to;
-      const unsubscribeUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://www.zoomjudge.com"}/unsubscribe?email=${encodeURIComponent(firstRecipient)}`;
+      const unsubscribeUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com"}/unsubscribe?email=${encodeURIComponent(firstRecipient)}`;
 
       // Send email via Resend
       const result = await this.resend!.emails.send({
@@ -465,12 +465,13 @@ The {{appName}} Team`,
       try {
         // Prepare batch emails for Resend's batch API
         const batchEmails = batch.map(email => {
+          const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com").replace(/\/$/, '');
           const processedVariables = {
             ...variables,
             recipientEmail: email,
-            appUrl: process.env.NEXT_PUBLIC_APP_URL || "https://www.zoomjudge.com",
-            unsubscribeUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://www.zoomjudge.com"}/unsubscribe?email=${encodeURIComponent(email)}`,
-            preferencesUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://www.zoomjudge.com"}/preferences?email=${encodeURIComponent(email)}`
+            appUrl: baseUrl,
+            unsubscribeUrl: `${baseUrl}/unsubscribe?email=${encodeURIComponent(email)}`,
+            preferencesUrl: `${baseUrl}/preferences?email=${encodeURIComponent(email)}`
           };
 
           return {

@@ -170,6 +170,34 @@ export const submitEvaluation = action({
           result.results
         );
 
+        // Send evaluation complete email
+        console.log('=== SENDING EVALUATION COMPLETE EMAIL ===');
+        try {
+          const user = await ctx.runQuery(internal.users.userByExternalId, { externalId: userId.subject });
+          if (user && userId.email) {
+            const emailResult = await ctx.runAction(api.emails.sendEvaluationCompleteEmail, {
+              userId: userId.subject,
+              userEmail: userId.email, // Get email from Clerk identity
+              userName: user.name,
+              repositoryName: args.repoUrl.split('/').pop() || 'Repository',
+              courseName: args.courseType,
+              score: result.results.totalScore,
+              maxScore: result.results.maxScore,
+              summaryFeedback: result.results.overallFeedback,
+              evaluationUrl: `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com"}/dashboard/evaluation/${evaluationId}`,
+            });
+            console.log('Evaluation complete email sent:', emailResult.success ? 'SUCCESS' : 'FAILED');
+            if (!emailResult.success) {
+              console.error('Email send error:', emailResult.error);
+            }
+          } else {
+            console.warn('User not found or no email available for notification');
+          }
+        } catch (emailError) {
+          console.error('Failed to send evaluation complete email:', emailError);
+          // Don't fail the evaluation if email fails
+        }
+
         console.log('=== SUBMIT EVALUATION DEBUG END ===');
         return {
           evaluationId,
@@ -367,6 +395,46 @@ export const processEvaluation = internalAction({
           results: result.results,
         });
         console.log('Results saved successfully');
+
+        // Send evaluation complete email
+        console.log('=== SENDING EVALUATION COMPLETE EMAIL ===');
+        try {
+          // Get user email from Clerk API since it's not stored in our database
+          if (process.env.CLERK_SECRET_KEY) {
+            const { createClerkClient } = await import('@clerk/backend');
+            const clerkClient = createClerkClient({
+              secretKey: process.env.CLERK_SECRET_KEY
+            });
+
+            const clerkUser = await clerkClient.users.getUser(evaluation.userId);
+            const user = await ctx.runQuery(internal.users.userByExternalId, { externalId: evaluation.userId });
+
+            if (user && clerkUser.emailAddresses?.[0]?.emailAddress) {
+              const emailResult = await ctx.runAction(api.emails.sendEvaluationCompleteEmail, {
+                userId: evaluation.userId,
+                userEmail: clerkUser.emailAddresses[0].emailAddress,
+                userName: user.name,
+                repositoryName: evaluation.repoUrl.split('/').pop() || 'Repository',
+                courseName: evaluation.course,
+                score: result.results.totalScore,
+                maxScore: result.results.maxScore,
+                summaryFeedback: result.results.overallFeedback,
+                evaluationUrl: `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com"}/dashboard/evaluation/${args.evaluationId}`,
+              });
+              console.log('Evaluation complete email sent:', emailResult.success ? 'SUCCESS' : 'FAILED');
+              if (!emailResult.success) {
+                console.error('Email send error:', emailResult.error);
+              }
+            } else {
+              console.warn('User not found or no email available for notification');
+            }
+          } else {
+            console.warn('Clerk API not configured - skipping evaluation complete email');
+          }
+        } catch (emailError) {
+          console.error('Failed to send evaluation complete email:', emailError);
+          // Don't fail the evaluation if email fails
+        }
       } else {
         console.log('=== UPDATING WITH ERROR STATUS ===');
         console.log('Error from evaluation service:', result.error);

@@ -1,4 +1,4 @@
-import { internalMutation, query, QueryCtx } from "./_generated/server";
+import { internalMutation, internalQuery, query, QueryCtx } from "./_generated/server";
 import { UserJSON } from "@clerk/backend";
 import { v, Validator } from "convex/values";
 
@@ -17,7 +17,7 @@ export const upsertFromClerk = internalMutation({
       externalId: data.id,
     };
 
-    const user = await userByExternalId(ctx, data.id);
+    const user = await userByExternalIdHelper(ctx, data.id);
     if (user === null) {
       await ctx.db.insert("users", userAttributes);
     } else {
@@ -29,7 +29,7 @@ export const upsertFromClerk = internalMutation({
 export const deleteFromClerk = internalMutation({
   args: { clerkUserId: v.string() },
   async handler(ctx, { clerkUserId }) {
-    const user = await userByExternalId(ctx, clerkUserId);
+    const user = await userByExternalIdHelper(ctx, clerkUserId);
 
     if (user !== null) {
       await ctx.db.delete(user._id);
@@ -54,7 +54,7 @@ export async function getCurrentUser(ctx: QueryCtx) {
   if (identity === null) {
     return null;
   }
-  return await userByExternalId(ctx, identity.subject);
+  return await userByExternalIdHelper(ctx, identity.subject);
 }
 
 export async function getAuthenticatedUserId(ctx: QueryCtx): Promise<string> {
@@ -65,7 +65,17 @@ export async function getAuthenticatedUserId(ctx: QueryCtx): Promise<string> {
   return identity.subject;
 }
 
-async function userByExternalId(ctx: QueryCtx, externalId: string) {
+export const userByExternalId = internalQuery({
+  args: { externalId: v.string() },
+  handler: async (ctx, { externalId }) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("byExternalId", (q) => q.eq("externalId", externalId))
+      .unique();
+  },
+});
+
+async function userByExternalIdHelper(ctx: QueryCtx, externalId: string) {
   return await ctx.db
     .query("users")
     .withIndex("byExternalId", (q) => q.eq("externalId", externalId))

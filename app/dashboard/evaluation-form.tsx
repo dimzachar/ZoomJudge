@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, GitBranch, CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react';
 import { useAction, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
+import { Doc } from '@/convex/_generated/dataModel';
 import { toast } from 'sonner';
 import { BillingLimitModal, useBillingLimitModal } from '@/components/billing-limit-modal';
 import { debugLog, debugError } from '@/lib/debug-logger';
@@ -306,7 +307,7 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
               </div>
             ) : (
               <div className="flex flex-wrap gap-2">
-                {courses.map((course) => (
+                {courses.map((course: Doc<"courses">) => (
                   <button
                     key={course.courseId}
                     type="button"

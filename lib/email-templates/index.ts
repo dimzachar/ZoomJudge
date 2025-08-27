@@ -131,13 +131,18 @@ const EMAIL_STYLES = `
     }
     
     .unsubscribe {
-      font-size: 12px;
+      font-size: 14px;
       color: ${BRAND_COLORS.secondary};
       margin-top: 20px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      border: 1px solid #e9ecef;
     }
-    
+
     .unsubscribe a {
-      color: ${BRAND_COLORS.secondary};
+      color: ${BRAND_COLORS.primary};
+      text-decoration: underline;
     }
   </style>
 `;
@@ -245,6 +250,16 @@ export const EMAIL_TEMPLATES: Record<string, EmailTemplate> = {
         Simply reply to this email or visit our <a href="{{appUrl}}/help" style="color: ${BRAND_COLORS.primary};">Help Center</a>.
       </p>
       
+      <div style="margin: 30px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef; text-align: center;">
+        <p style="margin: 0 0 10px 0; font-size: 14px; color: ${BRAND_COLORS.secondary};">
+          <strong>Email Preferences</strong>
+        </p>
+        <p style="margin: 0; font-size: 13px; color: ${BRAND_COLORS.secondary};">
+          You can <a href="{{appUrl}}/unsubscribe?email={{recipientEmail}}" style="color: ${BRAND_COLORS.primary}; text-decoration: underline;">unsubscribe</a>
+          or <a href="{{appUrl}}/preferences?email={{recipientEmail}}" style="color: ${BRAND_COLORS.primary}; text-decoration: underline;">manage your email preferences</a> at any time.
+        </p>
+      </div>
+
       <p style="margin-bottom: 0;">
         Happy coding!<br>
         <strong>The ZoomJudge Team</strong>
@@ -480,6 +495,16 @@ Unsubscribe: {{appUrl}}/unsubscribe?email={{recipientEmail}}`,
         <a href="{{appUrl}}/resources" style="color: ${BRAND_COLORS.primary};">learning resources</a>
         or submit an updated version of your repository.
       </p>
+
+      <div style="margin: 30px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef; text-align: center;">
+        <p style="margin: 0 0 10px 0; font-size: 14px; color: ${BRAND_COLORS.secondary};">
+          <strong>Email Preferences</strong>
+        </p>
+        <p style="margin: 0; font-size: 13px; color: ${BRAND_COLORS.secondary};">
+          You can <a href="{{appUrl}}/unsubscribe?email={{recipientEmail}}" style="color: ${BRAND_COLORS.primary}; text-decoration: underline;">unsubscribe</a>
+          or <a href="{{appUrl}}/preferences?email={{recipientEmail}}" style="color: ${BRAND_COLORS.primary}; text-decoration: underline;">manage your email preferences</a> at any time.
+        </p>
+      </div>
 
       <p style="margin-bottom: 0;">
         Keep up the great work!<br>

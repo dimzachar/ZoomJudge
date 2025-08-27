@@ -6,6 +6,8 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -21,6 +23,7 @@ import {
   IconX,
   IconClock
 } from "@tabler/icons-react"
+import { Mail, MessageSquare, Megaphone, Loader2 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 
 // Template Card Component
@@ -255,6 +258,11 @@ export default function AdminEmailsPage() {
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false)
   const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null)
 
+  // State for real email sending
+  const [realUserEmail, setRealUserEmail] = useState("")
+  const [realUserName, setRealUserName] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+
   // Mutations
   const checkAdminStatus = useMutation(api.adminAPI.checkAdminStatus)
 
@@ -265,6 +273,11 @@ export default function AdminEmailsPage() {
   const sendTestFeedbackEmail = useAction(api.emails.sendTestFeedbackEmail)
   const sendTestProductUpdateEmail = useAction(api.emails.sendTestProductUpdateEmail)
   const sendTestEvaluationCompleteEmail = useAction(api.emails.sendTestEvaluationCompleteEmail)
+
+  // Real email actions
+  const sendRealWelcomeEmail = useAction(api.emails.sendRealWelcomeEmailToAnyUser)
+  const sendRealFeedbackEmail = useAction(api.emails.sendRealFeedbackEmailToAnyUser)
+  const sendRealProductUpdateEmail = useAction(api.emails.sendRealProductUpdateEmailToAnyUser)
 
   // Queries (only run if admin)
   const emailStats = useQuery(api.emails.getEmailStats, adminStatus?.isAdmin ? {} : "skip")
@@ -285,6 +298,58 @@ export default function AdminEmailsPage() {
 
     checkAdmin()
   }, [checkAdminStatus])
+
+  // Handler for sending real emails to individual users
+  const handleSendRealEmail = async (emailType: 'welcome' | 'feedback' | 'product-update') => {
+    if (!realUserEmail || !realUserName) {
+      toast.error("Please enter both email and name")
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      let result;
+
+      switch (emailType) {
+        case 'welcome':
+          result = await sendRealWelcomeEmail({
+            userEmail: realUserEmail,
+            userName: realUserName,
+          })
+          break
+        case 'feedback':
+          result = await sendRealFeedbackEmail({
+            userEmail: realUserEmail,
+            userName: realUserName,
+          })
+          break
+        case 'product-update':
+          result = await sendRealProductUpdateEmail({
+            userEmail: realUserEmail,
+            userName: realUserName,
+            updateTitle: "Enhanced AI Evaluation for Zoomcamp Projects",
+            updateDescription: "Our AI now better understands Jupyter notebooks, ML models, and deployment patterns specific to Zoomcamp courses.",
+          })
+          break
+        default:
+          throw new Error(`Unknown email type: ${emailType}`)
+      }
+
+      if (result.success) {
+        toast.success(`Real ${emailType} email sent successfully to ${realUserEmail}!`)
+        // Clear the form
+        setRealUserEmail("")
+        setRealUserName("")
+      } else {
+        toast.error(result.error || `Failed to send ${emailType} email`)
+      }
+    } catch (error) {
+      console.error(`Failed to send real ${emailType} email:`, error)
+      toast.error(`Failed to send ${emailType} email`)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   // Loading state
   if (adminStatus === null) {
@@ -441,12 +506,82 @@ export default function AdminEmailsPage() {
             </Card>
           </div>
 
+          {/* Send Real Email to Individual User Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Send Real Email to Individual User</CardTitle>
+              <CardDescription>
+                Send real production emails with real templates to specific users
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="realUserEmail">User Email</Label>
+                    <Input
+                      id="realUserEmail"
+                      type="email"
+                      placeholder="user@example.com"
+                      value={realUserEmail}
+                      onChange={(e) => setRealUserEmail(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="realUserName">User Name</Label>
+                    <Input
+                      id="realUserName"
+                      placeholder="John Doe"
+                      value={realUserName}
+                      onChange={(e) => setRealUserName(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={() => handleSendRealEmail('welcome')}
+                    disabled={!realUserEmail || !realUserName || isLoading}
+                    variant="outline"
+                  >
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Mail className="h-4 w-4 mr-2" />}
+                    Send Real Welcome Email
+                  </Button>
+
+                  <Button
+                    onClick={() => handleSendRealEmail('feedback')}
+                    disabled={!realUserEmail || !realUserName || isLoading}
+                    variant="outline"
+                  >
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <MessageSquare className="h-4 w-4 mr-2" />}
+                    Send Real Feedback Email
+                  </Button>
+
+                  <Button
+                    onClick={() => handleSendRealEmail('product-update')}
+                    disabled={!realUserEmail || !realUserName || isLoading}
+                    variant="outline"
+                  >
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Megaphone className="h-4 w-4 mr-2" />}
+                    Send Real Product Update
+                  </Button>
+                </div>
+
+                {realUserEmail && realUserName && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded text-blue-800 text-sm">
+                    <strong>⚠️ Real Email:</strong> This will send actual production emails with unsubscribe links to {realUserEmail}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Test Email Section */}
           <Card>
             <CardHeader>
-              <CardTitle>Send Test Email</CardTitle>
+              <CardTitle>Send Test Email (Sample Data)</CardTitle>
               <CardDescription>
-                Send a test email to verify your email configuration is working
+                Send emails with sample data for testing purposes
                 {process.env.NODE_ENV === 'development' && (
                   <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
                     ⚠️ <strong>Development Mode:</strong> This will send real emails using production credentials

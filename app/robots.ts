@@ -1,7 +1,8 @@
 import { MetadataRoute } from 'next'
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.zoomjudge.com'
+  // Normalize base URL by removing trailing slash to prevent double slashes
+  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.zoomjudge.com').replace(/\/$/, '')
   
   return {
     rules: [
@@ -10,55 +11,56 @@ export default function robots(): MetadataRoute.Robots {
         allow: '/',
         disallow: [
           '/api/',
-          '/dashboard/settings/',
-          '/dashboard/billing/',
+          '/dashboard/',
           '/test-*',
           '/_next/',
           '/convex/',
           '/admin/',
-          '/private/'
+          '/private/',
+          '/sign-in/',
+          '/sign-up/'
         ],
       },
       {
         userAgent: 'GPTBot',
         allow: [
           '/',
-          '/demo',
-          '/dashboard',
+          '/demo'
         ],
         disallow: [
           '/api/',
-          '/dashboard/settings/',
-          '/dashboard/billing/',
-          '/test-*'
+          '/dashboard/',
+          '/test-*',
+          '/sign-in/',
+          '/sign-up/'
         ]
       },
       {
         userAgent: 'ChatGPT-User',
         allow: [
           '/',
-          '/demo',
-          '/dashboard',
+          '/demo'
         ],
         disallow: [
           '/api/',
-          '/dashboard/settings/',
-          '/dashboard/billing/',
-          '/test-*'
+          '/dashboard/',
+          '/test-*',
+          '/sign-in/',
+          '/sign-up/'
         ]
       },
       {
         userAgent: 'Claude-Web',
         allow: [
           '/',
-          '/demo',
-          '/dashboard',
+          '/demo'
         ],
         disallow: [
           '/api/',
-          '/dashboard/settings/',
-          '/dashboard/billing/',
-          '/test-*'
+          '/dashboard/',
+          '/test-*',
+          '/sign-in/',
+          '/sign-up/'
         ]
       }
     ],

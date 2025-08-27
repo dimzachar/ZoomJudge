@@ -553,7 +553,7 @@ export const sendWelcomeEmail = action({
 
       const templateVariables = {
         userName: args.userName,
-        appUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com",
+        appUrl: (process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com").replace(/\/$/, ''),
         currentYear: new Date().getFullYear().toString(),
         recipientEmail: args.userEmail,
       };
@@ -1037,7 +1037,7 @@ export const sendTestWelcomeEmail = action({
 
       const templateVariables = {
         userName: recipientName,
-        appUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com",
+        appUrl: (process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com").replace(/\/$/, ''),
         currentYear: new Date().getFullYear().toString(),
         recipientEmail: args.recipientEmail,
       };
@@ -1121,12 +1121,13 @@ export const sendTestFeedbackEmail = action({
         return processed;
       };
 
+      const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com").replace(/\/$/, '');
       const templateVariables = {
         userName: recipientName,
-        appUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com",
+        appUrl: baseUrl,
         currentYear: new Date().getFullYear().toString(),
         recipientEmail: args.recipientEmail,
-        feedbackUrl: `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com"}/feedback`,
+        feedbackUrl: `${baseUrl}/feedback`,
       };
 
       const processedSubject = processTemplate(feedbackTemplate.subject, templateVariables);
@@ -1220,7 +1221,7 @@ export const sendTestProductUpdateEmail = action({
 
       const templateVariables = {
         userName: recipientName,
-        appUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com",
+        appUrl: (process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com").replace(/\/$/, ''),
         currentYear: new Date().getFullYear().toString(),
         recipientEmail: args.recipientEmail,
         ...sampleUpdateData
@@ -1308,7 +1309,7 @@ export const sendTestEvaluationCompleteEmail = action({
         summaryFeedback: "Excellent work on your ML project! Your model training pipeline is well-structured and you've implemented proper cross-validation. The Docker deployment setup is solid. Consider adding more comprehensive feature engineering and model monitoring for production readiness.",
         topStrengths: "Well-structured pipeline, proper validation, solid Docker setup",
         improvementAreas: "Feature engineering, model monitoring, documentation",
-        evaluationUrl: `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com"}/dashboard/evaluation/sample-123`
+        evaluationUrl: `${(process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com").replace(/\/$/, '')}/dashboard/evaluation/sample-123`
       };
 
       // Process template variables
@@ -1323,7 +1324,7 @@ export const sendTestEvaluationCompleteEmail = action({
 
       const templateVariables = {
         userName: recipientName,
-        appUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com",
+        appUrl: (process.env.NEXT_PUBLIC_SITE_URL || "https://www.zoomjudge.com").replace(/\/$/, ''),
         currentYear: new Date().getFullYear().toString(),
         recipientEmail: args.recipientEmail,
         repositoryName: sampleData.repositoryName,
@@ -1391,6 +1392,86 @@ export const sendTestEvaluationCompleteEmail = action({
 // Simplified function to send evaluation complete emails
 // This will be called directly from the evaluation completion logic
 
+// Admin functions to send real emails to any email address
+export const sendRealWelcomeEmailToAnyUser = action({
+  args: {
+    userEmail: v.string(),
+    userName: v.string(),
+  },
+  handler: async (ctx, args): Promise<any> => {
+    try {
+      // Send real welcome email using the production function
+      const result = await ctx.runAction(api.emails.sendWelcomeEmail, {
+        userId: "admin-sent", // Special ID for admin-sent emails
+        userEmail: args.userEmail,
+        userName: args.userName,
+      });
+
+      return result;
+    } catch (error) {
+      console.error("Failed to send real welcome email:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  },
+});
+
+export const sendRealFeedbackEmailToAnyUser = action({
+  args: {
+    userEmail: v.string(),
+    userName: v.string(),
+  },
+  handler: async (ctx, args): Promise<any> => {
+    try {
+      // Send real feedback email using the production function
+      const result = await ctx.runAction(api.emails.sendFeedbackRequestEmail, {
+        userId: "admin-sent", // Special ID for admin-sent emails
+        userEmail: args.userEmail,
+        userName: args.userName,
+      });
+
+      return result;
+    } catch (error) {
+      console.error("Failed to send real feedback email:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  },
+});
+
+export const sendRealProductUpdateEmailToAnyUser = action({
+  args: {
+    userEmail: v.string(),
+    userName: v.string(),
+    updateTitle: v.string(),
+    updateDescription: v.string(),
+  },
+  handler: async (ctx, args): Promise<any> => {
+    try {
+      // Send real product update email using the production function
+      const result = await ctx.runAction(api.emails.sendProductUpdateEmail, {
+        userId: "admin-sent", // Special ID for admin-sent emails
+        userEmail: args.userEmail,
+        userName: args.userName,
+        updateTitle: args.updateTitle,
+        updateDescription: args.updateDescription,
+      });
+
+      return result;
+    } catch (error) {
+      console.error("Failed to send real product update email:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  },
+});
+
 // Internal helper functions for the admin dashboard
 export const getUsersForFeedbackRequest = internalQuery({
   args: {
@@ -1408,6 +1489,23 @@ export const getUsersForFeedbackRequest = internalQuery({
     return users.slice(0, 10).map(user => ({
       ...user,
       email: `${user.name.toLowerCase().replace(' ', '.')}@example.com`, // Mock email
+    }));
+  },
+});
+
+// Get all users for admin email management (without emails since they're in Clerk)
+export const getAllUsers = query({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db
+      .query("users")
+      .collect();
+
+    return users.map(user => ({
+      id: user._id,
+      externalId: user.externalId,
+      name: user.name,
+      createdAt: user._creationTime,
     }));
   },
 });

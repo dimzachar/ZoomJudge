@@ -3,6 +3,7 @@
 import React from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
+import { Doc } from '@/convex/_generated/dataModel';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -119,7 +120,7 @@ export function EvaluationResults({ limit = 10 }: EvaluationResultsProps) {
         </CardHeader>
         <CardContent className="pt-0">
           <div className="space-y-3 sm:space-y-4">
-            {evaluations.map((evaluation) => (
+            {evaluations.map((evaluation: Doc<"evaluations">) => (
               <EvaluationCard key={evaluation._id} evaluation={evaluation} />
             ))}
           </div>
