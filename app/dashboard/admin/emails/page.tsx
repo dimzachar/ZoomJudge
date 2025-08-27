@@ -382,14 +382,21 @@ export default function AdminEmailsPage() {
 
   const handleSendFeedbackCampaign = async () => {
     try {
+      toast.info("Starting feedback campaign...")
       const result = await sendFeedbackCampaign({})
       if (result.success) {
         const skippedText = result.skipped ? `, ${result.skipped} skipped (unsubscribed)` : '';
-        toast.success(`Feedback campaign sent! ${result.sent} emails sent, ${result.failed} failed${skippedText}.`)
+        const failedText = result.failed ? `, ${result.failed} failed` : '';
+        if (result.sent === 0 && result.failed === 0 && result.skipped === 0) {
+          toast.info(`No eligible users found for feedback campaign. ${result.message || ''}`)
+        } else {
+          toast.success(`Feedback campaign completed! ${result.sent} emails sent${failedText}${skippedText}.`)
+        }
       } else {
         toast.error(`Failed to send feedback campaign: ${result.error}`)
       }
     } catch (error) {
+      console.error('Campaign error:', error)
       toast.error("Failed to send feedback campaign")
     }
   }

@@ -1073,22 +1073,38 @@ export const scheduleFeedbackRequestEmails = action({
   args: {},
   handler: async (ctx) => {
     try {
-      // Find users who registered 2 weeks ago and haven't received feedback request yet
+      // Find users who registered 1-2 weeks ago and haven't received feedback request yet
       const twoWeeksAgo = Date.now() - (14 * 24 * 60 * 60 * 1000);
       const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
 
-      // Get users for feedback request (simplified implementation)
-      const users = await ctx.runQuery(internal.emails.getUsersForFeedbackRequest, {
+      console.log(`Starting feedback campaign for users registered between ${new Date(twoWeeksAgo).toISOString()} and ${new Date(oneWeekAgo).toISOString()}`);
+
+      // Get users for feedback request with real email addresses
+      const users = await ctx.runAction(api.emails.getUsersWithEmailsForFeedbackRequest, {
         registeredAfter: twoWeeksAgo,
         registeredBefore: oneWeekAgo,
       });
+
+      if (users.length === 0) {
+        console.log('No eligible users found for feedback campaign');
+        return { success: true, sent: 0, failed: 0, skipped: 0, message: 'No eligible users found' };
+      }
 
       let successCount = 0;
       let failureCount = 0;
       let skippedCount = 0;
 
+      console.log(`Processing ${users.length} eligible users for feedback campaign`);
+
       for (const user of users) {
         try {
+          // Validate that we have a proper email address
+          if (!user.email || !user.email.includes('@')) {
+            console.error(`Invalid email for user ${user.externalId}: ${user.email}`);
+            failureCount++;
+            continue;
+          }
+
           const result = await ctx.runAction(api.emails.sendFeedbackRequestEmail, {
             userId: user.externalId,
             userEmail: user.email,
@@ -1097,14 +1113,16 @@ export const scheduleFeedbackRequestEmails = action({
 
           if (result.success) {
             successCount++;
+            console.log(`✅ Sent feedback email to ${user.email}`);
           } else if ((result as any).skipped) {
             skippedCount++;
-            console.log(`Skipped feedback email for ${user.email}: ${result.error}`);
+            console.log(`⏭️ Skipped feedback email for ${user.email}: ${result.error}`);
           } else {
             failureCount++;
+            console.error(`❌ Failed to send feedback email to ${user.email}: ${result.error}`);
           }
 
-          // Add delay between emails to respect rate limits
+          // Add delay between emails to respect rate limits (1 second)
           await new Promise(resolve => setTimeout(resolve, 1000));
         } catch (error) {
           console.error(`Failed to send feedback email to user ${user.externalId}:`, error);
@@ -1112,10 +1130,86 @@ export const scheduleFeedbackRequestEmails = action({
         }
       }
 
-      console.log(`Feedback email campaign completed: ${successCount} sent, ${failureCount} failed, ${skippedCount} skipped (unsubscribed)`);
-      return { success: true, sent: successCount, failed: failureCount, skipped: skippedCount };
+      const summary = `Feedback email campaign completed: ${successCount} sent, ${failureCount} failed, ${skippedCount} skipped (unsubscribed)`;
+      console.log(summary);
+
+      return {
+        success: true,
+        sent: successCount,
+        failed: failureCount,
+        skipped: skippedCount,
+        message: summary
+      };
     } catch (error) {
       console.error("Failed to run feedback email campaign:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  },
+});
+
+// Test feedback campaign with a single user for debugging
+export const testFeedbackCampaignSingleUser = action({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (ctx, args): Promise<{
+    success: boolean;
+    error?: string;
+    userEmail?: string;
+    userName?: string;
+    message?: string;
+  }> => {
+    try {
+      console.log(`Testing feedback campaign for user: ${args.userId}`);
+
+      // Get user from database
+      const user = await ctx.runQuery(internal.users.userByExternalId, {
+        externalId: args.userId,
+      });
+
+      if (!user) {
+        return { success: false, error: 'User not found in database' };
+      }
+
+      // Get user email from Clerk
+      const emailResult: any = await ctx.runAction(api.emails.getUserEmailFromClerk, {
+        userId: args.userId,
+      });
+
+      if (!emailResult.success) {
+        return { success: false, error: `Failed to get email: ${emailResult.error}` };
+      }
+
+      // Check if user should receive feedback emails
+      const shouldReceive = await ctx.runQuery(internal.emails.shouldReceiveEmail, {
+        email: emailResult.email,
+        emailType: "feedbackRequests",
+      });
+
+      if (!shouldReceive) {
+        return { success: false, error: 'User has unsubscribed from feedback emails' };
+      }
+
+      // Send the feedback email
+      const result: any = await ctx.runAction(api.emails.sendFeedbackRequestEmail, {
+        userId: args.userId,
+        userEmail: emailResult.email,
+        userName: user.name,
+      });
+
+      return {
+        success: result.success,
+        error: result.error,
+        userEmail: emailResult.email,
+        userName: user.name,
+        message: result.success ? 'Test feedback email sent successfully' : 'Failed to send test feedback email'
+      };
+
+    } catch (error) {
+      console.error(`Failed to test feedback campaign for user ${args.userId}:`, error);
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error"
@@ -1675,35 +1769,144 @@ export const getUsersForFeedbackRequest = internalQuery({
     registeredBefore: v.number(),
   },
   handler: async (ctx, args) => {
-    // Get all users
+    // Get users from the specified time range
     const users = await ctx.db
       .query("users")
+      .filter((q) =>
+        q.and(
+          q.gte(q.field("_creationTime"), args.registeredAfter),
+          q.lte(q.field("_creationTime"), args.registeredBefore)
+        )
+      )
       .collect();
 
-    // Filter users and add mock email addresses, then check email preferences
-    const usersWithEmails = users.slice(0, 10).map(user => ({
-      ...user,
-      email: `${user.name.toLowerCase().replace(' ', '.')}@example.com`, // Mock email
-    }));
+    console.log(`Found ${users.length} users registered between ${new Date(args.registeredAfter).toISOString()} and ${new Date(args.registeredBefore).toISOString()}`);
 
-    // Filter users who should receive feedback emails
-    const eligibleUsers = [];
-    for (const user of usersWithEmails) {
-      const shouldReceive = await ctx.runQuery(internal.emails.shouldReceiveEmail, {
-        email: user.email,
-        emailType: "feedbackRequests",
-      });
+    // Return users without emails - emails will be fetched individually during campaign
+    return users;
+  },
+});
 
-      if (shouldReceive) {
-        eligibleUsers.push(user);
-      }
+// Action to get users with emails for feedback campaign
+export const getUsersWithEmailsForFeedbackRequest = action({
+  args: {
+    registeredAfter: v.number(),
+    registeredBefore: v.number(),
+  },
+  handler: async (ctx, args): Promise<Array<{
+    _id: any;
+    _creationTime: number;
+    name: string;
+    externalId: string;
+    email: string;
+  }>> => {
+    // Get users from the query
+    const users = await ctx.runQuery(internal.emails.getUsersForFeedbackRequest, {
+      registeredAfter: args.registeredAfter,
+      registeredBefore: args.registeredBefore,
+    });
+
+    if (users.length === 0) {
+      return [];
     }
 
+    // Get real email addresses from Clerk API
+    const eligibleUsers = [];
+
+    if (!process.env.CLERK_SECRET_KEY) {
+      console.warn('CLERK_SECRET_KEY not configured - cannot fetch user emails for campaign');
+      return [];
+    }
+
+    try {
+      const { createClerkClient } = await import('@clerk/backend');
+      const clerkClient = createClerkClient({
+        secretKey: process.env.CLERK_SECRET_KEY
+      });
+
+      for (const user of users) {
+        try {
+          // Get user data from Clerk including email
+          const clerkUser = await clerkClient.users.getUser(user.externalId);
+
+          // Get primary email address
+          const primaryEmail = clerkUser.emailAddresses.find(
+            email => email.id === clerkUser.primaryEmailAddressId
+          );
+
+          if (!primaryEmail?.emailAddress) {
+            console.log(`No primary email found for user ${user.externalId}`);
+            continue;
+          }
+
+          const userEmail = primaryEmail.emailAddress;
+
+          // Validate email format (ASCII only for Resend compatibility)
+          if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(userEmail)) {
+            console.log(`Invalid email format for user ${user.externalId}: ${userEmail}`);
+            continue;
+          }
+
+          // Check if user should receive feedback emails
+          const shouldReceive = await ctx.runQuery(internal.emails.shouldReceiveEmail, {
+            email: userEmail,
+            emailType: "feedbackRequests",
+          });
+
+          if (shouldReceive) {
+            eligibleUsers.push({
+              ...user,
+              email: userEmail,
+            });
+          } else {
+            console.log(`User ${user.externalId} has unsubscribed from feedback emails`);
+          }
+
+        } catch (clerkError) {
+          console.error(`Failed to fetch Clerk data for user ${user.externalId}:`, clerkError);
+          continue;
+        }
+      }
+
+    } catch (error) {
+      console.error('Failed to initialize Clerk client:', error);
+      return [];
+    }
+
+    console.log(`Found ${eligibleUsers.length} eligible users for feedback campaign`);
     return eligibleUsers;
   },
 });
 
-// Get all users for admin email management (without emails since they're in Clerk)
+// Get all users for admin email management with real email addresses from Clerk
+export const getAllUsersWithEmails = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    // Check if user is admin
+    const currentUser = await getCurrentUser(ctx);
+    if (!currentUser?.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    const users = await ctx.db
+      .query("users")
+      .order("desc")
+      .take(args.limit || 50);
+
+    // Return basic user info without emails for security
+    // Emails will be fetched separately when needed for campaigns
+    return users.map(user => ({
+      id: user._id,
+      externalId: user.externalId,
+      name: user.name,
+      createdAt: user._creationTime,
+    }));
+  },
+});
+
+// Get all users for admin email management (legacy function - kept for compatibility)
 export const getAllUsers = query({
   args: {},
   handler: async (ctx) => {
@@ -1717,6 +1920,60 @@ export const getAllUsers = query({
       name: user.name,
       createdAt: user._creationTime,
     }));
+  },
+});
+
+// Helper function to get and validate user email from Clerk (action version)
+export const getUserEmailFromClerk = action({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (ctx, args): Promise<{
+    success: boolean;
+    error?: string;
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+  }> => {
+    if (!process.env.CLERK_SECRET_KEY) {
+      return { success: false, error: 'CLERK_SECRET_KEY not configured' };
+    }
+
+    try {
+      const { createClerkClient } = await import('@clerk/backend');
+      const clerkClient = createClerkClient({
+        secretKey: process.env.CLERK_SECRET_KEY
+      });
+
+      const clerkUser = await clerkClient.users.getUser(args.userId);
+
+      // Get primary email address
+      const primaryEmail = clerkUser.emailAddresses.find(
+        email => email.id === clerkUser.primaryEmailAddressId
+      );
+
+      if (!primaryEmail?.emailAddress) {
+        return { success: false, error: 'No primary email found' };
+      }
+
+      const userEmail = primaryEmail.emailAddress;
+
+      // Validate email format (ASCII only for Resend compatibility)
+      if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(userEmail)) {
+        return { success: false, error: 'Invalid email format (non-ASCII characters)' };
+      }
+
+      return {
+        success: true,
+        email: userEmail,
+        firstName: clerkUser.firstName || undefined,
+        lastName: clerkUser.lastName || undefined
+      };
+
+    } catch (error) {
+      console.error(`Failed to fetch email for user ${args.userId}:`, error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
   },
 });
 
