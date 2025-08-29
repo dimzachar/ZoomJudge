@@ -307,15 +307,24 @@ export async function getRepoStructure(repoInfo: GitHubRepoInfo): Promise<{
     }
 
     const treeData = await response.json();
-    const files: string[] = [];
     const content: Record<string, string> = {};
 
-    // Extract file paths
-    for (const item of treeData.tree) {
-      if (item.type === 'blob') {
-        files.push(item.path);
-      }
+    // Import optimization utilities
+    const { handleTruncatedResponse, filterMLArtifacts } = await import('./utils/repository-optimizer');
+
+    // Handle truncated responses and extract file paths
+    const rawFiles = await handleTruncatedResponse(repoInfo, treeData);
+
+    console.log(`📁 Discovered ${rawFiles.length} files from ${repoInfo.owner}/${repoInfo.repo}`);
+
+    // Apply intelligent artifact filtering for ML repositories
+    const optimizationResult = filterMLArtifacts(rawFiles);
+
+    if (optimizationResult.wasFiltered) {
+      console.log(`🧹 ${optimizationResult.filterReason}`);
     }
+
+    const files = optimizationResult.files;
 
     // Fetch content of key files - comprehensive patterns for better evaluation
     const keyFilePatterns = [

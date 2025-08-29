@@ -27,7 +27,8 @@ const performanceValidator = v.object({
   accuracy: v.number(),
   evaluationQuality: v.number(),
   usageCount: v.number(),
-  successRate: v.number()
+  successRate: v.number(),
+  processingTime: v.optional(v.number())
 });
 
 const metadataValidator = v.object({

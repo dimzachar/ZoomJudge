@@ -20,6 +20,7 @@ export interface WorkflowRequest {
 export interface WorkflowResult {
   selectedFiles: string[];
   content: Record<string, string>;
+  allDiscoveredFiles: string[]; // UNIVERSAL: All files discovered (for both normal and edge cases)
   metadata: {
     method: string;
     confidence: number;
@@ -199,6 +200,7 @@ export class WorkflowReplacement {
       return {
         selectedFiles: selectionResult.selectedFiles,
         content,
+        allDiscoveredFiles: allFiles, // UNIVERSAL: Include all discovered files for debug analysis
         metadata: {
           method: selectionResult.method,
           confidence: selectionResult.confidence,
@@ -237,19 +239,29 @@ export class WorkflowReplacement {
   }
 
   /**
-   * Discover all files in the repository
+   * Discover all files in the repository with optimization for large repos and artifact filtering
    */
   private async discoverRepositoryFiles(repoInfo: GitHubRepoInfo): Promise<string[]> {
     try {
-      // Use GitHub API to get repository tree
+      // Use GitHub API to get repository tree with authentication
+      const headers: Record<string, string> = {
+        'User-Agent': 'ZoomJudge-Bot/1.0',
+        'Accept': 'application/vnd.github.v3+json'
+      };
+
+      // Add GitHub token for higher rate limits if available
+      if (process.env.GITHUB_TOKEN) {
+        headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`;
+        console.log(`🔑 Using GitHub token for repository discovery`);
+      } else {
+        console.warn(`⚠️ No GitHub token - may hit rate limits`);
+      }
+
       const response = await fetch(
         `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/git/trees/${repoInfo.commitHash}?recursive=1`,
         {
           method: 'GET',
-          headers: {
-            'User-Agent': 'ZoomJudge-Bot/1.0',
-            'Accept': 'application/vnd.github.v3+json'
-          }
+          headers
         }
       );
 
@@ -258,18 +270,33 @@ export class WorkflowReplacement {
       }
 
       const data = await response.json();
-      
+
+      // DEBUG: Log GitHub API response details
+      console.log(`🔍 GitHub API Response Details for ${repoInfo.owner}/${repoInfo.repo}:`);
+      console.log(`   - Truncated: ${data.truncated}`);
+      console.log(`   - Tree items: ${data.tree ? data.tree.length : 'undefined'}`);
+      console.log(`   - SHA: ${data.sha}`);
+
       if (!data.tree || !Array.isArray(data.tree)) {
         throw new Error('Invalid repository tree structure');
       }
 
-      // Extract file paths (exclude directories)
-      const files = data.tree
-        .filter((item: any) => item.type === 'blob')
-        .map((item: any) => item.path)
-        .filter((path: string) => path && typeof path === 'string');
+      // Import optimization utilities
+      const { handleTruncatedResponse, filterMLArtifacts } = await import('../../utils/repository-optimizer');
 
-      return files;
+      // Handle truncated responses and extract file paths
+      const rawFiles = await handleTruncatedResponse(repoInfo, data);
+
+      console.log(`📁 Discovered ${rawFiles.length} files from ${repoInfo.owner}/${repoInfo.repo}`);
+
+      // Apply intelligent artifact filtering for ML repositories
+      const optimizationResult = filterMLArtifacts(rawFiles);
+
+      if (optimizationResult.wasFiltered) {
+        console.log(`🧹 ${optimizationResult.filterReason}`);
+      }
+
+      return optimizationResult.files;
 
     } catch (error) {
       console.error('Error discovering repository files:', error);

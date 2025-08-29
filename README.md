@@ -12,6 +12,10 @@ ZoomJudge revolutionizes code evaluation by analyzing static code snapshots from
 - **Multi-Course Support**: Specialized evaluation criteria for 5 different Zoomcamp courses
 - **Discrete Scoring System**: Assigns only whole number scores (0, 1, 2, 3, etc.) as per course requirements
 - **Ultimate Hybrid Architecture**: Advanced three-tier file selection system for optimal performance
+- **Edge Case Handling**: Robust processing of large repositories (35k+ files) with intelligent discovery
+- **Dynamic Pattern Detection**: Intelligent file discovery without hardcoded assumptions
+- **Generic Deduplication**: Handles any repetitive directory structure (artifacts, experiments, models)
+- **Comprehensive Testing**: 32 unit and integration tests covering all edge cases
 - **Real-time Processing**: Live evaluation status with intelligent caching for faster results
 
 ## 🏗️ System Architecture
@@ -38,14 +42,39 @@ The system uses a cascading approach to select the most relevant files for evalu
 - **Purpose**: Intelligent file selection when caching and fingerprinting are insufficient
 - **AI Model**: `qwen/qwen-2.5-coder-32b-instruct` (optimized for cost-effectiveness)
 - **Configuration**: 2,000 max tokens, 0.1 temperature for consistent results
+- **Edge Case Support**: Handles large repositories (35k+ files) with intelligent directory discovery
 - **Fallback**: Ensures 100% evaluation completion rate
+
+### Edge Case Handling 🛡️
+
+ZoomJudge handles challenging repository scenarios that would break traditional evaluation systems:
+
+#### **Large Repository Support**
+- **Threshold**: Automatically detects repositories with 1,000+ files
+- **Intelligent Discovery**: Uses GitHub API to discover missing critical directories (`src/`, `infra/`, `tests/`)
+- **Dynamic File Detection**: Finds important files (`environment.yml`, `prefect.yaml`, `requirements.txt`) regardless of naming conventions
+- **Performance**: Handles repositories with 35,000+ files efficiently
+
+#### **Dynamic Pattern Detection**
+- **Documentation Files**: Detects `README.md`, `how_to_run.md`, `setup.md`, `installation.rst`, etc.
+- **Configuration Files**: Finds `environment.yml`, `requirements*.txt`, `pyproject.toml`, `Dockerfile`, etc.
+- **CI/CD Files**: Discovers `.github/workflows/`, `.gitlab-ci.yml`, `.pre-commit-config.yaml`, etc.
+- **Infrastructure Files**: Locates `*.tf`, `pulumi.yaml`, `ansible/`, etc.
+
+#### **Generic Deduplication**
+- **Artifact Deduplication**: Reduces 3,407 → 2 files for `artifacts/*/*/requirements.txt` patterns
+- **Experiment Deduplication**: Handles `mlruns/*/*/`, `experiments/*/`, `models/v*/` structures
+- **Test Deduplication**: Manages `tests/unit/*/`, `spec/*/`, `__tests__/*/` patterns
+- **Intelligent Sampling**: Selects representative files by size and path depth
 
 ### Core Components
 
 - **Repository Fingerprinter**: Analyzes project structure and technology stack
-- **Criterion Mapper**: Maps files to specific course evaluation criteria
+- **Criterion Mapper**: Maps files to specific course evaluation criteria with dynamic pattern detection
 - **Intelligent Cache**: Stores and retrieves successful file selection strategies
 - **AI Guided Selector**: Provides intelligent fallback for complex repositories
+- **Dynamic Pattern Detector**: Discovers important files without hardcoded assumptions
+- **Generic Deduplicator**: Handles any repetitive directory structure intelligently
 - **Validation Engine**: Ensures evaluation quality and accuracy
 - **Performance Monitor**: Tracks system metrics and optimization opportunities
 

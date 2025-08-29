@@ -44,7 +44,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-*.md
+# *.md
 analyze-unused-files.js
 
 # Unused dashboard components
@@ -67,6 +67,7 @@ components/ui/text-effect.tsx
 
 # Unused scripts
 scripts/*
+# !debug-hybrid-file-selection.ts
 test*
 *logs.js
 anthropic.ts
@@ -206,3 +207,11 @@ user-id-mapping.json
 *migration-script/
 development-data-*.zip
 convex/migrations/*
+
+
+*.md
+# !evaluation-logs/*
+# !hybrid-file-selection-problem-analysis.md
+# !test-plan-edge-cases.md
+
+test/*

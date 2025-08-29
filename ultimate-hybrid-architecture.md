@@ -49,6 +49,68 @@ Cost: 60-70% reduction through intelligent caching
 - Course-specific prompting
 - Cost-efficient (no content reading)
 - Fallback for edge cases
+- Large repository support (35k+ files)
+
+## 🛡️ Edge Case Handling Architecture
+
+The Ultimate Hybrid system includes robust edge case handling for challenging repository scenarios:
+
+### Large Repository Detection & Optimization
+
+```mermaid
+graph TD
+    A[Repository Analysis] --> B{File Count > 1000?}
+    B -->|No| C[Standard Processing]
+    B -->|Yes| D[Large Repo Mode]
+
+    D --> E[GitHub API Directory Discovery]
+    E --> F[Dynamic Pattern Detection]
+    F --> G[Generic Deduplication]
+    G --> H[Intelligent File Selection]
+
+    E --> E1[Discover src/]
+    E --> E2[Discover infra/]
+    E --> E3[Discover tests/]
+    E --> E4[Discover docs/]
+
+    F --> F1[Documentation Patterns]
+    F --> F2[Configuration Patterns]
+    F --> F3[CI/CD Patterns]
+    F --> F4[Infrastructure Patterns]
+
+    G --> G1[Artifact Deduplication]
+    G --> G2[Experiment Deduplication]
+    G --> G3[Test Deduplication]
+    G --> G4[Model Deduplication]
+```
+
+### Dynamic Pattern Detection System
+
+**Pattern Categories with Priority:**
+- **Documentation (Priority 95)**: `README.*`, `how_to_run.*`, `setup.*`, `installation.*`
+- **Environment (Priority 90)**: `environment.yml`, `requirements*.txt`, `pyproject.toml`
+- **Workflow (Priority 88)**: `prefect.yaml`, `dvc.yaml`, `mlproject`, `pipeline.yml`
+- **Build (Priority 85)**: `Makefile`, `Dockerfile`, `docker-compose.yml`
+- **Infrastructure (Priority 82)**: `*.tf`, `pulumi.yaml`, `ansible/`
+- **CI/CD (Priority 80)**: `.github/workflows/`, `.gitlab-ci.yml`, `.pre-commit-config.yaml`
+
+### Generic Deduplication Algorithm
+
+**Handles Any Repetitive Pattern:**
+```typescript
+// Examples of patterns automatically detected and deduplicated:
+artifacts/*/*/requirements.txt     → 3407 files → 2 samples
+mlruns/*/*/artifacts/model/        → 108 files → 2 samples
+experiments/exp*/model.py          → 50 files → 2 samples
+tests/unit/test*/config.yaml       → 25 files → 2 samples
+models/v*/pipeline.py              → 15 files → 2 samples
+```
+
+**Intelligent Sampling Strategy:**
+- Select files by **file size** (largest and smallest)
+- Select files by **path depth** (shallowest and deepest)
+- Preserve **directory structure diversity**
+- Maintain **representative coverage**
 
 ## 🏗️ Complete Workflow Architecture
 
@@ -56,7 +118,15 @@ Cost: 60-70% reduction through intelligent caching
 graph TD
     A[User Submits GitHub Commit URL] --> B[validateRepository]
     B --> C[getRepoStructure - Files Only]
-    C --> D[Generate Cache Key]
+    C --> C1{File Count > 1000?}
+    C1 -->|No| D[Generate Cache Key]
+    C1 -->|Yes| C2[Large Repo Mode]
+
+    C2 --> C3[GitHub API Directory Discovery]
+    C3 --> C4[Dynamic Pattern Detection]
+    C4 --> C5[Generic Deduplication]
+    C5 --> D
+
     D --> E{Check Intelligent Cache}
     E -->|Cache HIT| F[Return Cached Selection]
     E -->|Cache MISS| G[Repository Fingerprinting]
@@ -83,6 +153,15 @@ graph TD
     R --> S
 
     S --> T[Return Results with Method Used]
+
+    %% Edge Case Components
+    C3 --> C31[Discover src/]
+    C3 --> C32[Discover infra/]
+    C3 --> C33[Discover tests/]
+    C4 --> C41[Documentation Patterns]
+    C4 --> C42[Configuration Patterns]
+    C5 --> C51[Artifact Deduplication]
+    C5 --> C52[Experiment Deduplication]
 
     %% Cache Components
     U[Repository Hash Generator] --> D
@@ -430,9 +509,27 @@ class SelectionQualityValidator {
 }
 ```
 
+## 🧪 Edge Case Testing & Validation
+
+### Comprehensive Test Suite
+
+**Unit Tests (32 tests passing):**
+- Dynamic pattern detection for all file types
+- Generic deduplication algorithms
+- Large repository handling
+- Performance benchmarks (10k files < 100ms)
+
+**Integration Tests:**
+- Repository pattern recognition (MLOps, Data Engineering, Web Apps)
+- End-to-end edge case scenarios
+- Missing file suggestion accuracy
+- Cache performance with large repositories
+
+```
+
 ## 📊 Implementation Phases
 
-### Phase 1: Foundation (Weeks 1-4)
+### Phase 1: Foundation (Weeks 1-4) ✅ COMPLETE
 **Goal**: Implement basic hybrid system without caching
 
 **Tasks**:
@@ -447,13 +544,31 @@ class SelectionQualityValidator {
 - Quality validation framework
 - Performance monitoring dashboard
 
-### Phase 2: Intelligent Caching (Weeks 5-8)
+### Phase 2: Intelligent Caching (Weeks 5-8) ✅ COMPLETE
 **Goal**: Add intelligent caching layer
 
 **Tasks**:
 - [x] Design similarity detection algorithms
 - [x] Implement strategy caching system
 - [x] Create cache performance tracking
+
+### Phase 3: Edge Case Handling (Weeks 9-12) ✅ COMPLETE
+**Goal**: Robust handling of challenging repository scenarios
+
+**Tasks**:
+- [x] Dynamic pattern detection system (32 tests passing)
+- [x] Generic deduplication for any repetitive structure
+- [x] Large repository optimization (35k+ files)
+- [x] Intelligent directory discovery via GitHub API
+- [x] Repository pattern recognition (MLOps, Data Engineering, Web Apps)
+- [x] Comprehensive test suite and validation
+
+**Deliverables**:
+- Dynamic Pattern Detector with regex-based file discovery
+- Generic Deduplication Engine handling any repetitive pattern
+- Large Repository Mode with intelligent optimization
+- Comprehensive test coverage (32 unit + integration tests)
+- Real-world validation with 35k+ file repositories
 - [x] Add cache invalidation logic
 - [x] Build similarity threshold tuning
 

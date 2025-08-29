@@ -64,6 +64,7 @@
     "clsx": "^2.1.1",
     "convex": "^1.25.2",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.2.1",
     "framer-motion": "^12.23.3",
     "gsap": "^3.13.0",
     "isomorphic-dompurify": "^2.26.0",

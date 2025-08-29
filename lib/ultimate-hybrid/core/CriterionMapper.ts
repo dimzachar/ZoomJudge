@@ -93,14 +93,20 @@ export class CriterionMapper {
       {
         criterionName: 'Reproducibility',
         filePatterns: [
-          'requirements.txt', 'setup.py', 'pyproject.toml', 'Pipfile',
-          'Dockerfile', 'docker-compose.yml', 'Makefile',
+          'requirements.txt', 'requirements-dev.txt', 'requirements_dev.txt', 'dev-requirements.txt',
+          'setup.py', 'pyproject.toml', 'Pipfile',
+          'environment.yml', 'environment.yaml', 'conda.yml', 'conda.yaml',
+          'Dockerfile', 'docker-compose.yml', 'Makefile', 'makefile',
+          'prefect.yaml', 'prefect.yml',
+          'README.md', 'readme.md', 'Readme.md', 'README.rst', 'readme.rst',
+          'how_to_run.md', 'HOW_TO_RUN.md', 'how-to-run.md', 'run.md', 'running.md',
+          'INSTALL.md', 'install.md', 'installation.md', 'setup.md', 'getting-started.md',
           'scripts/**/*.sh', '.github/**/*.yml', '.github/workflows/*.yml',
           'integration_test/model/requirements.txt'
         ],
-        contentKeywords: ['install', 'setup', 'requirements', 'dependencies', 'environment'],
+        contentKeywords: ['install', 'setup', 'requirements', 'dependencies', 'environment', 'prefect', 'conda', 'makefile'],
         priority: 80,
-        maxFiles: 6,
+        maxFiles: 10, // Increased to include more important files
         weight: 4
       },
       {
@@ -111,7 +117,8 @@ export class CriterionMapper {
           'integration_test/**/*.py',
           '.github/**/*.yml', '.pre-commit-config.yaml',
           'pyproject.toml', 'setup.cfg', 'tox.ini',
-          'client/scripts/*.sh', 'scripts/*.sh'
+          'client/scripts/*.sh', 'scripts/*.sh',
+          'src/**/*.py', 'lib/**/*.py' // Include source code for best practices evaluation
         ],
         contentKeywords: ['test', 'lint', 'format', 'ci', 'cd', 'quality', 'coverage'],
         priority: 75,
@@ -130,6 +137,21 @@ export class CriterionMapper {
         contentKeywords: ['service', 'configuration', 'augmentation', 'transformation', 'storage', 'training'],
         priority: 88,
         maxFiles: 6,
+        weight: 4
+      },
+      {
+        criterionName: 'Cloud',
+        filePatterns: [
+          'infra/**/*.tf', 'terraform/**/*.tf', 'infrastructure/**/*.tf',
+          'infra/**/*.yaml', 'infra/**/*.yml', 'k8s/**/*.yaml', 'kubernetes/**/*.yaml',
+          'cloudformation/**/*.yaml', 'pulumi/**/*.py',
+          'gcp/**/*', 'aws/**/*', 'azure/**/*',
+          'infra/main.tf', 'infra/variables.tf', 'infra/terraform.tf', 'infra/terraform.tfvars',
+          'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml'
+        ],
+        contentKeywords: ['cloud', 'terraform', 'aws', 'gcp', 'azure', 'infrastructure', 'kubernetes', 'docker'],
+        priority: 92,
+        maxFiles: 8,
         weight: 4
       }
     ];
@@ -386,20 +408,56 @@ export class CriterionMapper {
       const mapping = mappings.find(m => m.criterionName === criterion.name);
       
       if (!mapping) {
-        // No mapping defined for this criterion
+        // Create dynamic mapping for criteria from Convex that don't have hardcoded mappings
+        console.log(`🔧 Creating dynamic mapping for criterion: ${criterion.name}`);
+        const dynamicMapping = this.createDynamicMapping(criterion.name);
+
+        // Find files using dynamic mapping
+        const relevantFiles = this.findRelevantFiles(files, dynamicMapping);
+        const coverageScore = this.calculateCoveragScore(relevantFiles, dynamicMapping);
+
         coverage.push({
           criterionName: criterion.name,
-          relevantFiles: [],
-          coverage: 0,
-          confidence: 0,
-          missingElements: ['No file mapping defined for this criterion']
+          relevantFiles: relevantFiles.slice(0, dynamicMapping.maxFiles),
+          coverage: coverageScore,
+          confidence: relevantFiles.length > 0 ? 0.7 : 0.1, // Lower confidence for dynamic mappings
+          missingElements: this.identifyMissingElements(relevantFiles, dynamicMapping)
         });
         continue;
       }
       
       // Find files matching patterns
       const relevantFiles = this.findRelevantFiles(files, mapping);
-      
+
+      // Debug logging for Reproducibility criterion
+      if (criterion.name === 'Reproducibility') {
+        console.log(`🔍 Reproducibility criterion debug:`);
+        console.log(`   Pattern count: ${mapping.filePatterns.length}`);
+        console.log(`   Sample patterns: ${mapping.filePatterns.slice(0, 5).join(', ')}`);
+        console.log(`   Found ${relevantFiles.length} relevant files: ${relevantFiles.slice(0, 10).join(', ')}`);
+
+        // Check for specific important files (DYNAMIC PATTERNS)
+        const importantFiles = [
+          'prefect.yaml', 'environment.yml', 'pyproject.toml',
+          'requirements-dev.txt', 'setup.py'
+        ];
+
+        for (const file of importantFiles) {
+          const found = files.find(f => f.toLowerCase().includes(file.toLowerCase()));
+          console.log(`   ${file}: ${found ? '✅ FOUND' : '❌ NOT FOUND'} ${found ? `(${found})` : ''}`);
+        }
+
+        // Add dynamically found documentation files
+        try {
+          const docFiles = await this.findDocumentationFiles(files);
+          if (docFiles.length > 0) {
+            console.log(`   📚 Documentation files found: ${docFiles.slice(0, 3).join(', ')}`);
+          }
+        } catch (error) {
+          console.log(`   📚 Documentation detection error: ${error}`);
+        }
+      }
+
       // Calculate coverage score
       const coverageScore = this.calculateCoveragScore(relevantFiles, mapping);
       
@@ -414,19 +472,161 @@ export class CriterionMapper {
     
     return coverage;
   }
-  
+
+  /**
+   * Create dynamic mapping for criteria from Convex that don't have hardcoded mappings
+   */
+  private createDynamicMapping(criterionName: string): CriterionFileMapping {
+    const name = criterionName.toLowerCase();
+
+    // Cloud/Infrastructure criterion
+    if (name.includes('cloud') || name.includes('infrastructure') || name.includes('deployment')) {
+      return {
+        criterionName,
+        filePatterns: [
+          'infra/**/*.tf', 'terraform/**/*.tf', 'infrastructure/**/*.tf',
+          'infra/**/*.yaml', 'infra/**/*.yml', 'k8s/**/*.yaml', 'kubernetes/**/*.yaml',
+          'cloudformation/**/*.yaml', 'pulumi/**/*.py',
+          'gcp/**/*', 'aws/**/*', 'azure/**/*',
+          'infra/main.tf', 'infra/variables.tf', 'infra/terraform.tf', 'infra/terraform.tfvars',
+          'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml',
+          '**/*.tf', '**/*.tfvars'
+        ],
+        contentKeywords: ['cloud', 'terraform', 'aws', 'gcp', 'azure', 'infrastructure', 'kubernetes', 'docker'],
+        priority: 90,
+        maxFiles: 8,
+        weight: 4
+      };
+    }
+
+    // Experiment tracking criterion
+    if (name.includes('experiment') || name.includes('tracking') || name.includes('registry')) {
+      return {
+        criterionName,
+        filePatterns: [
+          'mlflow/**/*', 'wandb/**/*', 'experiments/**/*',
+          'tracking/**/*', 'registry/**/*', 'models/**/*',
+          'MLproject', 'mlflow.yml', 'wandb.yaml'
+        ],
+        contentKeywords: ['mlflow', 'wandb', 'experiment', 'tracking', 'registry', 'model'],
+        priority: 85,
+        maxFiles: 6,
+        weight: 3
+      };
+    }
+
+    // Default fallback mapping - include src/ files for any criterion
+    return {
+      criterionName,
+      filePatterns: [
+        'src/**/*.py', 'lib/**/*.py', 'app/**/*.py', // Source code files
+        '**/*.py', '**/*.md', '**/*.yml', '**/*.yaml', '**/*.json',
+        'tests/**/*.py', 'test/**/*.py' // Test files
+      ],
+      contentKeywords: [name.split(' ')[0]], // Use first word as keyword
+      priority: 50,
+      maxFiles: 8, // Increased to ensure src/ files are included
+      weight: 2
+    };
+  }
+
   private findRelevantFiles(files: string[], mapping: CriterionFileMapping): string[] {
     const relevantFiles = new Set<string>();
-    
+
     // Match file patterns
     for (const pattern of mapping.filePatterns) {
       const matches = this.findMatchingFiles(files, pattern);
       matches.forEach(file => relevantFiles.add(file));
     }
-    
-    return Array.from(relevantFiles);
+
+    const allMatches = Array.from(relevantFiles);
+
+    // GENERIC DEDUPLICATION: Handle repetitive directory structures
+    const deduplicatedFiles = this.deduplicateRepetitiveFiles(allMatches);
+
+    return deduplicatedFiles;
   }
-  
+
+  /**
+   * GENERIC DEDUPLICATION: Handle repetitive directory structures
+   * Groups files by pattern and selects representative samples
+   */
+  private deduplicateRepetitiveFiles(files: string[]): string[] {
+    if (files.length <= 3) {
+      return files; // No need to deduplicate small lists
+    }
+
+    // Group files by their pattern
+    const patternGroups = new Map<string, string[]>();
+
+    for (const file of files) {
+      const pattern = this.extractFilePattern(file);
+      if (!patternGroups.has(pattern)) {
+        patternGroups.set(pattern, []);
+      }
+      patternGroups.get(pattern)!.push(file);
+    }
+
+    const deduplicatedFiles: string[] = [];
+
+    for (const [pattern, groupFiles] of patternGroups) {
+      if (groupFiles.length <= 2) {
+        // Keep all files if there are only 1-2 files
+        deduplicatedFiles.push(...groupFiles);
+      } else {
+        // Select representative samples for large groups
+        const samples = this.selectRepresentativeSamples(groupFiles, 2);
+        deduplicatedFiles.push(...samples);
+
+        if (groupFiles.length > 5) {
+          console.log(`🔧 Deduplicated ${groupFiles.length} → ${samples.length} files for pattern: ${pattern}`);
+        }
+      }
+    }
+
+    return deduplicatedFiles;
+  }
+
+  /**
+   * Extract a pattern from a file path by replacing variable parts with wildcards
+   */
+  private extractFilePattern(filePath: string): string {
+    return filePath
+      // Replace UUIDs (32+ hex chars) with *
+      .replace(/[a-f0-9]{32,}/gi, '*')
+      // Replace long hex strings (16+ chars) with *
+      .replace(/[a-f0-9]{16,}/gi, '*')
+      // Replace numbers with *
+      .replace(/\/\d+\//g, '/*/')
+      // Replace timestamps and dates
+      .replace(/\d{4}-\d{2}-\d{2}/g, '*')
+      .replace(/\d{8,}/g, '*')
+      // Clean up multiple consecutive wildcards
+      .replace(/\/\*+\//g, '/*/');
+  }
+
+  /**
+   * Select representative samples from a group of similar files
+   */
+  private selectRepresentativeSamples(files: string[], maxSamples: number): string[] {
+    // Sort by preference: shorter paths first, then alphabetically
+    const sorted = files.sort((a, b) => {
+      const depthDiff = a.split('/').length - b.split('/').length;
+      if (depthDiff !== 0) return depthDiff;
+      return a.localeCompare(b);
+    });
+
+    return sorted.slice(0, maxSamples);
+  }
+
+  /**
+   * Find documentation files dynamically using the comprehensive pattern detector
+   */
+  private async findDocumentationFiles(files: string[]): Promise<string[]> {
+    const { DynamicPatternDetector } = await import('../../utils/dynamic-pattern-detector');
+    return DynamicPatternDetector.findDocumentationFiles(files);
+  }
+
   private findMatchingFiles(files: string[], pattern: string): string[] {
     // Handle exact matches and subdirectory matches
     if (!pattern.includes('*')) {

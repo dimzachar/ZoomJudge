@@ -2,7 +2,7 @@
  * Convex functions for email functionality
  */
 
-import { mutation, query, action, internalMutation, internalAction, internalQuery } from "./_generated/server";
+import { mutation, query, action, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthenticatedUserId, getCurrentUser } from "./users";
 import { internal, api } from "./_generated/api";
@@ -1070,24 +1070,51 @@ export const sendEvaluationCompleteEmail = action({
 
 // Scheduled email functions
 export const scheduleFeedbackRequestEmails = action({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    daysAgo: v.optional(v.number()), // Optional: how many days ago to start looking (default: all users)
+    limitUsers: v.optional(v.number()), // Optional: limit number of users to process (default: 50)
+  },
+  handler: async (ctx, args): Promise<{
+    success: boolean;
+    sent: number;
+    failed: number;
+    skipped: number;
+    message?: string;
+    error?: string;
+  }> => {
     try {
-      // Find users who registered 1-2 weeks ago and haven't received feedback request yet
-      const twoWeeksAgo = Date.now() - (14 * 24 * 60 * 60 * 1000);
-      const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+      // More flexible time range - default to all users from the last 30 days
+      const daysAgo = args.daysAgo || 30; // Default to last 30 days if not specified
+      const startTime = Date.now() - (daysAgo * 24 * 60 * 60 * 1000);
+      const endTime = Date.now(); // Up to now
+      const limitUsers = args.limitUsers || 10; // Default to 10 users for testing
 
-      console.log(`Starting feedback campaign for users registered between ${new Date(twoWeeksAgo).toISOString()} and ${new Date(oneWeekAgo).toISOString()}`);
+      console.log(`Starting feedback campaign for users registered after ${new Date(startTime).toISOString()}`);
+      console.log(`Will process up to ${limitUsers} users`);
 
       // Get users for feedback request with real email addresses
       const users = await ctx.runAction(api.emails.getUsersWithEmailsForFeedbackRequest, {
-        registeredAfter: twoWeeksAgo,
-        registeredBefore: oneWeekAgo,
+        registeredAfter: startTime,
+        registeredBefore: endTime,
+        limitUsers: limitUsers,
       });
 
+      console.log(`Found ${users.length} users with valid emails for feedback campaign`);
+
       if (users.length === 0) {
-        console.log('No eligible users found for feedback campaign');
-        return { success: true, sent: 0, failed: 0, skipped: 0, message: 'No eligible users found' };
+        // Get total user count for debugging
+        const allUsers = await ctx.runQuery(internal.emails.getUsersForFeedbackRequest, {
+          registeredAfter: startTime,
+          registeredBefore: endTime,
+        });
+        console.log(`Debug: Found ${allUsers.length} total users in database, but 0 with valid emails in Clerk`);
+        return {
+          success: true,
+          sent: 0,
+          failed: 0,
+          skipped: 0,
+          message: `No eligible users found. Found ${allUsers.length} users in database but none have valid emails in Clerk.`
+        };
       }
 
       let successCount = 0;
@@ -1144,6 +1171,9 @@ export const scheduleFeedbackRequestEmails = action({
       console.error("Failed to run feedback email campaign:", error);
       return {
         success: false,
+        sent: 0,
+        failed: 0,
+        skipped: 0,
         error: error instanceof Error ? error.message : "Unknown error"
       };
     }
@@ -1792,6 +1822,7 @@ export const getUsersWithEmailsForFeedbackRequest = action({
   args: {
     registeredAfter: v.number(),
     registeredBefore: v.number(),
+    limitUsers: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<Array<{
     _id: any;
@@ -1806,12 +1837,27 @@ export const getUsersWithEmailsForFeedbackRequest = action({
       registeredBefore: args.registeredBefore,
     });
 
+    console.log(`📊 Found ${users.length} users in database for time range`);
+
+    // Log some user details for debugging
+    users.slice(0, 3).forEach((user: any) => {
+      console.log(`  - ${user.name} (${user.externalId}) registered: ${new Date(user._creationTime).toISOString()}`);
+    });
+
     if (users.length === 0) {
+      console.log('❌ No users found in database for the specified time range');
       return [];
     }
 
+    // Limit users to process (for testing/performance)
+    const limitedUsers = args.limitUsers ? users.slice(0, args.limitUsers) : users.slice(0, 50);
+    console.log(`🔄 Processing ${limitedUsers.length} users (limited from ${users.length})`);
+
     // Get real email addresses from Clerk API
     const eligibleUsers = [];
+    let clerkNotFoundCount = 0;
+    let invalidEmailCount = 0;
+    let unsubscribedCount = 0;
 
     if (!process.env.CLERK_SECRET_KEY) {
       console.warn('CLERK_SECRET_KEY not configured - cannot fetch user emails for campaign');
@@ -1824,8 +1870,10 @@ export const getUsersWithEmailsForFeedbackRequest = action({
         secretKey: process.env.CLERK_SECRET_KEY
       });
 
-      for (const user of users) {
+      for (const user of limitedUsers) {
         try {
+          console.log(`Processing user: ${user.name} (${user.externalId})`);
+
           // Get user data from Clerk including email
           const clerkUser = await clerkClient.users.getUser(user.externalId);
 
@@ -1835,15 +1883,17 @@ export const getUsersWithEmailsForFeedbackRequest = action({
           );
 
           if (!primaryEmail?.emailAddress) {
-            console.log(`No primary email found for user ${user.externalId}`);
+            console.log(`❌ No primary email found for user ${user.externalId}`);
             continue;
           }
 
           const userEmail = primaryEmail.emailAddress;
+          console.log(`📧 Found email for ${user.name}: ${userEmail}`);
 
           // Validate email format (ASCII only for Resend compatibility)
           if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(userEmail)) {
-            console.log(`Invalid email format for user ${user.externalId}: ${userEmail}`);
+            console.log(`❌ Invalid email format for user ${user.externalId}: ${userEmail}`);
+            invalidEmailCount++;
             continue;
           }
 
@@ -1858,12 +1908,19 @@ export const getUsersWithEmailsForFeedbackRequest = action({
               ...user,
               email: userEmail,
             });
+            console.log(`✅ User ${user.name} (${userEmail}) is eligible for feedback campaign`);
           } else {
-            console.log(`User ${user.externalId} has unsubscribed from feedback emails`);
+            console.log(`⏭️ User ${user.externalId} has unsubscribed from feedback emails`);
+            unsubscribedCount++;
           }
 
-        } catch (clerkError) {
-          console.error(`Failed to fetch Clerk data for user ${user.externalId}:`, clerkError);
+        } catch (clerkError: any) {
+          if (clerkError.status === 404) {
+            console.log(`❌ User ${user.externalId} (${user.name}) not found in Clerk - may have been deleted`);
+            clerkNotFoundCount++;
+          } else {
+            console.error(`❌ Failed to fetch Clerk data for user ${user.externalId}:`, clerkError.message);
+          }
           continue;
         }
       }
@@ -1873,7 +1930,14 @@ export const getUsersWithEmailsForFeedbackRequest = action({
       return [];
     }
 
-    console.log(`Found ${eligibleUsers.length} eligible users for feedback campaign`);
+    console.log(`📊 Campaign Summary:`);
+    console.log(`  - Total users in DB: ${users.length}`);
+    console.log(`  - Users processed: ${limitedUsers.length}`);
+    console.log(`  - Users not found in Clerk: ${clerkNotFoundCount}`);
+    console.log(`  - Users with invalid emails: ${invalidEmailCount}`);
+    console.log(`  - Users unsubscribed: ${unsubscribedCount}`);
+    console.log(`  - Eligible users: ${eligibleUsers.length}`);
+
     return eligibleUsers;
   },
 });
@@ -1973,6 +2037,155 @@ export const getUserEmailFromClerk = action({
     } catch (error) {
       console.error(`Failed to fetch email for user ${args.userId}:`, error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  },
+});
+
+// Debug function to list all users with their emails (no sending)
+export const listAllUsersWithEmails = action({
+  args: {
+    limitUsers: v.optional(v.number()),
+  },
+  handler: async (ctx, args): Promise<{
+    success: boolean;
+    users: Array<{
+      name: string;
+      externalId: string;
+      email?: string;
+      status: string;
+      registeredAt: string;
+    }>;
+    summary: {
+      totalInDB: number;
+      processed: number;
+      foundInClerk: number;
+      notFoundInClerk: number;
+      validEmails: number;
+      invalidEmails: number;
+    };
+  }> => {
+    try {
+      // Get all users from database
+      const allUsers = await ctx.runQuery(internal.emails.getUsersForFeedbackRequest, {
+        registeredAfter: 0, // All time
+        registeredBefore: Date.now(),
+      });
+
+      console.log(`📊 Found ${allUsers.length} total users in database`);
+
+      const limitedUsers = args.limitUsers ? allUsers.slice(0, args.limitUsers) : allUsers;
+      console.log(`🔄 Processing ${limitedUsers.length} users`);
+
+      const userList = [];
+      let foundInClerk = 0;
+      let notFoundInClerk = 0;
+      let validEmails = 0;
+      let invalidEmails = 0;
+
+      if (!process.env.CLERK_SECRET_KEY) {
+        console.warn('CLERK_SECRET_KEY not configured');
+        return {
+          success: false,
+          users: [],
+          summary: {
+            totalInDB: allUsers.length,
+            processed: 0,
+            foundInClerk: 0,
+            notFoundInClerk: 0,
+            validEmails: 0,
+            invalidEmails: 0,
+          }
+        };
+      }
+
+      const { createClerkClient } = await import('@clerk/backend');
+      const clerkClient = createClerkClient({
+        secretKey: process.env.CLERK_SECRET_KEY
+      });
+
+      for (const user of limitedUsers) {
+        try {
+          console.log(`Processing: ${user.name} (${user.externalId})`);
+
+          const clerkUser = await clerkClient.users.getUser(user.externalId);
+          foundInClerk++;
+
+          const primaryEmail = clerkUser.emailAddresses.find(
+            email => email.id === clerkUser.primaryEmailAddressId
+          );
+
+          if (primaryEmail?.emailAddress) {
+            const userEmail = primaryEmail.emailAddress;
+            const isValidEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(userEmail);
+
+            if (isValidEmail) {
+              validEmails++;
+            } else {
+              invalidEmails++;
+            }
+
+            userList.push({
+              name: user.name,
+              externalId: user.externalId,
+              email: userEmail,
+              status: isValidEmail ? 'Valid email' : 'Invalid email format',
+              registeredAt: new Date(user._creationTime).toISOString(),
+            });
+
+            console.log(`✅ ${user.name}: ${userEmail} (${isValidEmail ? 'valid' : 'invalid format'})`);
+          } else {
+            userList.push({
+              name: user.name,
+              externalId: user.externalId,
+              status: 'No email found in Clerk',
+              registeredAt: new Date(user._creationTime).toISOString(),
+            });
+            console.log(`❌ ${user.name}: No email found`);
+          }
+
+        } catch (clerkError: any) {
+          notFoundInClerk++;
+          userList.push({
+            name: user.name,
+            externalId: user.externalId,
+            status: clerkError.status === 404 ? 'User not found in Clerk' : `Clerk error: ${clerkError.message}`,
+            registeredAt: new Date(user._creationTime).toISOString(),
+          });
+          console.log(`❌ ${user.name}: ${clerkError.status === 404 ? 'Not found in Clerk' : 'Clerk error'}`);
+        }
+      }
+
+      const summary = {
+        totalInDB: allUsers.length,
+        processed: limitedUsers.length,
+        foundInClerk,
+        notFoundInClerk,
+        validEmails,
+        invalidEmails,
+      };
+
+      console.log('📊 Summary:', summary);
+
+      return {
+        success: true,
+        users: userList,
+        summary,
+      };
+
+    } catch (error) {
+      console.error('Failed to list users:', error);
+      return {
+        success: false,
+        users: [],
+        summary: {
+          totalInDB: 0,
+          processed: 0,
+          foundInClerk: 0,
+          notFoundInClerk: 0,
+          validEmails: 0,
+          invalidEmails: 0,
+        }
+      };
     }
   },
 });
