@@ -1,213 +1,62 @@
-# ZoomJudge - AI-Powered Repository Evaluation System
+# ZoomJudge - AI-Powered Repository Evaluation Platform
 
-ZoomJudge is an advanced repository evaluation platform that analyzes GitHub commits using cutting-edge AI technology. Built specifically for Zoomcamp courses, it provides comprehensive scoring and actionable feedback for Data Engineering, Machine Learning, MLOps, LLM, and Stock Markets projects.
+[![Production Ready](https://img.shields.io/badge/Status-Production%20Ready-success)](https://zoomjudge.com)
+[![Next.js 15](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
+[![Convex](https://img.shields.io/badge/Database-Convex-orange)](https://convex.dev)
+[![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black)](https://vercel.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## 🎯 Project Overview
+> **AI-powered GitHub repository evaluation platform for Zoomcamp courses**  
+> Get instant feedback on your Data Engineering, ML, MLOps, LLM, and Stock Markets projects with intelligent scoring and detailed analysis.
 
-ZoomJudge revolutionizes code evaluation by analyzing static code snapshots from GitHub commit URLs rather than ongoing development. This approach ensures consistent, reproducible evaluations that reflect the exact state of a project at submission time.
+## 🚀 Overview
 
-### Key Capabilities
+ZoomJudge is a production-ready web application that provides AI-powered evaluation of GitHub repositories specifically designed for Zoomcamp course participants. Submit your GitHub commit URL, select your course type, and receive detailed feedback with numerical scoring based on course-specific criteria.
 
-- **Static Code Analysis**: Evaluates repositories at specific commit points for consistent results
-- **Multi-Course Support**: Specialized evaluation criteria for 5 different Zoomcamp courses
-- **Discrete Scoring System**: Assigns only whole number scores (0, 1, 2, 3, etc.) as per course requirements
-- **Ultimate Hybrid Architecture**: Advanced three-tier file selection system for optimal performance
-- **Edge Case Handling**: Robust processing of large repositories (35k+ files) with intelligent discovery
-- **Dynamic Pattern Detection**: Intelligent file discovery without hardcoded assumptions
-- **Generic Deduplication**: Handles any repetitive directory structure (artifacts, experiments, models)
-- **Comprehensive Testing**: 32 unit and integration tests covering all edge cases
-- **Real-time Processing**: Live evaluation status with intelligent caching for faster results
+### ✨ Core Features
 
-## 🏗️ System Architecture
+- **🎯 GitHub Commit Analysis**: Evaluates repositories at specific commit points using commit URLs
+- **📚 Multi-Course Support**: Data Engineering, Machine Learning, MLOps, LLM Zoomcamp, and Stock Markets
+- **🤖 AI-Powered Feedback**: Detailed scoring and recommendations using GLM-4.5-Air with Claude fallback
+- **💳 Subscription Tiers**: Free (4 evals/month), Starter ($12 - 20 evals), Pro ($20 - 200 evals), Enterprise (unlimited)
+- **📊 Real-time Dashboard**: Track evaluation history, view detailed results, and monitor usage
+- **🔐 Secure Authentication**: Complete user management with Clerk authentication and billing
+- **📱 Responsive Design**: Mobile-optimized interface with dark/light theme support
+
+## 🏗️ Application Architecture
+
+### Tech Stack & Structure
+
+ZoomJudge is built as a modern full-stack web application with the following architecture:
+
+#### **Frontend Layer**
+- **Framework**: Next.js 15 with App Router and server components
+- **UI Components**: shadcn/ui with Radix UI primitives
+- **Styling**: TailwindCSS v4 with responsive design
+- **Animations**: Framer Motion and GSAP for smooth interactions
+- **State Management**: React hooks with Convex real-time subscriptions
+
+#### **Backend Services**
+- **Database**: Convex serverless database with real-time sync
+- **Authentication**: Clerk with complete user management
+- **AI Processing**: Integration with OpenRouter and Claude for evaluations
+- **File Processing**: GitHub API integration for repository analysis
+- **Billing**: Clerk Billing with subscription management
+
+#### **Core Workflow**
+1. **User Authentication**: Secure login via Clerk
+2. **Repository Submission**: Paste GitHub commit URL + select course
+3. **Billing Validation**: Check subscription limits and tier access
+4. **AI Evaluation**: Process repository using evaluation service
+5. **Results Display**: Real-time results with detailed breakdown
+6. **History Tracking**: Store evaluations for future reference
+
+### Ultimate Hybrid Evaluation System
 
 ZoomJudge employs the **Ultimate Hybrid Evaluation System**, a sophisticated three-tier architecture that combines intelligent caching, repository fingerprinting, and AI-guided selection for optimal performance and accuracy.
 
-### Ultimate Hybrid File Selection System
-
-The system uses a cascading approach to select the most relevant files for evaluation:
-
-#### **Tier 1: Intelligent Caching** 🚀
-- **Purpose**: Instant results for similar repositories
-- **Technology**: Repository signature matching with 85% similarity threshold
-- **Performance**: Sub-second response times for cache hits
-- **Cache TTL**: 24 hours with up to 1,000 cached strategies
-
-#### **Tier 2: Repository Fingerprinting** 🔍
-- **Purpose**: Pattern-based file selection using repository structure analysis
-- **Technology**: Advanced pattern recognition for repository types
-- **Confidence Threshold**: 80% minimum for fingerprint-based selection
-- **Supported Patterns**: Data Engineering, ML, MLOps, LLM, and Stock Markets project structures
-
-#### **Tier 3: AI-Guided Selection** 🤖
-- **Purpose**: Intelligent file selection when caching and fingerprinting are insufficient
-- **AI Model**: `qwen/qwen-2.5-coder-32b-instruct` (optimized for cost-effectiveness)
-- **Configuration**: 2,000 max tokens, 0.1 temperature for consistent results
-- **Edge Case Support**: Handles large repositories (35k+ files) with intelligent directory discovery
-- **Fallback**: Ensures 100% evaluation completion rate
-
-### Edge Case Handling 🛡️
-
-ZoomJudge handles challenging repository scenarios that would break traditional evaluation systems:
-
-#### **Large Repository Support**
-- **Threshold**: Automatically detects repositories with 1,000+ files
-- **Intelligent Discovery**: Uses GitHub API to discover missing critical directories (`src/`, `infra/`, `tests/`)
-- **Dynamic File Detection**: Finds important files (`environment.yml`, `prefect.yaml`, `requirements.txt`) regardless of naming conventions
-- **Performance**: Handles repositories with 35,000+ files efficiently
-
-#### **Dynamic Pattern Detection**
-- **Documentation Files**: Detects `README.md`, `how_to_run.md`, `setup.md`, `installation.rst`, etc.
-- **Configuration Files**: Finds `environment.yml`, `requirements*.txt`, `pyproject.toml`, `Dockerfile`, etc.
-- **CI/CD Files**: Discovers `.github/workflows/`, `.gitlab-ci.yml`, `.pre-commit-config.yaml`, etc.
-- **Infrastructure Files**: Locates `*.tf`, `pulumi.yaml`, `ansible/`, etc.
-
-#### **Generic Deduplication**
-- **Artifact Deduplication**: Reduces 3,407 → 2 files for `artifacts/*/*/requirements.txt` patterns
-- **Experiment Deduplication**: Handles `mlruns/*/*/`, `experiments/*/`, `models/v*/` structures
-- **Test Deduplication**: Manages `tests/unit/*/`, `spec/*/`, `__tests__/*/` patterns
-- **Intelligent Sampling**: Selects representative files by size and path depth
-
-### Core Components
-
-- **Repository Fingerprinter**: Analyzes project structure and technology stack
-- **Criterion Mapper**: Maps files to specific course evaluation criteria with dynamic pattern detection
-- **Intelligent Cache**: Stores and retrieves successful file selection strategies
-- **AI Guided Selector**: Provides intelligent fallback for complex repositories
-- **Dynamic Pattern Detector**: Discovers important files without hardcoded assumptions
-- **Generic Deduplicator**: Handles any repetitive directory structure intelligently
-- **Validation Engine**: Ensures evaluation quality and accuracy
-- **Performance Monitor**: Tracks system metrics and optimization opportunities
-
-## 🎯 Features
-
-- 🤖 **Advanced AI Evaluation** - Claude Sonnet 4 with specialized course prompts
-- 📚 **Multi-Course Support** - Data Engineering, ML, MLOps, LLM, and Stock Markets
-- 🔍 **Smart File Selection** - Ultimate Hybrid system for optimal file selection
-- 📊 **Discrete Scoring** - Whole number scores only (no fractional values)
-- 🚀 **Performance Optimized** - 60% faster processing with 60% token reduction
-- 🔐 **Secure Authentication** - Complete user management with Clerk
-- 💳 **Subscription Tiers** - Usage-based pricing with Clerk Billing
-- 🗄️ **Real-time Database** - Convex serverless backend with live sync
-- 🎨 **Modern UI** - Beautiful interface with TailwindCSS v4 and shadcn/ui
-- 🌗 **Dark/Light Theme** - System-aware theme switching
-- 📱 **Responsive Design** - Mobile-first approach with modern layouts
-- ✨ **Smooth Animations** - Framer Motion effects and loading states
-- 📈 **Usage Analytics** - Track evaluation history and statistics
-- 🛡️ **Rate Limiting** - Abuse prevention and fair usage policies
-- 🚢 **Production Ready** - Optimized for deployment on Vercel
-
-## 🔧 Technical Specifications
-
-### AI Model Configuration
-
-ZoomJudge uses a dual-model approach for optimal performance and cost efficiency:
-
-#### File Selection Model
-- **Model**: `qwen/qwen-2.5-coder-32b-instruct`
-- **Purpose**: Fast, cost-effective file selection decisions
-- **Configuration**:
-  - Max Tokens: 2,000
-  - Temperature: 0.1 (for consistent results)
-  - Timeout: 5,000ms
-  - Cost Tier: Low
-
-#### Evaluation Model
-- **Model**: Claude Sonnet 4 (via OpenRouter)
-- **Purpose**: Comprehensive repository analysis and scoring
-- **Configuration**:
-  - Specialized prompts per course type
-  - Discrete scoring validation
-  - Comprehensive feedback generation
-
-### Scoring System
-
-ZoomJudge implements a **strict discrete scoring system** that assigns only whole number scores:
-
-- ✅ **Valid Scores**: 0, 1, 2, 3, 4, 5, etc.
-- ❌ **Invalid Scores**: 0.5, 1.5, 2.5, etc. (no fractional values)
-- 🎯 **Score Assignment**: Based on specific condition matching per criterion
-- 📊 **Course-Specific Criteria**: Each course has tailored evaluation criteria with defined point values
-
-#### Course Scoring Examples
-
-**Data Engineering (Max: 30 points)**
-- Problem Description: 0-2 points
-- Cloud Usage: 0-4 points
-- Data Ingestion: 0-4 points
-- Data Warehouse: 0-4 points
-- Transformations: 0-4 points
-- Dashboard: 0-4 points
-- Reproducibility: 0-4 points
-- Best Practices: 0-4 points
-
-**Machine Learning (Max: 16 points)**
-- Problem Description: 0-2 points
-- EDA: 0-2 points
-- Model Training: 0-3 points
-- Script Export: 0-1 point
-- Reproducibility: 0-2 points
-- Deployment: 0-2 points
-- Monitoring: 0-2 points
-- Best Practices: 0-2 points
-
-### Performance Metrics
-
-#### Current Baseline Performance
-- **Token Usage**: 4.66K - 21.36K tokens per evaluation
-- **Cost Range**: $0.033 - $0.092 per evaluation
-- **Processing Time**: Average 1.5 seconds (with caching)
-- **Cache Hit Rate**: 85% similarity threshold for cache matches
-
-#### Optimization Targets
-- **Speed Improvement**: 60% faster processing achieved
-- **Token Reduction**: 60% reduction in token usage achieved
-- **Accuracy Improvement**: 15% improvement in file selection accuracy
-- **Cache Efficiency**: 24-hour TTL with 1,000 strategy limit
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- **Node.js 18+** and **bun** (preferred package manager)
-- [Convex](https://convex.dev) account for database
-- [Clerk](https://clerk.com) account for authentication
-- [OpenRouter](https://openrouter.ai) API key for AI evaluation
-
-### Setup
-
-1. **Clone and install dependencies:**
-   ```bash
-   git clone <repository-url>
-   cd zoomjudge
-   bun install
-   ```
-
-2. **Configure environment variables:**
-   ```bash
-   cp .env.example .env.local
-   ```
-   Fill in your API keys and configuration in `.env.local`
-
-3. **Set up Convex database:**
-   ```bash
-   bunx convex dev
-   ```
-
-4. **Initialize database with default courses:**
-   ```bash
-   bun run init-db
-   ```
-
-5. **Start development server:**
-   ```bash
-   bun run dev
-   ```
-
-Visit `http://localhost:3000` to see your ZoomJudge application!
-
-## 📊 System Architecture Diagrams
-
-### Ultimate Hybrid Evaluation Flow
+#### Ultimate Hybrid Evaluation Flow
 
 ```mermaid
 graph TD
@@ -235,7 +84,7 @@ graph TD
     style N fill:#e8f5e8
 ```
 
-### File Selection Process
+#### File Selection Process
 
 ```mermaid
 graph LR
@@ -259,7 +108,7 @@ graph LR
     style I fill:#e8f5e8
 ```
 
-### Component Interaction Architecture
+#### Component Interaction Architecture
 
 ```mermaid
 graph TB
@@ -316,7 +165,7 @@ graph TB
     style AI fill:#fce4ec
 ```
 
-### Performance Optimization Flow
+#### Performance Optimization Flow
 
 ```mermaid
 graph TD
@@ -337,154 +186,272 @@ graph TD
     style F fill:#f44336
     style J fill:#2196f3
 ```
+### 🛡️ Evaluation System
 
-## 🛠️ Tech Stack
+#### Course-Specific Criteria
+- **Data Engineering**: Infrastructure, pipelines, data warehousing, cloud usage
+- **Machine Learning**: EDA, model training, deployment, monitoring, reproducibility
+- **MLOps**: Workflow orchestration, CI/CD, monitoring, automation
+- **LLM Zoomcamp**: RAG systems, evaluation, prompt engineering
+- **Stock Markets**: Trading strategies, backtesting, risk management
+
+#### Intelligent Repository Analysis
+- **GitHub Integration**: Fetches repository structure and content via GitHub API
+- **File Selection**: Intelligent filtering to focus on relevant project files
+- **Content Processing**: Extracts and analyzes code, documentation, and configuration
+- **AI Scoring**: Uses GLM-4.5-Air model with Claude Sonnet 4 as fallback
+- **Caching System**: Avoids duplicate evaluations for identical commits
+
+## 🎯 Subscription & Billing
+
+### Pricing Tiers
+
+| Tier | Price | Evaluations/Month | Features |
+|------|-------|------------------|----------|
+| **Free** | $0 | 4 | Basic scoring only, community support |
+| **Starter** | $12 | 20 | Full scoring + LLM feedback, detailed analysis, PDF export (planned) |
+| **Pro** | $20 | 200 | Advanced analytics (planned), comparison tools (planned), priority processing (planned), API access (planned) |
+| **Enterprise** | Custom | Unlimited | Team collaboration (planned), custom criteria (planned), bulk processing (planned), dedicated support |
+
+### Subscription Management
+
+- **Clerk Billing Integration**: Seamless subscription management and payment processing
+- **Usage Tracking**: Real-time monitoring of evaluation counts and limits
+- **Automatic Limits**: Billing gates prevent exceeding subscription limits
+- **Upgrade Prompts**: Contextual upgrade suggestions when approaching limits
+- **Invoice Management**: Automated billing and invoice generation
+
+## 🔧 Technology Stack
 
 ### Frontend
-- **Next.js 15** - React framework with App Router
-- **TailwindCSS v4** - Utility-first CSS framework
-- **shadcn/ui** - Modern component library
-- **Radix UI** - Accessible component primitives
-- **Framer Motion** - Smooth animations and transitions
-- **Motion Primitives** - Advanced animation components
-- **Lucide React & Tabler Icons** - Beautiful icon libraries
-- **Recharts** - Data visualization components
-- **React Bits** - Custom animation components
+- **Framework**: Next.js 15 with App Router
+- **Language**: TypeScript with strict configuration
+- **Styling**: TailwindCSS v4
+- **UI Components**: shadcn/ui + Radix UI
+- **Animations**: Framer Motion + GSAP
+- **Icons**: Lucide React + Tabler Icons
+- **Charts**: Recharts for data visualization
 
 ### Backend & Services
-- **Convex** - Real-time database and serverless functions
-- **Clerk** - Authentication and user management
-- **Clerk Billing** - Subscription billing and payments
-- **Svix** - Webhook handling and validation
+- **Database**: Convex (real-time serverless)
+- **Authentication**: Clerk (auth + billing)
+- **AI Services**: OpenRouter with GLM-4.5-Air (Claude fallback)
+- **File Storage**: GitHub API integration
+- **Email**: Resend for transactional emails
+- **Webhooks**: Svix for secure webhook handling
+- **Rate Limiting**: Upstash Redis (optional)
 
 ### Development & Deployment
-- **TypeScript** - Type safety throughout
-- **Vercel** - Deployment platform
-- **Turbopack** - Fast build tool
+- **Package Manager**: Bun
+- **Build Tool**: Turbopack (Next.js)
+- **Deployment**: Vercel
+- **Testing**: Jest + Testing Library
+- **Linting**: ESLint + TypeScript
+- **Version Control**: Git + GitHub
 
-## 📋 Comprehensive Installation Guide
+## 📊 Dashboard Features
 
-### Prerequisites
+### User Dashboard
+- **Overview Stats**: Total evaluations, completed, in progress, average scores
+- **Quick Actions**: Fast access to create new evaluations
+- **Usage Tracking**: Monitor monthly evaluation limits and subscription status
+- **Billing Alerts**: Notifications when approaching limits or requiring upgrades
 
-Before setting up ZoomJudge, ensure you have the following:
+### Evaluation Management
+- **History View**: Complete list of all past evaluations with filtering
+- **Detailed Results**: Comprehensive breakdown by evaluation criteria
+- **Performance Charts**: Visual representation of scores and trends (planned)
+- **Export Options**: PDF export for detailed reports (planned for paid tiers)
 
-- **Node.js 18+** - Latest LTS version recommended
-- **Bun** - Fast JavaScript runtime and package manager
-- **Git** - For version control
-- **Convex Account** - For real-time database ([convex.dev](https://convex.dev))
-- **Clerk Account** - For authentication and billing ([clerk.com](https://clerk.com))
-- **OpenRouter API Key** - For AI evaluation ([openrouter.ai](https://openrouter.ai))
+### Admin Features
+- **Email Management**: Monitor delivery rates and email campaigns
+- **User Analytics**: Track platform usage and user engagement
+- **System Health**: Monitor platform performance and uptime
+- **Course Management**: Configure evaluation criteria and scoring
 
-### Step-by-Step Installation
+## 🚀 Getting Started
 
-#### 1. Install Bun (if not already installed)
+### For Users
+
+1. **Sign Up**: Create a free account at [ZoomJudge.com](https://zoomjudge.com)
+2. **Choose Course**: Select your Zoomcamp course type
+3. **Submit Repository**: Paste your GitHub commit URL
+4. **Get Results**: Receive detailed feedback and scoring
+5. **Track Progress**: Monitor your evaluation history and improvement
+
+### For Developers
+
+#### Prerequisites
+- **Node.js 18+** and **Bun** package manager
+- **Convex** account for database
+- **Clerk** account for authentication
+- **OpenRouter** API key for AI evaluations
+- **GitHub** token for repository access
+
+#### Local Development Setup
+
+1. **Clone and install:**
+   ```bash
+   git clone <repository-url>
+   cd zoomjudge
+   bun install
+   ```
+
+2. **Environment setup:**
+   ```bash
+   cp .env.example .env.local
+   # Edit .env.local with your API keys
+   ```
+
+3. **Database initialization:**
+   ```bash
+   bunx convex dev
+   bun run init-db
+   ```
+
+4. **Start development:**
+   ```bash
+   bun run dev
+   ```
+
+5. **Access application:**
+   ```
+   http://localhost:3000
+   ```
+
+## 🔌 Key Features
+
+### Evaluation Flow
+
+1. **Repository Input**: Users paste GitHub commit URLs for consistent evaluation
+2. **Course Selection**: Choose from 5 supported Zoomcamp courses
+3. **Billing Validation**: Check subscription limits before processing
+4. **AI Analysis**: Repository analyzed using GLM-4.5-Air with Claude fallback
+5. **Detailed Results**: Comprehensive scoring with criterion breakdown
+6. **History Tracking**: All evaluations saved for future reference
+
+### Core Components
+
+#### Evaluation Form (`/dashboard/new-evaluation`)
+- GitHub commit URL validation
+- Course type selection (visual buttons)
+- Real-time form validation with Zod schemas
+- Billing limit warnings and upgrade prompts
+- Mobile-responsive design
+
+#### Results Display
+- Overall score with percentage
+- Criterion-by-criterion breakdown
+- Source file references for each criterion
+- Detailed feedback and improvement suggestions
+- Export options (planned for paid subscribers)
+
+#### Dashboard Analytics
+- Usage statistics (total, completed, processing)
+- Monthly limit tracking
+- Score trends and performance charts (planned)
+- Recent evaluation history
+
+#### Admin Panel
+- Email campaign management
+- User analytics and platform metrics
+- System health monitoring
+- Course criteria configuration
+
+## 🧪 Testing & Quality Assurance
+
+### Comprehensive Test Suite
+
+- **Unit Tests**: 32 tests covering core functionality
+- **Integration Tests**: End-to-end evaluation workflows  
+- **Edge Case Tests**: Large repositories, missing files, network failures
+- **Performance Tests**: Load testing and benchmark validation
+- **Security Tests**: Authentication, input validation, rate limiting
+
+### Test Commands
 
 ```bash
-# Install Bun
-curl -fsSL https://bun.sh/install | bash
+# Run all tests
+bun run test
 
-# Verify installation
-bun --version
+# Watch mode for development
+bun run test:watch
+
+# Coverage report
+bun run test:coverage
+
+# Specific test suites
+bun run test:email
+bun run test:email-service
+
+# Debug file selection
+bun run debug:file-selection
 ```
 
-#### 2. Clone and Setup Project
+### Quality Metrics
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd zoomjudge
+- **Code Coverage**: > 90%
+- **Type Safety**: 100% TypeScript coverage
+- **Security**: Regular security audits and dependency updates
+- **Performance**: Continuous monitoring and optimization
 
-# Install dependencies using bun
-bun install
+## 🔒 Security & Compliance
 
-# Copy environment template
-cp .env.example .env.local
-```
+### Security Features
 
-#### 3. Configure Environment Variables
+- **Authentication**: JWT-based authentication via Clerk
+- **Authorization**: Role-based access control with billing integration
+- **Input Validation**: Comprehensive sanitization with Zod schemas
+- **Rate Limiting**: Redis-based rate limiting to prevent abuse
+- **Audit Logging**: Complete security event tracking
+- **Data Protection**: PII sanitization and secure data handling
 
-Edit `.env.local` with your configuration:
+### Privacy & Data Handling
 
-```bash
-# Convex Configuration
-CONVEX_DEPLOYMENT=your_convex_deployment_here
-NEXT_PUBLIC_CONVEX_URL=your_convex_url_here
+- **Repository Analysis**: Static analysis only, no persistent storage of code
+- **User Data**: GDPR-compliant data handling
+- **API Keys**: Secure storage and rotation
+- **Webhook Security**: Signed webhook verification with Svix
 
-# Clerk Authentication & Billing
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key_here
-CLERK_SECRET_KEY=your_clerk_secret_key_here
-NEXT_PUBLIC_CLERK_FRONTEND_API_URL=https://your-clerk-frontend-api-url.clerk.accounts.dev
+## 📈 Usage Guide
 
-# Clerk Redirect URLs
-NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/dashboard
-NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/dashboard
-NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/dashboard
-NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/dashboard
+### For Students
 
-# OpenRouter Configuration
-OPENROUTER_API_KEY=your_openrouter_api_key_here
+#### Getting Your Commit URL
+1. Go to your GitHub repository
+2. Navigate to the "Commits" section
+3. Click on your specific commit
+4. Copy the URL from your browser
+5. Format: `https://github.com/username/repo/commit/hash`
 
-# GitHub Configuration (for repository access)
-GITHUB_TOKEN=your_github_token_here
+#### Submitting for Evaluation
+1. **Login** to ZoomJudge dashboard
+2. **Navigate** to "New Evaluation"
+3. **Paste** your GitHub commit URL
+4. **Select** your course type
+5. **Submit** and wait for results
 
-# Rate Limiting (Upstash Redis)
-UPSTASH_REDIS_REST_URL=your_upstash_redis_url_here
-UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_token_here
-```
+#### Understanding Your Results
+- **Overall Score**: Total points out of maximum possible
+- **Criterion Breakdown**: Detailed scoring per evaluation area
+- **Feedback**: Specific recommendations for improvement
+- **Source Files**: Which files were analyzed for each criterion
 
-#### 4. Initialize Convex Database
+### For Instructors
 
-```bash
-# Start Convex development environment
-bunx convex dev
+#### Course Configuration
+- Each course has specific evaluation criteria
+- Scoring rubrics are pre-configured
+- Results provide consistent, objective assessment
+- Detailed feedback helps guide student improvement
 
-# In a new terminal, initialize database with default courses
-bun run init-db
-```
+#### Bulk Evaluation (Planned for Enterprise)
+- Enterprise tier will support bulk processing
+- API access for automated workflows (planned)
+- Custom criteria configuration (planned)
+- Team collaboration features (planned)
 
-#### 5. Configure Clerk Authentication
-
-1. **Create JWT Template**:
-   - Go to your Clerk dashboard
-   - Navigate to **JWT Templates**
-   - Create a new template with name `convex`
-   - Copy the Issuer URL for your environment variables
-
-2. **Set up Webhooks**:
-   - Configure webhook endpoint: `{your_domain}/clerk-users-webhook`
-   - Enable events: `user.created`, `user.updated`, `user.deleted`, `paymentAttempt.updated`
-   - Copy the webhook signing secret
-
-3. **Configure Billing** (Optional):
-   - Set up pricing plans in Clerk dashboard
-   - Configure payment methods and billing settings
-
-#### 6. Configure Convex Environment Variables
-
-In your Convex dashboard, add these environment variables:
-
-```bash
-CLERK_WEBHOOK_SECRET=whsec_your_webhook_secret_here
-NEXT_PUBLIC_CLERK_FRONTEND_API_URL=https://your-clerk-frontend-api-url.clerk.accounts.dev
-OPENROUTER_API_KEY=your_openrouter_api_key_here
-GITHUB_TOKEN=your_github_token_here
-```
-
-#### 7. Start Development Server
-
-```bash
-# Start the development server
-bun run dev
-
-# The application will be available at http://localhost:3000
-```
-
-### Verification Steps
-
-1. **Database Connection**: Check Convex dashboard for active connection
-2. **Authentication**: Test sign-up/sign-in functionality
-3. **Evaluation**: Submit a test GitHub commit URL
-4. **Caching**: Verify cache functionality with repeated evaluations
+## 🛠️ Development
 
 ### Development Scripts
 
@@ -492,619 +459,134 @@ bun run dev
 # Development server with Turbopack
 bun run dev
 
-# Build for production
+# Production build
 bun run build
 
-# Start production server
+# Start production server  
 bun run start
 
-# Lint code
+# Linting and quality checks
 bun run lint
-
-# Check hardcoded criteria
 bun run check-criteria
 
-# Debug file selection system
-bun run debug:file-selection
+# Database operations
+bun run init-db
+bunx convex dev
+bunx convex deploy
+
+# Bundle analysis
+bun run build:analyze
 ```
 
-## 👥 User Experience Guide
-
-### How to Submit GitHub Repositories for Evaluation
-
-#### 1. Prepare Your Repository
-
-Ensure your GitHub repository is:
-- **Public** or accessible with provided credentials
-- **Complete** with all necessary files for your course
-- **Committed** to a specific commit you want evaluated
-
-#### 2. Get the Commit URL
-
-```bash
-# Navigate to your repository on GitHub
-# Go to the specific commit you want evaluated
-# Copy the commit URL (format: https://github.com/user/repo/commit/hash)
-```
-
-#### 3. Submit for Evaluation
-
-1. **Login** to ZoomJudge dashboard
-2. **Navigate** to the evaluation form
-3. **Paste** your GitHub commit URL
-4. **Select** the appropriate course type:
-   - Data Engineering Zoomcamp
-   - Machine Learning Zoomcamp
-   - MLOps Zoomcamp
-   - LLM Zoomcamp
-   - Stock Markets Course
-5. **Click** "Start Evaluation"
-
-#### 4. Monitor Progress
-
-Watch the real-time status updates:
-- 🔄 **Processing**: System is analyzing your repository
-- 🔍 **File Selection**: AI is selecting relevant files
-- 🤖 **Evaluation**: AI is scoring your project
-- ✅ **Complete**: Results are ready
-
-### Understanding Evaluation Results
-
-#### Score Breakdown
-
-Each evaluation provides:
-
-**Overall Score**: Total points earned / Maximum possible points
-```
-Example: 18/30 points (60%)
-```
-
-**Criterion-by-Criterion Breakdown**:
-- **Problem Description** (2/2 points): ✅ Clear and comprehensive
-- **Cloud Usage** (3/4 points): ⚠️ Good implementation, missing IaC
-- **Data Ingestion** (4/4 points): ✅ Excellent pipeline design
-- **Transformations** (2/4 points): ❌ Limited data processing
-
-#### Feedback Interpretation
-
-**✅ Excellent (Full Points)**
-- Meets all requirements completely
-- Demonstrates best practices
-- Shows advanced understanding
-
-**⚠️ Good (Partial Points)**
-- Meets basic requirements
-- Some areas for improvement
-- Generally solid implementation
-
-**❌ Needs Improvement (Low/No Points)**
-- Missing key requirements
-- Significant gaps in implementation
-- Requires substantial work
-
-#### Source Files Referenced
-
-Each criterion shows which files were analyzed:
-```
-Problem Description (2/2 points)
-📁 Files analyzed: README.md, docs/overview.md
-💬 Feedback: "Excellent problem description with clear objectives..."
-```
-
-### Course Type Selection Guide
-
-#### Data Engineering Zoomcamp
-**Focus**: Data pipelines, cloud infrastructure, data warehousing
-**Key Files**: Pipeline scripts, infrastructure code, SQL transformations
-**Max Score**: 30 points
-
-#### Machine Learning Zoomcamp
-**Focus**: Model development, deployment, monitoring
-**Key Files**: Training scripts, notebooks, deployment code
-**Max Score**: 16 points
-
-#### MLOps Zoomcamp
-**Focus**: ML operations, automation, monitoring
-**Key Files**: Pipeline orchestration, deployment, monitoring setup
-**Max Score**: 22 points
-
-#### LLM Zoomcamp
-**Focus**: Large language models, RAG systems, evaluation
-**Key Files**: RAG implementation, evaluation scripts, deployment
-**Max Score**: 20 points
-
-#### Stock Markets Course
-**Focus**: Trading strategies, backtesting, automation
-**Key Files**: Strategy code, backtesting, automation scripts
-**Max Score**: 24 points
-
-### Cached vs. New Evaluation Results
-
-#### Cache Hit (🚀 Instant Results)
-```
-⚡ Cached Result
-📊 Evaluation completed in 0.1 seconds
-🔄 Based on similar repository analysis
-✅ Results from: 2 hours ago
-```
-
-**What this means**:
-- Your repository structure matches a previously analyzed repository
-- Results are delivered instantly
-- High confidence in accuracy due to similarity matching
-
-#### New Evaluation (🤖 Fresh Analysis)
-```
-🆕 New Analysis
-📊 Evaluation completed in 2.3 seconds
-🔍 Files selected: 23/156 files analyzed
-🤖 AI model: Claude Sonnet 4
-```
-
-**What this means**:
-- First-time analysis of your repository structure
-- AI performed fresh file selection and evaluation
-- Results cached for future similar repositories
-
-#### Hybrid Selection Methods
-
-**Tier 1 - Cache Hit**: Instant results from similar repositories
-**Tier 2 - Fingerprint Match**: Pattern-based selection (~0.5s)
-**Tier 3 - AI Selection**: Full AI analysis (~2s)
-
-### Tips for Better Evaluations
-
-#### Repository Organization
-- 📁 **Clear structure**: Organize files logically
-- 📝 **Comprehensive README**: Explain your project thoroughly
-- 🏷️ **Meaningful names**: Use descriptive file and folder names
-- 📋 **Documentation**: Include setup and usage instructions
-
-#### Course-Specific Tips
-
-**Data Engineering**:
-- Include infrastructure as code (Terraform, CloudFormation)
-- Document data pipeline architecture
-- Provide clear setup instructions
-- Include data quality checks
-
-**Machine Learning**:
-- Export notebooks to production scripts
-- Include model evaluation metrics
-- Document model deployment process
-- Provide reproducible environment setup
-
-**MLOps**:
-- Implement proper workflow orchestration
-- Include monitoring and alerting
-- Document CI/CD pipeline
-- Provide infrastructure automation
-
-## ⚡ Performance Optimizations & Metrics
-
-### Current Performance Achievements
-
-ZoomJudge has achieved significant performance improvements through the Ultimate Hybrid architecture:
-
-#### Speed Improvements
-- **60% Faster Processing**: Average evaluation time reduced from 5s to 2s
-- **Cache Hit Performance**: Sub-second response times (< 100ms)
-- **Fingerprint Matching**: ~500ms for pattern-based selection
-- **AI Selection Fallback**: ~2000ms for complex repositories
-
-#### Token Usage Optimization
-- **60% Token Reduction**: Achieved through intelligent file selection
-- **Current Baseline**: 4.66K - 21.36K tokens per evaluation
-- **Cost Efficiency**: $0.033 - $0.092 per evaluation
-- **Smart Preprocessing**: Notebook optimization and content filtering
-
-#### Accuracy Improvements
-- **15% Better File Selection**: More relevant files selected for evaluation
-- **Confidence Scoring**: 80%+ confidence threshold for automated selection
-- **Validation Engine**: Ensures evaluation quality and consistency
-
-### Performance Monitoring
-
-#### Real-time Metrics
-```bash
-System Health Dashboard:
-├── Cache Hit Rate: 85%
-├── Average Processing Time: 1.5s
-├── Error Rate: < 0.1%
-├── Throughput: 100 evaluations/hour
-└── Token Efficiency: 60% reduction
-```
-
-#### Tier Usage Distribution
-- **Tier 1 (Cache)**: 85% of requests
-- **Tier 2 (Fingerprint)**: 10% of requests
-- **Tier 3 (AI Selection)**: 5% of requests
-
-#### Cost Optimization
-```bash
-Cost Breakdown per Evaluation:
-├── File Selection Model (Qwen): $0.003 - $0.008
-├── Evaluation Model (Claude): $0.030 - $0.084
-├── Infrastructure: $0.001
-└── Total: $0.033 - $0.092
-```
-
-### Caching Mechanisms
-
-#### Intelligent Cache System
-- **Similarity Threshold**: 85% for cache hits
-- **Cache TTL**: 24 hours
-- **Storage Capacity**: 1,000 cached strategies
-- **Eviction Policy**: Least Recently Used (LRU)
-
-#### Repository Signature Matching
-```bash
-Signature Components:
-├── Directory Structure Pattern
-├── Technology Stack Detection
-├── File Type Distribution
-├── Project Size Category
-└── Pattern Hash Generation
-```
-
-#### Cache Performance
-- **Hit Rate**: 85% average across all repository types
-- **Miss Handling**: Automatic fallback to fingerprinting/AI
-- **Update Strategy**: Continuous learning from successful evaluations
-- **Warming System**: Proactive cache population for common patterns
-
-### Benchmarking Results
-
-#### Comparative Performance
-```bash
-Before Ultimate Hybrid:
-├── Average Time: 5.2 seconds
-├── Token Usage: 12K - 35K tokens
-├── Cost: $0.080 - $0.250
-├── Cache Hit Rate: 0%
-└── File Selection Accuracy: 65%
-
-After Ultimate Hybrid:
-├── Average Time: 1.5 seconds (71% improvement)
-├── Token Usage: 4.66K - 21.36K tokens (60% reduction)
-├── Cost: $0.033 - $0.092 (63% reduction)
-├── Cache Hit Rate: 85%
-└── File Selection Accuracy: 80% (15% improvement)
-```
-
-#### Quality Metrics
-- **Evaluation Consistency**: 95% reproducible results
-- **User Satisfaction**: 4.8/5 average rating
-- **False Positive Rate**: < 2%
-- **Coverage Completeness**: 98% of relevant files captured
-
-### Optimization Strategies
-
-#### File Selection Optimization
-1. **Intelligent Preprocessing**: Remove irrelevant files early
-2. **Content Summarization**: Compress large files while preserving meaning
-3. **Notebook Optimization**: Extract key cells and reduce output verbosity
-4. **Binary File Filtering**: Skip non-text files automatically
-
-#### AI Model Optimization
-1. **Dual Model Architecture**: Separate models for selection and evaluation
-2. **Temperature Tuning**: Optimized for consistency vs creativity
-3. **Prompt Engineering**: Course-specific prompts for better accuracy
-4. **Token Management**: Smart truncation and summarization
-
-#### Infrastructure Optimization
-1. **Edge Caching**: Distributed cache for global performance
-2. **Connection Pooling**: Efficient database connections
-3. **Async Processing**: Non-blocking evaluation pipeline
-4. **Resource Scaling**: Auto-scaling based on demand
-
-### Monitoring & Alerting
-
-#### Performance Alerts
-- **Response Time**: Alert if > 5 seconds
-- **Error Rate**: Alert if > 1%
-- **Cache Hit Rate**: Alert if < 70%
-- **Token Usage**: Alert if > baseline + 50%
-
-#### Quality Assurance
-- **Evaluation Validation**: Automatic quality checks
-- **Score Consistency**: Monitor for scoring anomalies
-- **User Feedback**: Continuous improvement based on user input
-- **A/B Testing**: Regular testing of optimization strategies
-
-## 🏗️ Architecture
-
-### Key Routes
-- `/` - Beautiful landing page with pricing
-- `/dashboard` - Protected user dashboard
-- `/dashboard/payment-gated` - Subscription-protected content
-- `/clerk-users-webhook` - Clerk webhook handler
-
-### Authentication Flow
-- Seamless sign-up/sign-in with Clerk
-- Automatic user sync to Convex database
-- Protected routes with middleware
-- Social login support
-- Automatic redirects to dashboard after auth
-
-### Payment Flow
-- Custom Clerk pricing table component
-- Subscription-based access control
-- Real-time payment status updates
-- Webhook-driven payment tracking
-
-### Database Schema
-```typescript
-// Users table
-users: {
-  name: string,
-  externalId: string // Clerk user ID
-}
-
-// Payment attempts tracking
-paymentAttempts: {
-  payment_id: string,
-  userId: Id<"users">,
-  payer: { user_id: string },
-  // ... additional payment data
-}
-```
-
-## Project Structure
+### Project Structure
 
 ```
-├── app/
-│   ├── (landing)/          # Landing page components
-│   │   ├── hero-section.tsx
-│   │   ├── features-one.tsx
-│   │   ├── pricing.tsx
-│   │   └── ...
-│   ├── dashboard/          # Protected dashboard
-│   │   ├── layout.tsx
-│   │   ├── page.tsx
-│   │   └── payment-gated/
-│   ├── globals.css         # Global styles
-│   ├── layout.tsx          # Root layout
-│   └── not-found.tsx       # Custom 404 page
-├── components/
-│   ├── ui/                 # shadcn/ui components
-│   ├── custom-clerk-pricing.tsx
-│   ├── theme-provider.tsx
-│   └── ...
-├── convex/                 # Backend functions
-│   ├── schema.ts           # Database schema
-│   ├── users.ts            # User management
-│   ├── paymentAttempts.ts  # Payment tracking
-│   └── http.ts             # Webhook handlers
-├── lib/
-│   └── utils.ts            # Utility functions
-└── middleware.ts           # Route protection
+├── app/                    # Next.js App Router
+│   ├── api/               # API routes
+│   ├── dashboard/         # Protected dashboard
+│   └── (landing)/         # Landing page
+├── components/            # React components
+│   ├── ui/               # shadcn/ui components
+│   └── feedback/         # Feedback system
+├── convex/               # Backend functions
+│   ├── schema.ts         # Database schema
+│   ├── evaluations.ts    # Evaluation logic
+│   └── users.ts          # User management
+├── lib/                  # Core libraries
+│   ├── ultimate-hybrid/  # Hybrid architecture
+│   ├── config/          # Configuration
+│   ├── validation/      # Input validation
+│   └── utils/           # Utilities
+├── hooks/               # React hooks
+└── public/              # Static assets
 ```
 
-## 📚 API Documentation
+### Contributing Guidelines
 
-### Hybrid Evaluation Endpoint
-
-```typescript
-POST /api/hybrid-evaluation
-
-Request Body:
-{
-  "repoUrl": "https://github.com/user/repo/commit/hash",
-  "courseId": "data-engineering" | "machine-learning" | "llm-zoomcamp" | "mlops" | "stock-markets",
-  "userId": "user_123" // optional
-}
-
-Response:
-{
-  "evaluationId": "eval_abc123",
-  "status": "processing" | "completed" | "failed",
-  "results": {
-    "totalScore": 18,
-    "maxScore": 30,
-    "breakdown": {
-      "Problem description": {
-        "score": 2,
-        "maxScore": 2,
-        "feedback": "Excellent problem description...",
-        "sourceFiles": ["README.md"]
-      }
-    },
-    "overallFeedback": "Strong project with clear objectives..."
-  },
-  "performance": {
-    "processingTime": 1500,
-    "method": "cache" | "fingerprint" | "ai-selection",
-    "tokenUsage": 8500,
-    "cacheHit": true
-  }
-}
-```
-
-## 🔧 Development Scripts
-
-```bash
-# Development
-bun run dev              # Start development server with Turbopack
-bun run build            # Build for production
-bun run start            # Start production server
-bun run lint             # Run ESLint
-
-# Database
-bun run init-db          # Initialize database with default courses
-bunx convex dev          # Start Convex development environment
-
-# Debugging & Analysis
-bun run check-criteria   # Check for hardcoded criteria
-bun run debug:file-selection  # Debug file selection system
-```
-
-## 🌍 Environment Variables
-
-### Required for .env.local
-
-```bash
-# Convex Configuration
-CONVEX_DEPLOYMENT=your_convex_deployment_here
-NEXT_PUBLIC_CONVEX_URL=your_convex_url_here
-
-# Clerk Authentication & Billing
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key_here
-CLERK_SECRET_KEY=your_clerk_secret_key_here
-NEXT_PUBLIC_CLERK_FRONTEND_API_URL=https://your-clerk-frontend-api-url.clerk.accounts.dev
-
-# Clerk Redirect URLs
-NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/dashboard
-NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/dashboard
-NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/dashboard
-NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/dashboard
-
-# OpenRouter Configuration
-OPENROUTER_API_KEY=your_openrouter_api_key_here
-
-# GitHub Configuration (for repository access)
-GITHUB_TOKEN=your_github_token_here
-
-# Rate Limiting (Upstash Redis) - Optional
-UPSTASH_REDIS_REST_URL=your_upstash_redis_url_here
-UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_token_here
-```
-
-### Required for Convex Dashboard
-
-```bash
-CLERK_WEBHOOK_SECRET=whsec_your_webhook_secret_here
-NEXT_PUBLIC_CLERK_FRONTEND_API_URL=https://your-clerk-frontend-api-url.clerk.accounts.dev
-OPENROUTER_API_KEY=your_openrouter_api_key_here
-GITHUB_TOKEN=your_github_token_here
-```
-
-## Deployment
-
-### Vercel Deployment (Recommended)
-
-1. Connect your repository to Vercel
-2. Set environment variables in Vercel dashboard
-3. Deploy automatically on push to main branch
-
-The project is optimized for Vercel with:
-- Automatic builds with Turbopack
-- Environment variable management
-- Edge function support
-
-### Manual Deployment
-
-Build for production:
-
-```bash
-bun run build
-bun run start
-```
-
-## 🔧 Development Scripts
-
-```bash
-# Development
-bun run dev              # Start development server with Turbopack
-bun run build            # Build for production
-bun run start            # Start production server
-bun run lint             # Run ESLint
-
-# Database
-bun run init-db          # Initialize database with default courses
-bunx convex dev          # Start Convex development environment
-
-# Debugging & Analysis
-bun run check-criteria   # Check for hardcoded criteria
-bun run debug:file-selection  # Debug file selection system
-```
+1. **Development Setup**: Follow installation guide
+2. **Code Standards**: TypeScript strict mode, ESLint compliance
+3. **Testing**: Add tests for new features
+4. **Documentation**: Update README and inline comments
+5. **Performance**: Consider impact on evaluation speed
+6. **Security**: Follow security best practices
 
 ## 🚀 Deployment
 
 ### Vercel Deployment (Recommended)
 
-1. **Connect Repository**: Link your GitHub repository to Vercel
-2. **Environment Variables**: Set all required environment variables in Vercel dashboard
-3. **Deploy**: Automatic deployment on push to main branch
+1. **Connect Repository** to Vercel
+2. **Configure Environment Variables** in Vercel dashboard
+3. **Deploy**: Automatic deployment on push to main
 
 ### Environment Variables for Production
 
 ```bash
-# Required for Vercel
+# Core Services
 CONVEX_DEPLOYMENT=prod:your-deployment
 NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
 CLERK_SECRET_KEY=sk_live_...
+
+# AI & External APIs
 OPENROUTER_API_KEY=sk-or-...
 GITHUB_TOKEN=ghp_...
+
+# Optional Services
 UPSTASH_REDIS_REST_URL=https://...
 UPSTASH_REDIS_REST_TOKEN=...
 ```
 
-### Performance Optimization for Production
+### Production Optimizations
 
-- **Edge Caching**: Enabled for static assets
-- **Image Optimization**: Automatic Next.js image optimization
-- **Bundle Analysis**: Use `bun run build` to analyze bundle size
-- **Monitoring**: Integrated performance monitoring with Convex
+- **Edge Caching**: Automatic static asset optimization
+- **Image Optimization**: Next.js automatic image optimization  
+- **Bundle Analysis**: Optimized bundle splitting
+- **Performance Monitoring**: Real-time metrics and alerting
+- **Error Tracking**: Comprehensive error monitoring
 
-## 🤝 Contributing
+## 🔮 Roadmap & Future Enhancements
 
-We welcome contributions to ZoomJudge! Here's how to get started:
+### Near-term
+- [ ] **PDF Export Implementation**: Complete PDF generation for evaluation reports
+- [ ] **Advanced Analytics Dashboard**: Performance charts and trend analysis
+- [ ] **API Access**: RESTful API for Pro and Enterprise tiers
+- [ ] **Comparison Tools**: Side-by-side evaluation comparison
 
-### Development Setup
+### Medium-term
+- [ ] **Team Collaboration**: Organization and team management features
+- [ ] **Custom Criteria**: User-defined evaluation criteria
+- [ ] **Priority Processing**: Faster evaluation for paid tiers
+- [ ] **Mobile App**: Native mobile application
 
-1. **Fork** the repository
-2. **Clone** your fork locally
-3. **Install** dependencies with `bun install`
-4. **Set up** environment variables
-5. **Create** a feature branch: `git checkout -b feature/amazing-feature`
+### Long-term
+- [ ] **Bulk Processing**: Multiple repository evaluation for Enterprise
+- [ ] **AI Model Fine-tuning**: Custom models for specific course types
+- [ ] **Integration Ecosystem**: GitHub App, VS Code extension
+- [ ] **Enterprise Features**: SSO, advanced security, custom deployment
 
-### Contribution Guidelines
+## 📄 License & Support
 
-- **Code Style**: Follow existing TypeScript and React patterns
-- **Testing**: Add tests for new features
-- **Documentation**: Update README and code comments
-- **Performance**: Consider impact on evaluation speed and token usage
-- **Security**: Follow security best practices for API keys and user data
+### License
+This project is licensed under the **MIT License**. See [LICENSE](LICENSE) file for details.
 
-### Areas for Contribution
+### Support Channels
 
-- **New Course Types**: Add support for additional Zoomcamp courses
-- **Evaluation Criteria**: Improve scoring algorithms and criteria
-- **Performance**: Optimize file selection and caching mechanisms
-- **UI/UX**: Enhance user interface and experience
-- **Documentation**: Improve guides and API documentation
+- **Documentation**: Comprehensive guides and API documentation
+- **GitHub Issues**: Bug reports and feature requests
+- **Community**: GitHub Discussions for community support
+- **Enterprise**: Dedicated support for enterprise customers
 
-### Pull Request Process
+### Acknowledgments
 
-1. **Update** documentation for any new features
-2. **Test** your changes thoroughly
-3. **Commit** with clear, descriptive messages
-4. **Push** to your feature branch
-5. **Create** a Pull Request with detailed description
-
-## 📄 License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Zoomcamp Community**: For providing excellent course content and evaluation criteria
-- **OpenRouter**: For providing access to state-of-the-art AI models
-- **Convex**: For the real-time database and serverless functions
-- **Clerk**: For authentication and billing infrastructure
-- **Vercel**: For hosting and deployment platform
-
-## 📞 Support
-
-- **Documentation**: Check this README and inline code comments
-- **Issues**: Report bugs and feature requests on GitHub Issues
-- **Community**: Join discussions in GitHub Discussions
-- **Email**: Contact support for enterprise inquiries
+- **Zoomcamp Community**: Course content and evaluation criteria
+- **OpenRouter**: Access to state-of-the-art AI models
+- **Convex**: Real-time database and serverless infrastructure
+- **Clerk**: Authentication and billing platform
+- **Vercel**: Hosting and deployment optimization
 
 ---
 
-**ZoomJudge** - Revolutionizing repository evaluation with AI-powered analysis and intelligent caching. Built for the modern developer workflow with performance, accuracy, and user experience at its core.
+**ZoomJudge** - Revolutionizing repository evaluation with AI-powered analysis and intelligent caching.  
+Built for the modern developer workflow with performance, accuracy, and user experience at its core.
 
-Built with ❤️ using Next.js 15, Convex, Clerk, and the Ultimate Hybrid Architecture.
+*Built with ❤️ using Next.js 15, TypeScript, Convex, Clerk, and the Ultimate Hybrid Architecture.*
