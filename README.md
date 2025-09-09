@@ -5,7 +5,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
 [![Convex](https://img.shields.io/badge/Database-Convex-orange)](https://convex.dev)
 [![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black)](https://vercel.com)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 > **AI-powered GitHub repository evaluation platform for Zoomcamp courses**  
 > Get instant feedback on your Data Engineering, ML, MLOps, LLM, and Stock Markets projects with intelligent scoring and detailed analysis.
@@ -567,7 +567,7 @@ UPSTASH_REDIS_REST_TOKEN=...
 ## 📄 License & Support
 
 ### License
-This project is licensed under the **MIT License**. See [LICENSE](LICENSE) file for details.
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. See [LICENSE](LICENSE) file for details.
 
 ### Support Channels
 
