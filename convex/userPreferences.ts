@@ -72,7 +72,7 @@ export const updateNotificationPreferences = mutation({
 
     if (!existingPreferences) {
       // Create new preferences record
-      const preferencesId = await ctx.db.insert("userPreferences", {
+      const newPreferences = {
         userId,
         emailNotifications: args.emailNotifications ?? true,
         pushNotifications: args.pushNotifications ?? false,
@@ -82,9 +82,11 @@ export const updateNotificationPreferences = mutation({
         twoFactorEnabled: false,
         createdAt: now,
         updatedAt: now,
-      });
+      };
 
-      return await ctx.db.get(preferencesId);
+      const preferencesId = await ctx.db.insert("userPreferences", newPreferences);
+
+      return { _id: preferencesId, _creationTime: now, ...newPreferences };
     } else {
       // Update existing preferences
       const updateData: any = {
@@ -108,7 +110,7 @@ export const updateNotificationPreferences = mutation({
       }
 
       await ctx.db.patch(existingPreferences._id, updateData);
-      return await ctx.db.get(existingPreferences._id);
+      return { ...existingPreferences, ...updateData };
     }
   },
 });
@@ -131,7 +133,7 @@ export const updateSecurityPreferences = mutation({
 
     if (!existingPreferences) {
       // Create new preferences record
-      const preferencesId = await ctx.db.insert("userPreferences", {
+      const newPreferences = {
         userId,
         emailNotifications: true,
         pushNotifications: false,
@@ -142,9 +144,11 @@ export const updateSecurityPreferences = mutation({
         lastPasswordChange: args.lastPasswordChange,
         createdAt: now,
         updatedAt: now,
-      });
+      };
 
-      return await ctx.db.get(preferencesId);
+      const preferencesId = await ctx.db.insert("userPreferences", newPreferences);
+
+      return { _id: preferencesId, _creationTime: now, ...newPreferences };
     } else {
       // Update existing preferences
       const updateData: any = {
@@ -159,7 +163,7 @@ export const updateSecurityPreferences = mutation({
       }
 
       await ctx.db.patch(existingPreferences._id, updateData);
-      return await ctx.db.get(existingPreferences._id);
+      return { ...existingPreferences, ...updateData };
     }
   },
 });
@@ -177,7 +181,7 @@ export const initializeUserPreferences = mutation({
 
     if (!existingPreferences) {
       const now = Date.now();
-      const preferencesId = await ctx.db.insert("userPreferences", {
+      const newPreferences = {
         userId: args.userId,
         emailNotifications: true,
         pushNotifications: false,
@@ -187,9 +191,11 @@ export const initializeUserPreferences = mutation({
         twoFactorEnabled: false,
         createdAt: now,
         updatedAt: now,
-      });
+      };
 
-      return await ctx.db.get(preferencesId);
+      const preferencesId = await ctx.db.insert("userPreferences", newPreferences);
+
+      return { _id: preferencesId, _creationTime: now, ...newPreferences };
     }
 
     return existingPreferences;

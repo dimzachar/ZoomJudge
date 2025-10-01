@@ -10,6 +10,19 @@ import "../lib/console-override";
  * for billing violations, unauthorized access attempts, and admin actions.
  */
 
+const SYSTEM_EVENT_USER_ID = process.env.SECURITY_EVENTS_SYSTEM_USER_ID;
+const ANONYMOUS_EVENT_USER_ID = process.env.SECURITY_EVENTS_ANONYMOUS_USER_ID ?? "anonymous";
+
+const resolveSecurityUserId = (provided?: string, fallback?: string): string => {
+  if (provided) {
+    return provided;
+  }
+  if (fallback) {
+    return fallback;
+  }
+  throw new Error("Security event requires a user identifier");
+};
+
 // Log billing limit violations
 export const logBillingViolation = internalMutation({
   args: {
@@ -119,9 +132,10 @@ export const logUnauthorizedAccess = internalMutation({
     userAgent: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const userId = resolveSecurityUserId(args.userId, ANONYMOUS_EVENT_USER_ID);
     await ctx.db.insert("securityEvents", {
       type: "unauthorized_access",
-      userId: args.userId || "anonymous",
+      userId,
       timestamp: Date.now(),
       details: {
         attemptedResource: args.attemptedResource,
@@ -267,7 +281,7 @@ export const triggerSecurityAlert = internalMutation({
     // Log the alert
     await ctx.db.insert("securityEvents", {
       type: "security_alert",
-      userId: args.userId || "system",
+      userId: resolveSecurityUserId(args.userId, SYSTEM_EVENT_USER_ID),
       timestamp: Date.now(),
       details: {
         alertType: args.eventType,
@@ -300,7 +314,7 @@ export const logAPIAccess = internalMutation({
   handler: async (ctx, args) => {
     await ctx.db.insert("securityEvents", {
       type: "api_access",
-      userId: args.userId || "anonymous",
+      userId: resolveSecurityUserId(args.userId, ANONYMOUS_EVENT_USER_ID),
       timestamp: Date.now(),
       details: {
         endpoint: args.endpoint,
@@ -329,7 +343,7 @@ export const logSuspiciousActivity = internalMutation({
   handler: async (ctx, args) => {
     await ctx.db.insert("securityEvents", {
       type: "suspicious_activity",
-      userId: args.userId || "anonymous",
+      userId: resolveSecurityUserId(args.userId, ANONYMOUS_EVENT_USER_ID),
       timestamp: Date.now(),
       details: {
         activityType: args.activityType,
@@ -359,7 +373,7 @@ export const logAuthenticationEvent = internalMutation({
   handler: async (ctx, args) => {
     await ctx.db.insert("securityEvents", {
       type: "authentication",
-      userId: args.userId || "anonymous",
+      userId: resolveSecurityUserId(args.userId, ANONYMOUS_EVENT_USER_ID),
       timestamp: Date.now(),
       details: {
         eventType: args.eventType,

@@ -249,7 +249,7 @@ export const updateEmailTemplate = mutation({
     }
 
     await ctx.db.patch(template._id, updateData);
-    return await ctx.db.get(template._id);
+    return { ...template, ...updateData };
   },
 });
 
@@ -332,7 +332,7 @@ export const updateEmailStatus = internalMutation({
     }
 
     await ctx.db.patch(emailLog._id, updateData);
-    return await ctx.db.get(emailLog._id);
+    return { ...emailLog, ...updateData };
   },
 });
 
@@ -535,7 +535,7 @@ export const updateEmailPreferences = mutation({
       }
 
       await ctx.db.patch(existing._id, updateData);
-      return await ctx.db.get(existing._id);
+      return { ...existing, ...updateData };
     }
   },
 });
@@ -576,7 +576,7 @@ export const updateEmailLogStatus = mutation({
     if (args.errorMessage) updateData.errorMessage = args.errorMessage;
 
     await ctx.db.patch(emailLog._id, updateData);
-    return await ctx.db.get(emailLog._id);
+    return { ...emailLog, ...updateData };
   },
 });
 
@@ -630,7 +630,7 @@ export const updateUserEmailPreferences = mutation({
       if (args.weeklyReports !== undefined) updateData.weeklyReports = args.weeklyReports;
 
       await ctx.db.patch(existing._id, updateData);
-      return await ctx.db.get(existing._id);
+      return { ...existing, ...updateData };
     }
   },
 });

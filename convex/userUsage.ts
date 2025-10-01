@@ -74,24 +74,28 @@ export const incrementEvaluationCount = mutation({
       nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
       nextMonth.setHours(0, 0, 0, 0);
 
-      const usageId = await ctx.db.insert("userUsage", {
+      const newUsage = {
         userId,
         month: currentMonth,
         evaluationsCount: 1,
-        subscriptionTier: "free", // Default tier
+        subscriptionTier: "free" as const, // Default tier
         lastEvaluationAt: now,
         resetAt: nextMonth.getTime(),
-      });
+      };
 
-      return await ctx.db.get(usageId);
+      const usageId = await ctx.db.insert("userUsage", newUsage);
+
+      return { _id: usageId, _creationTime: now, ...newUsage };
     } else {
       // Increment existing count
-      await ctx.db.patch(usage._id, {
+      const updateData = {
         evaluationsCount: usage.evaluationsCount + 1,
         lastEvaluationAt: Date.now(),
-      });
+      };
 
-      return await ctx.db.get(usage._id);
+      await ctx.db.patch(usage._id, updateData);
+
+      return { ...usage, ...updateData };
     }
   },
 });
@@ -118,13 +122,15 @@ export const updateSubscriptionTier = mutation({
       nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
       nextMonth.setHours(0, 0, 0, 0);
 
-      const usageId = await ctx.db.insert("userUsage", {
+      const newUsage = {
         userId,
         month: currentMonth,
         evaluationsCount: 0,
         subscriptionTier: args.subscriptionTier,
         resetAt: nextMonth.getTime(),
-      });
+      };
+
+      const usageId = await ctx.db.insert("userUsage", newUsage);
 
       // Schedule Clerk metadata sync
       await ctx.scheduler.runAfter(0, api.userUsage.syncTierToClerk, {
@@ -132,12 +138,14 @@ export const updateSubscriptionTier = mutation({
         subscriptionTier: args.subscriptionTier,
       });
 
-      return await ctx.db.get(usageId);
+      return { _id: usageId, _creationTime: now, ...newUsage };
     } else {
       // Update existing record
-      await ctx.db.patch(usage._id, {
+      const updateData = {
         subscriptionTier: args.subscriptionTier,
-      });
+      };
+
+      await ctx.db.patch(usage._id, updateData);
 
       // Schedule Clerk metadata sync
       await ctx.scheduler.runAfter(0, api.userUsage.syncTierToClerk, {
@@ -145,7 +153,7 @@ export const updateSubscriptionTier = mutation({
         subscriptionTier: args.subscriptionTier,
       });
 
-      return await ctx.db.get(usage._id);
+      return { ...usage, ...updateData };
     }
   },
 });
@@ -352,17 +360,19 @@ export const incrementEvaluationCountInternal = internalMutation({
           nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
           nextMonth.setHours(0, 0, 0, 0);
 
-          const usageId = await ctx.db.insert("userUsage", {
+          const newUsage = {
             userId: args.userId,
             month: currentMonth,
             evaluationsCount: 1,
-            subscriptionTier: "free",
+            subscriptionTier: "free" as const,
             lastEvaluationAt: now,
             resetAt: nextMonth.getTime(),
-            version: 1, // Add version for optimistic locking
-          });
+            version: 1 as const, // Add version for optimistic locking
+          };
 
-          return await ctx.db.get(usageId);
+          const usageId = await ctx.db.insert("userUsage", newUsage);
+
+          return { _id: usageId, _creationTime: now, ...newUsage };
         } else {
           // Check limits before incrementing using centralized tier limits
           const limit = TIER_LIMITS[usage.subscriptionTier as keyof typeof TIER_LIMITS]?.evaluationsPerMonth || TIER_LIMITS.free.evaluationsPerMonth;
@@ -372,13 +382,15 @@ export const incrementEvaluationCountInternal = internalMutation({
           }
 
           // Atomic increment with version check
-          await ctx.db.patch(usage._id, {
+          const updateData = {
             evaluationsCount: usage.evaluationsCount + 1,
             lastEvaluationAt: Date.now(),
             version: (usage.version || 0) + 1,
-          });
+          };
 
-          return await ctx.db.get(usage._id);
+          await ctx.db.patch(usage._id, updateData);
+
+          return { ...usage, ...updateData };
         }
       } catch (error) {
         retryCount++;
@@ -418,24 +430,28 @@ export const updateUserSubscriptionFromWebhook = internalMutation({
         nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
         nextMonth.setHours(0, 0, 0, 0);
 
-        const usageId = await ctx.db.insert("userUsage", {
+        const newUsage = {
           userId: args.userId,
           month: currentMonth,
           evaluationsCount: 0,
           subscriptionTier: args.subscriptionTier,
           resetAt: nextMonth.getTime(),
-        });
+        };
+
+        const usageId = await ctx.db.insert("userUsage", newUsage);
 
         console.log(`Created new usage record for user ${args.userId} with tier ${args.subscriptionTier}`);
-        return await ctx.db.get(usageId);
+        return { _id: usageId, _creationTime: now, ...newUsage };
       } else {
         // Update existing record
-        await ctx.db.patch(usage._id, {
+        const updateData = {
           subscriptionTier: args.subscriptionTier,
-        });
+        };
+
+        await ctx.db.patch(usage._id, updateData);
 
         console.log(`Updated existing usage record for user ${args.userId} to tier ${args.subscriptionTier}`);
-        return await ctx.db.get(usage._id);
+        return { ...usage, ...updateData };
       }
     } catch (error) {
       console.error(`Failed to update subscription from webhook for user ${args.userId}:`, error);
