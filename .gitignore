@@ -215,3 +215,5 @@ convex/migrations/*
 # !test-plan-edge-cases.md
 
 test/*
+.*/*
+hero-section-main-app-dark.png
