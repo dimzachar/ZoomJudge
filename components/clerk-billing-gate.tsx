@@ -110,9 +110,15 @@ export function ClerkBillingPageGate({
 export function useUserTier(): UserTier {
   const { user } = useUser()
   const currentUsage = useQuery(api.userUsage.getCurrentUsage)
+  const currentUser = useQuery(api.users.current)
 
   if (!user) {
     return 'free'
+  }
+
+  // Admin users automatically get enterprise access
+  if (currentUser?.isAdmin) {
+    return 'enterprise'
   }
 
   // Use the subscription tier from Convex database as the source of truth

@@ -12,6 +12,16 @@ async function getAuthenticatedUserId(ctx: any): Promise<string> {
 
 // Helper function to get user tier from Convex database (source of truth)
 async function getUserTierFromDatabase(ctx: any, userId: string): Promise<string> {
+  // Check if user is admin - admins get enterprise access
+  const user = await ctx.db
+    .query("users")
+    .withIndex("byExternalId", (q: any) => q.eq("externalId", userId))
+    .first();
+
+  if (user?.isAdmin) {
+    return 'enterprise';
+  }
+
   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
 
   const usage = await ctx.db

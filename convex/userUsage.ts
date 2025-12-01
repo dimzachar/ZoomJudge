@@ -25,6 +25,12 @@ export const getCurrentUsage = query({
       const userId = await getAuthenticatedUserId(ctx);
       const currentMonth = getCurrentMonth();
 
+      // Check if user is admin - admins get enterprise tier
+      const user = await ctx.db
+        .query("users")
+        .withIndex("byExternalId", (q) => q.eq("externalId", userId))
+        .first();
+
       const usage = await ctx.db
         .query("userUsage")
         .withIndex("byUserAndMonth", (q) => q.eq("userId", userId).eq("month", currentMonth))
@@ -41,9 +47,18 @@ export const getCurrentUsage = query({
           userId,
           month: currentMonth,
           evaluationsCount: 0,
-          subscriptionTier: "free",
+          // Admin users get enterprise tier by default
+          subscriptionTier: user?.isAdmin ? "enterprise" : "free",
           lastEvaluationAt: undefined,
           resetAt: nextMonth.getTime(),
+        };
+      }
+
+      // Override tier for admin users
+      if (user?.isAdmin) {
+        return {
+          ...usage,
+          subscriptionTier: "enterprise",
         };
       }
 
@@ -163,6 +178,22 @@ export const canPerformEvaluation = query({
   handler: async (ctx) => {
     const userId = await getAuthenticatedUserId(ctx);
     const currentMonth = getCurrentMonth();
+
+    // Check if user is admin - admins get unlimited access
+    const user = await ctx.db
+      .query("users")
+      .withIndex("byExternalId", (q) => q.eq("externalId", userId))
+      .first();
+
+    if (user?.isAdmin) {
+      return {
+        canEvaluate: true,
+        currentCount: 0,
+        limit: -1,
+        tier: 'enterprise',
+        reason: null,
+      };
+    }
 
     const usage = await ctx.db
       .query("userUsage")

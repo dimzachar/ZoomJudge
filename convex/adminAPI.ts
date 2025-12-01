@@ -34,6 +34,24 @@ export const adminUpgradeUser = mutation({
   },
 });
 
+// Public wrapper for changing user subscription tier
+export const adminChangeUserTier = mutation({
+  args: {
+    userId: v.string(),
+    tier: v.string(),
+  },
+  handler: async (ctx, args): Promise<{ success: boolean; message: string }> => {
+    const adminUserId = await getAuthenticatedUserId(ctx);
+
+    // Call internal function with admin check
+    return await ctx.runMutation(internal.adminUtils.changeUserTier, {
+      userId: args.userId,
+      tier: args.tier,
+      adminUserId,
+    });
+  },
+});
+
 // Public wrapper for resetting user evaluation count
 export const adminResetUserCount = mutation({
   args: {

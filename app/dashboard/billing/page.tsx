@@ -32,7 +32,6 @@ export default function BillingPage() {
   const { user } = useUser()
   const userTier = useUserTier()
   const tierInfo = getTierInfo(userTier)
-  const updateSubscriptionTier = useMutation(api.userUsage.updateSubscriptionTier)
   const syncSubscriptionFromClerk = useMutation(api.subscriptions.syncSubscriptionFromClerk)
 
   // Get subscription info from user metadata
@@ -121,29 +120,6 @@ export default function BillingPage() {
     } catch (error) {
       console.error("Failed to sync subscription:", error)
       toast.error("Failed to sync subscription. Please try again.")
-    }
-  }
-
-  // Make function available globally for debugging
-  if (typeof window !== 'undefined') {
-    (window as any).syncToProTier = async () => {
-      try {
-        await updateSubscriptionTier({ subscriptionTier: "pro" })
-        console.log('Successfully updated to Pro tier')
-        window.location.reload()
-      } catch (error) {
-        console.error('Failed to update tier:', error)
-      }
-    }
-
-    (window as any).syncToStarterTier = async () => {
-      try {
-        await updateSubscriptionTier({ subscriptionTier: "starter" })
-        console.log('Successfully updated to Starter tier')
-        window.location.reload()
-      } catch (error) {
-        console.error('Failed to update tier:', error)
-      }
     }
   }
 

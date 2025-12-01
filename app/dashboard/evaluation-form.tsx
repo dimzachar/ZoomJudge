@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { BillingLimitModal, useBillingLimitModal } from '@/components/billing-limit-modal';
 import { debugLog, debugError } from '@/lib/debug-logger';
 import { TIER_LIMITS } from '@/lib/tier-permissions';
+import { useUserTier } from '@/components/clerk-billing-gate';
 
 // Form validation schema
 const evaluationFormSchema = z.object({
@@ -80,7 +81,8 @@ export function EvaluationForm({ onSubmissionSuccess }: EvaluationFormProps) {
 
   // Check if user is at billing limit
   const isAtLimit = canPerformEvaluation && !canPerformEvaluation.canEvaluate;
-  const userTier = currentUsage?.subscriptionTier || 'free';
+  // Use the centralized useUserTier hook which includes admin check
+  const userTier = useUserTier();
 
   // Calculate tier limits using centralized config
   const monthlyLimit = TIER_LIMITS[userTier as keyof typeof TIER_LIMITS]?.evaluationsPerMonth || TIER_LIMITS.free.evaluationsPerMonth;

@@ -79,6 +79,78 @@ export const upgradeUserToEnterprise = internalMutation({
   },
 });
 
+// Admin utility to change user subscription tier
+export const changeUserTier = internalMutation({
+  args: {
+    userId: v.string(),
+    tier: v.string(),
+    adminUserId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Validate tier
+    const validTiers = ["free", "starter", "pro", "enterprise"];
+    if (!validTiers.includes(args.tier)) {
+      throw new Error(`Invalid tier: ${args.tier}. Valid tiers are: ${validTiers.join(", ")}`);
+    }
+
+    // Check admin permissions
+    await checkAdminPermissions(ctx, args.adminUserId);
+
+    // Log admin action
+    await ctx.runMutation(internal.securityAudit.logAdminAction, {
+      adminUserId: args.adminUserId,
+      action: "change_user_tier",
+      targetUserId: args.userId,
+      details: { tier: args.tier },
+    });
+
+    // Find current usage record
+    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+    
+    const usage = await ctx.db
+      .query("userUsage")
+      .withIndex("byUserAndMonth", (q: any) => q.eq("userId", args.userId).eq("month", currentMonth))
+      .first();
+
+    if (usage) {
+      // Update existing record to new tier
+      await ctx.db.patch(usage._id, {
+        subscriptionTier: args.tier,
+      });
+
+      // Schedule Clerk metadata sync
+      await ctx.scheduler.runAfter(0, api.userUsage.syncTierToClerk, {
+        userId: args.userId,
+        subscriptionTier: args.tier,
+      });
+
+      return { success: true, message: `User ${args.userId} changed to ${args.tier} tier` };
+    } else {
+      // Create new usage record with specified tier
+      const now = Date.now();
+      const nextMonth = new Date();
+      nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
+      nextMonth.setHours(0, 0, 0, 0);
+
+      await ctx.db.insert("userUsage", {
+        userId: args.userId,
+        month: currentMonth,
+        evaluationsCount: 0,
+        subscriptionTier: args.tier,
+        resetAt: nextMonth.getTime(),
+      });
+
+      // Schedule Clerk metadata sync
+      await ctx.scheduler.runAfter(0, api.userUsage.syncTierToClerk, {
+        userId: args.userId,
+        subscriptionTier: args.tier,
+      });
+
+      return { success: true, message: `${args.tier} usage record created for user ${args.userId}` };
+    }
+  },
+});
+
 // Admin utility to reset user evaluation count
 export const resetUserEvaluationCount = internalMutation({
   args: {

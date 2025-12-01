@@ -8,11 +8,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { IconSparkles, IconTrendingUp } from "@tabler/icons-react"
 import { TIER_LIMITS } from "@/lib/tier-permissions"
+import { useUserTier } from "@/components/clerk-billing-gate"
 
 export function DashboardContent() {
   // Fetch real data from Convex
   const evaluationStats = useQuery(api.evaluations.getUserEvaluationStats)
   const currentUsage = useQuery(api.userUsage.getCurrentUsage)
+  
+  // Use the centralized useUserTier hook which includes admin check
+  const userTier = useUserTier()
 
   // Show loading state while data is being fetched
   if (evaluationStats === undefined || currentUsage === undefined || currentUsage === null) {
@@ -27,9 +31,6 @@ export function DashboardContent() {
       </div>
     )
   }
-
-  // Determine user tier from usage data
-  const userTier = currentUsage?.subscriptionTier || 'free'
 
   // Calculate monthly limits based on tier using centralized config
   const monthlyLimit = TIER_LIMITS[userTier as keyof typeof TIER_LIMITS]?.evaluationsPerMonth || TIER_LIMITS.free.evaluationsPerMonth

@@ -330,4 +330,18 @@ export default defineSchema({
       .index("byStatus", ["status"])
       .index("byScheduledAt", ["scheduledAt"])
       .index("byCreatedAt", ["createdAt"]),
-  });
+
+    // Subscription sync logs for tracking sync operations and debugging
+    subscriptionSyncLogs: defineTable({
+      userId: v.string(),
+      timestamp: v.number(),
+      syncType: v.string(), // "comprehensive", "admin_force", "periodic"
+      result: v.any(),
+      source: v.string(), // "user_initiated", "admin_action", "system"
+      adminUserId: v.optional(v.string()),
+    })
+      .index("byUserId", ["userId"])
+      .index("byTimestamp", ["timestamp"])
+      .index("bySyncType", ["syncType"])
+      .index("bySource", ["source"]),
+});
